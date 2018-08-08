@@ -29,3 +29,14 @@ plot(st_geometry(OSPAR_Reporting_Units_Level3))
 
 OSPAR_Reporting_Units_Level4 <- sf::st_read("Input/OSPAR_Reporting_Units.gdb", layer = "OSPAR_RU_Level4_v2_160119")
 plot(st_geometry(OSPAR_Reporting_Units_Level4))
+
+# Write layer as shapefiles
+sf::st_write(OSPAR_Reporting_Units_Level0, "Input/OSPAR_RU_Level0.shp")
+sf::st_write(OSPAR_Reporting_Units_Level1, "Input/OSPAR_RU_Level1.shp")
+sf::st_write(OSPAR_Reporting_Units_Level2, "Input/OSPAR_RU_Level2.shp")
+sf::st_write(OSPAR_Reporting_Units_Level3, "Input/OSPAR_RU_Level3.shp")
+sf::st_write(OSPAR_Reporting_Units_Level4, "Input/OSPAR_RU_Level4.shp")
+
+# Write layer to database
+
+
