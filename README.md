@@ -1,50 +1,62 @@
-# OSPAR Eutrophication Assessment Tool
+# OSPAR Common Procedure
 
-Common Procedure for the Identification of the Eutrophication Status of the OSPAR Maritime Area
-  a) The Screening Procedure
-  b) The Comprehensive Procedure
+OSPAR Common Procedure for the Identification of the Eutrophication Status of the OSPAR Maritime Area
+
+- The Screening Procedure
+- The Comprehensive Procedure
   
-https://www.ospar.org/work-areas/hasec/eutrophication/common-procedure
+<https://www.ospar.org/work-areas/hasec/eutrophication/common-procedure>
 
-The assessment tool is based on assessment units which are defined by OSPAR contracting parties and each assessment unit can have multiple indicators. Each indicator can have different temporal (months) and spatial (depths) coverage and reference values within the different assessment units
+Assessment units are defined by OSPAR contracting parties. An assessment unit can have multiple indicators. Each indicator can have different temporal (months) and spatial (depths) coverage and reference values within the different assessment units
 
 Indicator results can be calculated either from raw data reported to ICES or indicator results can be reported directly. 
 
-## Assessment Units
-  * Germany
-  * Sweden
+### Assessment Units
 
-## Nutrients
-  * Parameters
+- Sweden
+- Germany
+- Netherlands
+
+### Nutrients
+
+- Parameters
     * Dissolved Inorganic Nitrogen - DIN [NO3-N + NO2-N + NH4-N]
-    * Dissolved Inorganic Phosphorus - DIP [PO4_P]
-  * Unit
+    * Dissolved Inorganic Phosphorus - DIP [PO4-P]
+- Unit
     * umol/l
-  * Aggregation of dissolved nutrients
+- Aggregation of dissolved nutrients
     * Depth: <= 10 m
     * Period: Winter
-      * Sweden (December - February)
-    * Arithmetric mean of mean of mean by station, assessment unit and period per year - ThreeStageAnnualMean
+        + Sweden: December - February
+        + Germany: **September - February**
+        + Netherlands: November - February
+    * Arithmetric mean by station, year, period per assessment unit
 
-## Chlorophyll a
-  * Parameters
+### Chlorophyll a
+- Parameters
     * Chlorophyll a
-  * Units
+- Units
     * ug/l
-  * Aggregation
+- Aggregation
     * Depth: <= 10 m
-    * Period: Summer
-      * Sweden (June - September)
-    * Arithmetric mean of mean of mean by station, assessment unit and period per year - ThreeStageAnnualMean
+    * Period: Growing
+          + Sweden: June - August
+          + Germany: **March - October**
+          + Netherlands: March - September
+    * Arithmetric mean by station, year, period per assessment unit
 
-## Dissolved Oxygen
-  * Parameters
+### Dissolved Oxygen
+- Parameters
     * Dissolved Oxygen
-  * Units
-    * ml/l
-  * Aggregation
-    * Depth: <= 10 m above seafloor
-    * Period: July - October
-    * 1-, 5- and 10 percentile by station and cluster per year
-    
-- Salinity normalisation
+- Units
+    * mg/l
+- Aggregation
+    * Depth:
+          + Sweden: <= 10 % from the bottom
+          + Germany: bottom
+          + Netherlands: <= 3 m from the bottom
+    * Period: Annual
+      * Sweden: August - October
+      * Germany: March - October
+      * Netherlands: **January - December**
+    * Arithmetric minimum by station, year, period per assessment unit
