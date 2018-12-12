@@ -111,19 +111,3 @@ fwrite(dt3,paste("D:/JMP EUNOSAT/","Indicator_CPHL_EO_02.csv"))
 plot(OSPAR_Assessment_Units,col="NA")
 plot(dt["Chlorophyll"], col = "blue", add = TRUE)
 plot(dt2["Chlorophyll"])
-
-# Download nc files
-#url <- "ftp://ftp.rbins.be/RS%20products/JMP_EUNOSAT_CHL_v10/"
-#userpwd <- "EUNOSAT:3uN0s4t%57149"
-#filenames <- getURL(url, userpwd = userpwd, ftp.use.epsv = FALSE, dirlistonly = TRUE)  #reading filenames from ftp-server
-#filenames <- strsplit(filenames, "\r*\n")[[1]]
-#for(i in filenames){
-#  bin = getBinaryURL(paste0(url, i), userpwd = userpwd, verbose = TRUE, ftp.use.epsv = TRUE )
-#  writeBin()
-#}
-
-#url<- "ftp://adress/"
-#filenames <- getURL(url, userpwd="USER:PASSWORD", ftp.use.epsv = FALSE, dirlistonly = TRUE) #reading filenames from ftp-server
-#destnames <- filenames <-  strsplit(filenames, "\r*\n")[[1]] # destfiles = origin file names
-#con <-  getCurlHandle( ftp.use.epsv = FALSE, userpwd=userpwd)
-#mapply(function(x,y) writeBin(getBinaryURL(paste0(url, x), curl = con, dirlistonly = FALSE), y), x = filenames, y = paste("D:\\temp\\",destnames, sep = "")) #writing all zipped files in one directory
