@@ -1,4 +1,4 @@
-# OSPAR Common Procedure
+# OSPAR Common Procedure Eutrophication Assessment Tool
 
 OSPAR Common Procedure for the Identification of the Eutrophication Status of the OSPAR Maritime Area
 
