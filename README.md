@@ -13,9 +13,6 @@ Indicator results can be calculated either from raw data reported to ICES or ind
 
 ### Assessment Units
 
-- Sweden
-- Germany
-- Netherlands
 
 ### Indicators
 
@@ -27,10 +24,7 @@ Indicator results can be calculated either from raw data reported to ICES or ind
     - umol/l
   - Aggregation
     - Depth: <= 10 m
-    - Period: Winter
-      - Sweden: December - February
-      - Germany: **September - February**
-      - Netherlands: November - February
+    - Period: November - February (Winter season) 
     - Metric: Arithmetric mean by station, year, period per assessment unit
     - Normalisation: If the indicator concentration has a significant relation to salinity e.g. above the 95% confidence level (p<0.05) then the indicator is normalised to a given reference salinity e.g. ES_normalised = ES_observed + A * (S_reference - S_observed), where ES is the indicator concentration and S is the salinity and A is the regression slope (currently the reference salinity is set to the mean salinity for the assessment unit in question)
 
@@ -41,10 +35,7 @@ Indicator results can be calculated either from raw data reported to ICES or ind
     - ug/l
   - Aggregation
     - Depth: <= 10 m
-    - Period: Growing
-      - Sweden: June - August
-      - Germany: **March - October**
-      - Netherlands: March - September
+    - Period: March - October (Growing season)
     - Metric: Arithmetric mean by station, year, period per assessment unit
 
 - Dissolved Oxygen
@@ -53,12 +44,5 @@ Indicator results can be calculated either from raw data reported to ICES or ind
   - Units
     - mg/l
   - Aggregation
-    - Depth:
-      - Sweden: <= 10 % from the bottom
-      - Germany: bottom
-      - Netherlands: <= 3 m from the bottom
-    - Period: Annual
-      - Sweden: August - October
-      - Germany: March - October
-      - Netherlands: **January - December**
+    - Period: July - October
     - Metric: Arithmetric minimum by station, year, period per assessment unit

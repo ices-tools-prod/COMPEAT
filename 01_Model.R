@@ -7,7 +7,7 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
-packages <- c("sf", "data.table", "ggplot2", "TTAinterfaceTrendAnalysis")
+packages <- c("sf", "data.table", "ggplot2") #, "TTAinterfaceTrendAnalysis")
 ipak(packages)
 
 # Station Samples --------------------------------------------------------------
