@@ -17,12 +17,12 @@ ipak(packages)
 #colnames(OSPAR_20km_Grid) <- c("GridID","geometry")
 
 # Read OSPAR assessment units
-#OSPAR_Assessment_Units <- sf::st_read("MSSQL:server=SQL08;database=OceanOEAT_20062014;trusted_connection=yes;", "AssessmentUnit")
-#st_crs(OSPAR_Assessment_Units) <- 4326
-OSPAR_Assessment_Units <- sf::st_read("Input/OSPAR_Assessment_Units.shp")
+OSPAR_Assessment_Units <- sf::st_read("MSSQL:server=SQL09;database=OceanCOMPEAT_20062014_COMP4;trusted_connection=yes;", layer = "AssessmentUnit", query = "SELECT ID, GEOM FROM AssessmentUnit")
+st_crs(OSPAR_Assessment_Units) <- 4326
+#OSPAR_Assessment_Units <- sf::st_read("Input/COMP4_Assessment_Areas_v7b/COMP4_Assessment_Areas_v7b.shp")
 
 # Drop columns except ID
-OSPAR_Assessment_Units <- OSPAR_Assessment_Units[1]
+#OSPAR_Assessment_Units <- OSPAR_Assessment_Units[1]
 
 # Correct column names
 colnames(OSPAR_Assessment_Units) <- c("AssessmentUnitID","geometry")
@@ -91,13 +91,13 @@ dt1 <- lapply(filenames,function(filename){
 #dt1[sapply(dt1,is.null)] <- NULL
 
 # Combine data tables 
-dt2 <- rbindlist(dt1)
-
-
+#dt2 <- rbindlist(dt1)
 
 # Read csv files into data table
 path <- "D:/JMP EUNOSAT/TMP/"
 filenames <- list.files(path = path, pattern="*.csv", full.names = TRUE)
+#filenames <- list.files(path = path, pattern="200[6-9][0-9]{4}", full.names = TRUE) #979
+#filenames <- list.files(path = path, pattern="201[0-9]{5}", full.names = TRUE) #1225
 dt1 <- lapply(filenames,function(filename){fread(filename)})
 dt2 <- rbindlist(dt1)
 #fwrite(dt2,paste("D:/JMP EUNOSAT/","TMP.csv"))
