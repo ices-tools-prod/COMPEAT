@@ -309,7 +309,7 @@ wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = s
 # Add Year Count where STC = 100
 wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, UnitID)][wk4, on = .(IndicatorID, UnitID)]
 
-wk4[, STC := ifelse(NSTC100 >= N/2, 100, STC)]
+wk4[, STC := ifelse(!is.na(NSTC100) & NSTC100 >= N/2, 100, STC)]
 
 wk4 <- wk4[, TC := (GTC + STC) / 2]
 
