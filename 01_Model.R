@@ -7,8 +7,84 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
-packages <- c("sf", "data.table", "ggplot2") #, "TTAinterfaceTrendAnalysis")
+packages <- c("sf", "data.table", "ggplot2")
 ipak(packages)
+
+# Input ------------------------------------------------------------------------
+
+unitsFile <- "Assessment_Areas/COMP4_Assessment_Areas.csv"
+thresholdsFile <- "Assessment_Areas/thresholds.csv"
+stationFile <- "Input/Station.txt"
+sampleFile <- "Input/Sample.txt"
+
+# Units ------------------------------------------------------------------------
+
+# Read units from WKT
+units <- st_read(dsn = "Assessment_Areas/COMP4_Assessment_Areas.csv") %>%
+  st_set_crs(4326)
+
+# Remove unnessasary dimensions and convert data.frame to data.table
+units <- as.data.table(st_zm(units)) 
+
+# Order, Rename and Remove columns 
+units <- units[order(ID),list(Code = ID, Description = LongName, GEOM = geometry)] %>%
+  st_sf()
+
+# Identify invalid geometries
+st_is_valid(units)
+
+# Write to database
+st_write(
+ units,
+ dsn = "MSSQL:server=SQL09;database=OceanCOMPEAT_20062014_COMP4;trusted_connection=yes;",
+ layer = "AssessmentUnit",
+ layer_options = c("LAUNDER=NO", "GEOM_NAME=GEOM", "FID=ID")
+)
+
+# Read from database
+#OSPAR_Assessment_Units <- st_read(dsn = "MSSQL:server=SQL09;database=OceanCOMPEAT_20062014_COMP4;trusted_connection=yes;", layer = "AssessmentUnit", promote_to_multi = FALSE) %>%
+#  st_set_crs(4326)
+
+# Read from shapefile
+#OSPAR_Assessment_Units <- st_read("Input/COMP4_assessment_areas_v7b/COMP4_assessment_areas_v7b.shp")
+
+# Write as WKT
+#st_write(OSPAR_Assessment_Units, "Input/COMP4_assessment_areas_v7b/COMP4_assessment_areas_v6d.csv", layer_options = "GEOMETRY=AS_WKT")
+
+# Plot
+#plot(OSPAR_Assessment_Units)
+#ggplot() + geom_sf(data = OSPAR_Assessment_Units) + coord_sf() 
+
+
+
+
+# Make geometries valid by doing the buffer of nothing trick
+units <- st_buffer(units, 0.0)
+
+
+
+# Project assessment units into ETRS_1989_LAEA
+
+# Create 10, 30 and 60K grids covering the assessment units
+
+#
+
+# Intersect assessment grids to units
+
+# Calculate
+
+# Read stations
+
+# Make stations spatial keeping original latitude/longitude
+
+# Project stations into ETRS_1989_LAEA
+
+# Classify stations into assessment units
+
+# Classify stations into grids
+
+
+
 
 # Station Samples --------------------------------------------------------------
 # Extract and Classify stations into OSPAR assessment units from ICES Oceanographic database into OSPAR COMP Assessment database
