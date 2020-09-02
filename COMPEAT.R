@@ -208,7 +208,7 @@ for(i in 1:nrow(indicators)){
   # Add unit grid size
   wk <- wk[unitGridSize, on="UnitID", nomatch=0]
 
-  # Filter stations rows and columns --> UnitID, GridID, GridArea, Period, Month, StationID, Depth, ES
+  # Filter stations rows and columns --> UnitID, GridID, GridArea, Period, Month, StationID, Depth, Temperature, Salinity, ES
   if (month.min > month.max) {
     wk0 <- wk[
       (Period >= year.min & Period <= year.max) &
@@ -216,7 +216,7 @@ for(i in 1:nrow(indicators)){
         (Depth..m.db..PRIMARYVAR.DOUBLE >= depth.min & Depth..m.db..PRIMARYVAR.DOUBLE <= depth.max) &
         !is.na(ES) & 
         !is.na(UnitID),
-      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, ES)]
+      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
   } else {
     wk0 <- wk[
       (Period >= year.min & Period <= year.max) &
@@ -224,8 +224,31 @@ for(i in 1:nrow(indicators)){
         (Depth..m.db..PRIMARYVAR.DOUBLE >= depth.min & Depth..m.db..PRIMARYVAR.DOUBLE <= depth.max) &
         !is.na(ES) & 
         !is.na(UnitID),
-      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, ES)]
+      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
   }
+
+  # Salinity Normalisation for Nutrients
+  if (name == 'Dissolved Inorganic Nitrogen' || name == 'Dissolved Inorganic Phosphorus') {
+    # Get linear regression coefficients on ES~Salinity and Mean Salinity
+    wk00 <- wk0[!is.na(Salinity),
+                .(N = .N,
+                  MeanSalinity = mean(Salinity, na.rm = TRUE),
+                  B = coef(lm(ES~Salinity))[1],
+                  A = coef(lm(ES~Salinity))[2],
+                  P = ifelse(.N >= 2, summary(lm(ES~Salinity))$coef[2, 4], NA_real_),
+                  R2 = summary(lm(ES~Salinity))$adj.r.squared),
+                keyby = .(IndicatorID, UnitID)]
+  }
+  
+  # Merge data tables
+  wk0 <- wk00[wk0]
+
+  # Normalise indicator concentration if the indicator has a significant relation to salinity e.g. above the 95% confidence level (p<0.05)
+  # ES_normalised = ES_observed + A * (S_reference - S_observed)
+  # https://www.ospar.org/site/assets/files/37302/national_common_procedure_report_2016_sweden.pdf
+  wk0[, ESS := ifelse(P < 0.05 & !is.na(P) & !is.na(Salinity), ES + A * (MeanSalinity - Salinity), ES)]
+  
+  # NB! Salinity Normalisation above currently only implemented as test and not taken forward yet!  
   
   if (metric == 'Mean'){
     # Calculate station mean --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
