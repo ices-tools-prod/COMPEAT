@@ -168,6 +168,7 @@ wk2list = list()
 for(i in 1:nrow(indicators)){
   indicatorID <- indicators[i, IndicatorID]
   criteriaID <- indicators[i, CategoryID]
+  name <- indicators[i, Name]
   year.min <- indicators[i, YearMin]
   year.max <- indicators[i, YearMax]
   month.min <- indicators[i, MonthMin]
@@ -184,7 +185,7 @@ for(i in 1:nrow(indicators)){
   wk[, Period := ifelse(month.min > month.max & Month >= month.min, Year + 1, Year)]
   
   # Create Indicator
-  if (indicatorID == 1) { # Dissolved Inorganic Nitrogen
+  if (name == 'Dissolved Inorganic Nitrogen') {
     wk$ES <- apply(wk[, list(Nitrate..umol.l., Nitrite..umol.l., Ammonium..umol.l.)], 1, function(x){
       if (all(is.na(x)) | is.na(x[1])) {
         NA
@@ -194,14 +195,14 @@ for(i in 1:nrow(indicators)){
       }
     })
   }
-  else if (indicatorID == 2) { # Dissolved Inorganic Phosphorus
+  else if (name == 'Dissolved Inorganic Phosphorus') {
     wk[,ES := Phosphate..umol.l.]
   }
-  else if (indicatorID == 3) { # Chlorophyll a
+  else if (name == 'Chlorophyll a') {
     wk[, ES := Chlorophyll.a..ug.l.]
   }
-  else if (indicatorID == 4) { # Oxygen Deficiency
-    wk[, ES := Oxygen..ml.l.]
+  else if (name == 'Oxygen Deficiency') {
+    wk[, ES := Oxygen..ml.l. / 0.7] # Convert ml/l to mg/l by factor of 0.7
   }
 
   # Add unit grid size
@@ -226,18 +227,18 @@ for(i in 1:nrow(indicators)){
       .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, ES)]
   }
   
-  if (indicatorID == 4){
-    # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
-    
-    # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
-  } else {
+  if (metric == 'Mean'){
     # Calculate station mean --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
     wk1 <- wk0[, .(ES = mean(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
     # Calculate annual mean --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+  } else if (metric == 'Minimum') {
+    # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    
+    # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
+    wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
   }
   
   wk1list[[i]] <- wk1
@@ -283,14 +284,6 @@ wk3[, NMP := ifelse(MonthMin > MonthMax, 12 - MonthMin + 1 + MonthMax, MonthMax 
 wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
 
 # Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids 
-#a <- unitGridSize[GridSize == 10]
-#a <- a[as.data.table(gridunits10), on = .(UnitID = UnitID), nomatch=0]
-#b <- unitGridSize[GridSize == 30]
-#b <- b[as.data.table(gridunits30), on = .(UnitID = UnitID), nomatch=0]
-#c <- unitGridSize[GridSize == 60]
-#c <- c[as.data.table(gridunits60), on = .(UnitID = UnitID), nomatch=0]
-#gridunits <- rbindlist(list(a,b,c))
-#rm(a,b,c)
 wk3 <- wk3[as.data.table(gridunits)[, .(NG = .N), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
 wk3[, GSC := ifelse(N / NG > GSC_HM, 100, ifelse(N / NG < GSC_ML, 0, 50))]
 
