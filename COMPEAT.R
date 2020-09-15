@@ -117,9 +117,9 @@ gridunits60 <- make.gridunits(units, 60000)
 
 unitGridSize <-  fread(input = unitGridSizeFile, sep = "\t") %>% setkey(UnitID)
 
-a <- merge(unitGridSize[GridSize == 10], gridunits10 %>% select(UnitID, GridID, GridArea = Area))
-b <- merge(unitGridSize[GridSize == 30], gridunits30 %>% select(UnitID, GridID, GridArea = Area))
-c <- merge(unitGridSize[GridSize == 60], gridunits60 %>% select(UnitID, GridID, GridArea = Area))
+a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% select(UnitID, GridID, GridArea = Area))
+b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% select(UnitID, GridID, GridArea = Area))
+c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% select(UnitID, GridID, GridArea = Area))
 gridunits <- st_as_sf(rbindlist(list(a,b,c)))
 rm(a,b,c)
 
@@ -132,6 +132,16 @@ rm(a,b,c)
 
 # Read stationSamples ----------------------------------------------------------
 stationSamples <- fread(input = stationSamplesFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
+
+# Stations
+#stationSamples[, StationID := .GRP, by = .(Cruise, Station, Year, Month, Day, Hour, Minute, Latitude..degrees_north., Longitude..degrees_east.)]
+#stationSamples[, .N, .(StationID, Cruise, Station, Year, Month, Day, Hour, Minute, Latitude..degrees_north., Longitude..degrees_east.)]
+#stationSamples[, .N, .(StationID.METAVAR.INDEXED_TEXT)]
+
+# Samples
+#stationSamples[, SampleID := .GRP, by = .(Cruise, Station, Year, Month, Day, Hour, Minute, Latitude..degrees_north., Longitude..degrees_east., Depth..m.db..PRIMARYVAR.DOUBLE)]
+#stationSamples[, .N, .(StationID, Cruise, Station, Year, Month, Day, Hour, Minute, Latitude..degrees_north., Longitude..degrees_east., Depth..m.db..PRIMARYVAR.DOUBLE)]
+#stationSamples[, .N, .(SampleID.METAVAR.INDEXED_TEXT)]
 
 # Make stations spatial keeping original latitude/longitude
 stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
