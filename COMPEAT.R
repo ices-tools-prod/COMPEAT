@@ -317,7 +317,8 @@ wk3[, NMP := ifelse(MonthMin > MonthMax, 12 - MonthMin + 1 + MonthMax, MonthMax 
 wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
 
 # Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids 
-wk3 <- wk3[as.data.table(gridunits)[, .(NG = .N), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
+#wk3 <- wk3[as.data.table(gridunits)[, .(NG = .N), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
+wk3 <- wk3[as.data.table(gridunits)[, .(NG = as.numeric(sum(GridArea) / mean(GridSize^2))), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
 wk3[, GSC := ifelse(N / NG > GSC_HM, 100, ifelse(N / NG < GSC_ML, 0, 50))]
 
 # Calculate Specific Spatial Confidence (SSC) - Confidence in area of sampled grid units as a percentage to the total unit area
