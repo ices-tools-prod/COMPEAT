@@ -292,7 +292,7 @@ wk3[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
 wk3[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
 
 # Calculate Ecological Quality Ratio (ERQ)
-wk3[, EQR := ifelse(Response == 1, BEST / ES, ES / BEST)]
+wk3[, EQR := ifelse(Response == 1, ifelse(BEST > ES, 1, BEST / ES), ifelse(ES > BEST, 1, ES / BEST))]
 
 # Calculate Ecological Quality Ratio Boundaries (ERQ_HG/GM/MP/PB)
 wk3[, EQR_GM := ifelse(Response == 1, 1 / (1 + ACDEV / 100), 1 - ACDEV / 100)]
@@ -360,7 +360,7 @@ wk5[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
 wk5[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
 
 # Calculate Ecological Quality Ratio (ERQ)
-wk5[, EQR := ifelse(Response == 1, BEST / ES, ES / BEST)]
+wk5[, EQR := ifelse(Response == 1, ifelse(BEST > ES, 1, BEST / ES), ifelse(ES > BEST, 1, ES / BEST))]
 
 # Calculate Ecological Quality Ratio Boundaries (ERQ_HG/GM/MP/PB)
 wk5[, EQR_GM := ifelse(Response == 1, 1 / (1 + ACDEV / 100), 1 - ACDEV / 100)]
