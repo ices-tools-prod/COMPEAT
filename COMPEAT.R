@@ -385,7 +385,10 @@ wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","ER","EQR","EQRS","C"))
 # Assessment -------------------------------------------------------------------
 
 # Assessment result - UnitID, N, ER, EQR, EQRS, C
-wk8 <- wk6[, .(.N, ER = max(ER), EQR = min(EQR), EQRS = min(EQRS), C = mean(C)), (UnitID)]
+wk81 <- wk6[CategoryID %in% c(2,3), .(NE = .N, ER = max(ER), EQR = min(EQR), EQRS = min(EQRS)), (UnitID)] %>% setkey(UnitID)
+wk82 <- wk6[, .(NC = .N, C = mean(C)), (UnitID)] %>% setkey(UnitID)
+wk8 <- wk81[wk82]
+
 
 wk9 <- wk7[wk8, on = .(UnitID = UnitID), nomatch=0]
 
