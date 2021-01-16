@@ -16,9 +16,7 @@ outputPath <- "Output"
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
 dir.create(outputPath, showWarnings = FALSE, recursive = TRUE)
 
-# Data -------------------------------------------------------------------------
-
-# Download and unpack files needed for the assessment
+# Download and unpack files needed for the assessment --------------------------
 download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
   dest <- file.path(path, sub("\\?.+", "", basename(url)))
   if (refetch || !file.exists(dest)) {
@@ -30,18 +28,18 @@ download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
 }
 
 urls <- c("https://www.dropbox.com/s/xzktj5nejp6tyn8/AssessmentUnits.zip?dl=1",
-          "https://www.dropbox.com/s/gf0mxjy7gy9qprp/Indicators.txt?dl=1",
-          "https://www.dropbox.com/s/zp4u49oz0orihjg/IndicatorUnits.txt?dl=1",
-          "https://www.dropbox.com/s/00qach95phe7wtm/UnitGridSize.txt?dl=1",
-          "https://www.dropbox.com/s/tvt1j8afh1afdp5/StationSamples.zip?dl=1")
+          "https://www.dropbox.com/s/2wf5keany1jv5je/Indicators.csv?dl=1",
+          "https://www.dropbox.com/s/n6p0x5onmi9ugga/IndicatorUnits.csv?dl=1",
+          "https://www.dropbox.com/s/l1ymgionvhcjk2w/UnitGridSize.csv?dl=1",
+          "https://www.dropbox.com/s/vwdoi9slemltdzh/StationSamples.txt.gz?dl=1")
 
 files <- sapply(urls, download.file.unzip.maybe, path = inputPath)
 
 unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
-indicatorsFile <- file.path(inputPath, "Indicators.txt")
-indicatorUnitsFile <- file.path(inputPath, "IndicatorUnits.txt")
-unitGridSizeFile <- file.path(inputPath, "UnitGridSize.txt")
-stationSamplesFile <- file.path(inputPath, "StationSamples.txt")
+indicatorsFile <- file.path(inputPath, "Indicators.csv")
+indicatorUnitsFile <- file.path(inputPath, "IndicatorUnits.csv")
+unitGridSizeFile <- file.path(inputPath, "UnitGridSize.csv")
+stationSamplesFile <- file.path(inputPath, "StationSamples.txt.gz")
 
 # Assessment Units + Grid Units-------------------------------------------------
 
@@ -115,7 +113,7 @@ gridunits10 <- make.gridunits(units, 10000)
 gridunits30 <- make.gridunits(units, 30000)
 gridunits60 <- make.gridunits(units, 60000)
 
-unitGridSize <-  fread(input = unitGridSizeFile, sep = "\t") %>% setkey(UnitID)
+unitGridSize <-  fread(input = unitGridSizeFile) %>% setkey(UnitID)
 
 a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% select(UnitID, GridID, GridArea = Area))
 b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% select(UnitID, GridID, GridArea = Area))
@@ -163,16 +161,11 @@ stationSamples <- st_join(stationSamples, st_cast(gridunits), join = st_intersec
 stationSamples <- st_set_geometry(stationSamples, NULL)
 
 # Read indicator configuration files -------------------------------------------
-indicators <- fread(input = indicatorsFile, sep = "\t") %>% setkey(IndicatorID) 
-indicatorUnits <- fread(input = indicatorUnitsFile, sep = "\t") %>% setkey(IndicatorID, UnitID)
+indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID) 
+indicatorUnits <- fread(input = indicatorUnitsFile) %>% setkey(IndicatorID, UnitID)
 
 wk1list = list()
 wk2list = list()
-
-# Loop indicator units ---------------------------------------------------------
-# for (i in 1:nrow(indicatorUnits)) {
-#   indicatorID <- indicatorUnits[i, IndicatorID]
-# }
 
 # Loop indicators --------------------------------------------------------------
 for(i in 1:nrow(indicators)){
@@ -213,6 +206,9 @@ for(i in 1:nrow(indicators)){
   }
   else if (name == 'Oxygen Deficiency') {
     wk[, ES := Oxygen..ml.l. / 0.7] # Convert ml/l to mg/l by factor of 0.7
+  }
+  else {
+    next
   }
 
   # Add unit grid size
@@ -335,7 +331,6 @@ wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = s
 
 # Add Year Count where STC = 100
 wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, UnitID)][wk4, on = .(IndicatorID, UnitID)]
-
 wk4[, STC := ifelse(!is.na(NSTC100) & NSTC100 >= N/2, 100, STC)]
 
 wk4 <- wk4[, TC := (GTC + STC) / 2]
@@ -378,7 +373,7 @@ wk5[, EQRS := ifelse(EQR <= EQR_PB, (EQR - 0) * (0.2 - 0) / (EQR_PB - 0) + 0,
 # Category ---------------------------------------------------------------------
 
 # Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, ER, EQR, EQRS, C
-wk6 <- wk5[, .(.N, ER = sum(ER * IW / 100), EQR = sum(EQR * IW / 100), EQRS = sum(EQRS * IW / 100), C = sum(C * IW / 100)), .(CategoryID, UnitID)]
+wk6 <- wk5[!is.na(ER), .(.N, ER = sum(ER * IW / 100), EQR = sum(EQR * IW / 100), EQRS = sum(EQRS * IW / 100), C = sum(C * IW / 100)), .(CategoryID, UnitID)]
 
 wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","ER","EQR","EQRS","C"))
 
@@ -396,4 +391,3 @@ wk9 <- wk7[wk8, on = .(UnitID = UnitID), nomatch=0]
 fwrite(wk3, file = file.path(outputPath, "Indicator_Annual.csv"))
 fwrite(wk5, file = file.path(outputPath, "Indicator_Assessment.csv"))
 fwrite(wk9, file = file.path(outputPath, "Assessment.csv"))
-
