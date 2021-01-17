@@ -348,6 +348,21 @@ wk5[, SE := SD / sqrt(N)]
 # 95 % Confidence Interval
 wk5[, CI := qnorm(0.975) * SE]
 
+# Accuracy Confidence Level for Non-Problem Area
+wk5[, ACL_NPA := ifelse(Response == 1, pnorm(ET, ES, SD), pnorm(ES, ET, SD))]
+
+# Accuracy Confidence Level for Problem Area
+wk5[, ACL_PA := 1 - ACL_NPA]
+
+# Accuracy Confidence Level Area Class
+wk5[, ACLAC := ifelse(ACL_NPA > 0.5, 1, ifelse(ACL_NPA < 0.5, 3, 2))]
+
+# Accuracy Confidence Level
+wk5[, ACL := ifelse(ACL_NPA > ACL_PA, ACL_NPA, ACL_PA)]
+
+# Accuracy Confidence Level Class
+wk5[, ACLC := ifelse(ACL > 0.9, 100, ifelse(ACL < 0.7, 0, 50))]
+
 # Calculate Eutrophication Ratio (ER)
 wk5[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
 
