@@ -327,7 +327,7 @@ wk3[, SSC := ifelse(GridArea / UnitArea * 100 > SSC_HM, 100, ifelse(GridArea / U
 rm(a,b,c,d)
 
 # Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
-wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
+wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
 
 # Add Year Count where STC = 100
 wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, UnitID)][wk4, on = .(IndicatorID, UnitID)]
@@ -348,6 +348,10 @@ wk5[, SE := SD / sqrt(N)]
 # 95 % Confidence Interval
 wk5[, CI := qnorm(0.975) * SE]
 
+#-------------------------------------------------------------------------------
+# Accuracy Confidence Assessment
+# ------------------------------------------------------------------------------
+
 # Accuracy Confidence Level for Non-Problem Area
 wk5[, ACL_NPA := ifelse(Response == 1, pnorm(ET, ES, SD), pnorm(ES, ET, SD))]
 
@@ -362,6 +366,28 @@ wk5[, ACL := ifelse(ACL_NPA > ACL_PA, ACL_NPA, ACL_PA)]
 
 # Accuracy Confidence Level Class
 wk5[, ACLC := ifelse(ACL > 0.9, 100, ifelse(ACL < 0.7, 0, 50))]
+
+# ------------------------------------------------------------------------------
+
+# Standard Error using number of observations behind the annual mean !!!
+wk5[, SE_OBS := SD / sqrt(N_OBS)]
+
+# Accuracy Confidence Level for Non-Problem Area
+wk5[, ACL_NPA_OBS := ifelse(Response == 1, pnorm(ET, ES, SE_OBS), pnorm(ES, ET, SE_OBS))]
+
+# Accuracy Confidence Level for Problem Area
+wk5[, ACL_PA_OBS := 1 - ACL_NPA_OBS]
+
+# Accuracy Confidence Level Area Class
+wk5[, ACLAC_OBS := ifelse(ACL_NPA_OBS > 0.5, 1, ifelse(ACL_NPA_OBS < 0.5, 3, 2))]
+
+# Accuracy Confidence Level
+wk5[, ACL_OBS := ifelse(ACL_NPA_OBS > ACL_PA_OBS, ACL_NPA_OBS, ACL_PA_OBS)]
+
+# Accuracy Confidence Level Class
+wk5[, ACLC_OBS := ifelse(ACL_OBS > 0.9, 100, ifelse(ACL_OBS < 0.7, 0, 50))]
+
+# ------------------------------------------------------------------------------
 
 # Calculate Eutrophication Ratio (ER)
 wk5[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
