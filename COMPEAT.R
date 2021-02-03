@@ -215,6 +215,15 @@ for(i in 1:nrow(indicators)){
   else if (name == 'Oxygen Deficiency') {
     wk[, ES := Oxygen..ml.l. / 0.7] # Convert ml/l to mg/l by factor of 0.7
   }
+  else if (name == 'Total Nitrogen') {
+    wk[,ES := Total.Nitrogen..umol.l.]
+  }
+  else if (name == 'Total Phosphorus') {
+    wk[,ES := Total.Phosphorus..umol.l.]
+  }
+  else if (name == 'Secchi Depth') {
+    wk[,ES := Secchi.Depth..m..METAVAR.DOUBLE]
+  }
   else {
     next
   }
