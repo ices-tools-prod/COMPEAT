@@ -27,11 +27,19 @@ download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
   }
 }
 
+# Assessment Period 2006-2014 - Comment out the period you don't won't i.e. defaults to 2015-2020 
 urls <- c("https://www.dropbox.com/s/xzktj5nejp6tyn8/AssessmentUnits.zip?dl=1",
           "https://www.dropbox.com/s/2wf5keany1jv5je/Indicators.csv?dl=1",
           "https://www.dropbox.com/s/n6p0x5onmi9ugga/IndicatorUnits.csv?dl=1",
           "https://www.dropbox.com/s/l1ymgionvhcjk2w/UnitGridSize.csv?dl=1",
           "https://www.dropbox.com/s/vwdoi9slemltdzh/StationSamples.txt.gz?dl=1")
+
+# Assessment Period 2015-2020
+urls <- c("https://www.dropbox.com/s/zpu0t1zc3uk1jlw/AssessmentUnits.zip?dl=1",
+          "https://www.dropbox.com/s/0idmdxxcbinz4qf/Indicators.csv?dl=1",
+          "https://www.dropbox.com/s/jqb03sfdqa18cph/IndicatorUnits.csv?dl=1",
+          "https://www.dropbox.com/s/cubpuuus8ab7aki/UnitGridSize.csv?dl=1",
+          "https://www.dropbox.com/s/2er9ngl5rnon426/StationSamples.txt.gz?dl=1")
 
 files <- sapply(urls, download.file.unzip.maybe, path = inputPath)
 
