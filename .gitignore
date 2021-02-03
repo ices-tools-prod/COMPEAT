@@ -23,7 +23,7 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
-Input/*
-Output/*
+Input*/*
+Output*/*
 
 .Rproj.user
