@@ -5,12 +5,16 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
-packages <- c("sf", "data.table", "ggplot2", "tidyverse", "mapview")
+packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview")
 ipak(packages)
 
 # Define paths
 inputPath <- "Input"
 outputPath <- "Output"
+
+# Define assessment period 
+assessmentPeriod <- "2006-2014"
+assessmentPeriod <- "2015-2020"
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
@@ -27,19 +31,21 @@ download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
   }
 }
 
-# Assessment Period 2006-2014 - Comment out the period you don't won't i.e. defaults to 2015-2020 
-urls <- c("https://www.dropbox.com/s/xzktj5nejp6tyn8/AssessmentUnits.zip?dl=1",
-          "https://www.dropbox.com/s/2wf5keany1jv5je/Indicators.csv?dl=1",
-          "https://www.dropbox.com/s/n6p0x5onmi9ugga/IndicatorUnits.csv?dl=1",
-          "https://www.dropbox.com/s/l1ymgionvhcjk2w/UnitGridSize.csv?dl=1",
-          "https://www.dropbox.com/s/vwdoi9slemltdzh/StationSamples.txt.gz?dl=1")
-
-# Assessment Period 2015-2020
-urls <- c("https://www.dropbox.com/s/zpu0t1zc3uk1jlw/AssessmentUnits.zip?dl=1",
-          "https://www.dropbox.com/s/0idmdxxcbinz4qf/Indicators.csv?dl=1",
-          "https://www.dropbox.com/s/jqb03sfdqa18cph/IndicatorUnits.csv?dl=1",
-          "https://www.dropbox.com/s/cubpuuus8ab7aki/UnitGridSize.csv?dl=1",
-          "https://www.dropbox.com/s/2er9ngl5rnon426/StationSamples.txt.gz?dl=1")
+if (assessmentPeriod == "2006-2014"){
+  # Assessment Period 2006-2014
+  urls <- c("https://www.dropbox.com/s/xzktj5nejp6tyn8/AssessmentUnits.zip?dl=1",
+            "https://www.dropbox.com/s/2wf5keany1jv5je/Indicators.csv?dl=1",
+            "https://www.dropbox.com/s/n6p0x5onmi9ugga/IndicatorUnits.csv?dl=1",
+            "https://www.dropbox.com/s/l1ymgionvhcjk2w/UnitGridSize.csv?dl=1",
+            "https://www.dropbox.com/s/vwdoi9slemltdzh/StationSamples.txt.gz?dl=1")  
+} else {
+  # Assessment Period 2015-2020
+  urls <- c("https://www.dropbox.com/s/zpu0t1zc3uk1jlw/AssessmentUnits.zip?dl=1",
+            "https://www.dropbox.com/s/0idmdxxcbinz4qf/Indicators.csv?dl=1",
+            "https://www.dropbox.com/s/jqb03sfdqa18cph/IndicatorUnits.csv?dl=1",
+            "https://www.dropbox.com/s/cubpuuus8ab7aki/UnitGridSize.csv?dl=1",
+            "https://www.dropbox.com/s/2er9ngl5rnon426/StationSamples.txt.gz?dl=1")  
+}
 
 files <- sapply(urls, download.file.unzip.maybe, path = inputPath)
 
@@ -90,6 +96,8 @@ units <- sf::st_buffer(units, 0.0)
 
 # Identify overlapping assessment units
 #st_overlaps(units)
+
+setkey(units, UnitID)
 
 # Make grid units
 make.gridunits <- function(units, gridSize) {
@@ -320,6 +328,11 @@ wk3[, EQRS := ifelse(EQR <= EQR_PB, (EQR - 0) * (0.2 - 0) / (EQR_PB - 0) + 0,
                                    ifelse(EQR <= EQR_HG, (EQR - EQR_GM) * (0.8 - 0.6) / (EQR_HG - EQR_GM) + 0.6,
                                           (EQR - EQR_HG) * (1 - 0.8) / (1 - EQR_HG) + 0.8))))]
 
+wk3[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
+                           ifelse(EQRS >= 0.6, "Good",
+                                  ifelse(EQRS >= 0.4, "Moderate",
+                                         ifelse(EQRS >= 0.2, "Poor","Bad"))))]
+
 # Calculate General Temporal Confidence (GTC) - Confidence in number of annual observations
 wk3[, GTC := ifelse(N > GTC_HM, 100, ifelse(N < GTC_ML, 0, 50))]
 
@@ -428,6 +441,11 @@ wk5[, EQRS := ifelse(EQR <= EQR_PB, (EQR - 0) * (0.2 - 0) / (EQR_PB - 0) + 0,
                                    ifelse(EQR <= EQR_HG, (EQR - EQR_GM) * (0.8 - 0.6) / (EQR_HG - EQR_GM) + 0.6,
                                           (EQR - EQR_HG) * (1 - 0.8) / (1 - EQR_HG) + 0.8))))]
 
+wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
+                           ifelse(EQRS >= 0.6, "Good",
+                                  ifelse(EQRS >= 0.4, "Moderate",
+                                         ifelse(EQRS >= 0.2, "Poor","Bad"))))]
+
 # Category ---------------------------------------------------------------------
 
 # Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, ER, EQR, EQRS, C
@@ -445,7 +463,74 @@ wk8 <- wk81[wk82]
 
 wk9 <- wk7[wk8, on = .(UnitID = UnitID), nomatch=0]
 
+wk9[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
+                           ifelse(EQRS >= 0.6, "Good",
+                                  ifelse(EQRS >= 0.4, "Moderate",
+                                         ifelse(EQRS >= 0.2, "Poor","Bad"))))]
+
 # Write results
-fwrite(wk3, file = file.path(outputPath, "Indicator_Annual.csv"))
-fwrite(wk5, file = file.path(outputPath, "Indicator_Assessment.csv"))
+fwrite(wk3, file = file.path(outputPath, "Annual_Indicator.csv"))
+fwrite(wk5, file = file.path(outputPath, "Assessment_Indicator.csv"))
 fwrite(wk9, file = file.path(outputPath, "Assessment.csv"))
+
+# Create plots
+EQRS_Class_colors <- c("#3BB300", "#99FF66", "#FFCABF", "#FF8066", "#FF0000")
+EQRS_Class_breaks <- c("High", "Good", "Moderate", "Poor", "Bad")
+EQRS_Class_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0.6 (Moderate)", ">= 0.2 - 0.4 (Poor)", ">= 0.0 - 0.2 (Bad)")
+
+#basemap <- get_map(location=c(lon = -1, lat = 53), zoom = 5)
+
+# Annual Indicator bar plots
+for (i in 1:nrow(indicators)) {
+  for (j in 1:nrow(units)) {
+    indicatorID <- indicators[i, IndicatorID]
+    indicatorName <- indicators[i, Name]
+    indicatorYearMin <- indicators[i, YearMin]
+    indicatorYearMax <- indicators[i, YearMax]
+    
+    unitID <- as.data.table(units)[j, UnitID]
+    unitCode <- as.data.table(units)[j, Code]
+    unitDescription <- as.data.table(units)[j, Description]
+
+    wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
+    
+    if (nrow(wk) > 0) {
+      ggplot(wk, aes(Period, EQRS)) +
+      ggtitle(label = paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax), subtitle = paste0(indicatorName, " - ", unitCode)) +
+      geom_col() +
+      scale_x_continuous(breaks = c(indicatorYearMin:indicatorYearMax), limits = c(indicatorYearMin - 0.5, indicatorYearMax + 0.5)) +
+      scale_y_continuous(limits = c(0.0, 1.0))
+
+      ggsave(file.path(outputPath, paste0("Annual_Indicator_Bar_", i, "_", j, ".png")))
+    }
+  }
+}
+
+# Assessment Indicator maps
+for (i in 1:nrow(indicators)) {
+  indicatorID <- indicators[i, IndicatorID]
+  indicatorName <- indicators[i, Name]
+  indicatorYearMin <- indicators[i, YearMin]
+  indicatorYearMax <- indicators[i, YearMax]
+
+  wk <- wk5[IndicatorID == indicatorID] %>% setkey(UnitID)
+
+  wk <- merge(units, wk, all.x = TRUE)
+  
+  ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax), subtitle = indicatorName) +
+  geom_sf(aes(fill = EQRS_Class)) +
+  scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
+
+  ggsave(file.path(outputPath, paste0("Assessment_Indicator_Map_", i, ".png")))
+}
+
+# Assessment map
+wk <- merge(units, wk9, all.x = TRUE)
+
+ggplot(wk) +
+ggtitle(label = paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)) +
+geom_sf(aes(fill = EQRS_Class)) +
+scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
+
+ggsave(file.path(outputPath, "Assessment_Map.png"))
