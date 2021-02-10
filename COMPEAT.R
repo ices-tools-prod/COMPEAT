@@ -232,6 +232,20 @@ for(i in 1:nrow(indicators)){
   else if (name == 'Secchi Depth') {
     wk[,ES := Secchi.Depth..m..METAVAR.DOUBLE]
   }
+  else if (name == 'Dissolved Inorganic Nitrogen/Dissolved Inorganic Phosphorus') {
+    wk$ES <- apply(wk[, list(Nitrate..umol.l., Nitrite..umol.l., Ammonium..umol.l.)], 1, function(x){
+      if (all(is.na(x)) | is.na(x[1])) {
+        NA
+      }
+      else {
+        sum(x, na.rm = TRUE)
+      }
+    })
+    wk[,ES := ES/Phosphate..umol.l.]
+  }
+  else if (name == 'Total Nitrogen/Total Phosphorus') {
+    wk[,ES := Total.Nitrogen..umol.l./Total.Phosphorus..umol.l.]
+  }
   else {
     next
   }
@@ -484,7 +498,7 @@ EQRS_Class_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0
 wk <- merge(units, wk9, all.x = TRUE)
 
 ggplot(wk) +
-  ggtitle(label = paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)) +
+  ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
   geom_sf(aes(fill = EQRS_Class)) +
   scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
 
@@ -493,7 +507,7 @@ ggsave(file.path(outputPath, "Assessment_Map.png"))
 # Create Assessment Indicator maps
 for (i in 1:nrow(indicators)) {
   indicatorID <- indicators[i, IndicatorID]
-  indicatorCode <- indicators[i, Abbreviation]
+  indicatorCode <- indicators[i, Code]
   indicatorName <- indicators[i, Name]
   indicatorYearMin <- indicators[i, YearMin]
   indicatorYearMax <- indicators[i, YearMax]
@@ -519,13 +533,13 @@ for (i in 1:nrow(indicators)) {
     geom_sf(aes(fill = EQRS_Class)) +
     scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
   
-  ggsave(file.path(outputPath, paste0("Assessment_Indicator_Map_", indicatorCode, ".png")))
+  ggsave(file.path(outputPath, gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, ".png"))))
 }
 
 # Create Annual Indicator bar charts
 for (i in 1:nrow(indicators)) {
   indicatorID <- indicators[i, IndicatorID]
-  indicatorCode <- indicators[i, Abbreviation]
+  indicatorCode <- indicators[i, Code]
   indicatorName <- indicators[i, Name]
   indicatorYearMin <- indicators[i, YearMin]
   indicatorYearMax <- indicators[i, YearMax]
@@ -555,7 +569,7 @@ for (i in 1:nrow(indicators)) {
         scale_x_discrete("Year", factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +  
         scale_y_continuous(limits = c(0.0, 1.0))
 
-      ggsave(file.path(outputPath, paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png")))
+      ggsave(file.path(outputPath, gsub(":", "", paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png"))))
     }
   }
 }
