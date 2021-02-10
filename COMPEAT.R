@@ -480,57 +480,82 @@ EQRS_Class_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0
 
 #basemap <- get_map(location=c(lon = -1, lat = 53), zoom = 5)
 
-# Annual Indicator bar plots
-for (i in 1:nrow(indicators)) {
-  for (j in 1:nrow(units)) {
-    indicatorID <- indicators[i, IndicatorID]
-    indicatorName <- indicators[i, Name]
-    indicatorYearMin <- indicators[i, YearMin]
-    indicatorYearMax <- indicators[i, YearMax]
-    
-    unitID <- as.data.table(units)[j, UnitID]
-    unitCode <- as.data.table(units)[j, Code]
-    unitDescription <- as.data.table(units)[j, Description]
-
-    wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
-    
-    if (nrow(wk) > 0) {
-      ggplot(wk, aes(Period, EQRS)) +
-      ggtitle(label = paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax), subtitle = paste0(indicatorName, " - ", unitCode)) +
-      geom_col() +
-      scale_x_continuous(breaks = c(indicatorYearMin:indicatorYearMax), limits = c(indicatorYearMin - 0.5, indicatorYearMax + 0.5)) +
-      scale_y_continuous(limits = c(0.0, 1.0))
-
-      ggsave(file.path(outputPath, paste0("Annual_Indicator_Bar_", i, "_", j, ".png")))
-    }
-  }
-}
-
-# Assessment Indicator maps
-for (i in 1:nrow(indicators)) {
-  indicatorID <- indicators[i, IndicatorID]
-  indicatorName <- indicators[i, Name]
-  indicatorYearMin <- indicators[i, YearMin]
-  indicatorYearMax <- indicators[i, YearMax]
-
-  wk <- wk5[IndicatorID == indicatorID] %>% setkey(UnitID)
-
-  wk <- merge(units, wk, all.x = TRUE)
-  
-  ggplot(wk) +
-  ggtitle(label = paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax), subtitle = indicatorName) +
-  geom_sf(aes(fill = EQRS_Class)) +
-  scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
-
-  ggsave(file.path(outputPath, paste0("Assessment_Indicator_Map_", i, ".png")))
-}
-
 # Assessment map
 wk <- merge(units, wk9, all.x = TRUE)
 
 ggplot(wk) +
-ggtitle(label = paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)) +
-geom_sf(aes(fill = EQRS_Class)) +
-scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
+  ggtitle(label = paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)) +
+  geom_sf(aes(fill = EQRS_Class)) +
+  scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
 
 ggsave(file.path(outputPath, "Assessment_Map.png"))
+
+# Create Assessment Indicator maps
+for (i in 1:nrow(indicators)) {
+  indicatorID <- indicators[i, IndicatorID]
+  indicatorCode <- indicators[i, Abbreviation]
+  indicatorName <- indicators[i, Name]
+  indicatorYearMin <- indicators[i, YearMin]
+  indicatorYearMax <- indicators[i, YearMax]
+  indicatorMonthMin <- indicators[i, MonthMin]
+  indicatorMonthMax <- indicators[i, MonthMax]
+  indicatorDepthMin <- indicators[i, DepthMin]
+  indicatorDepthMax <- indicators[i, DepthMax]
+  indicatorYearMin <- indicators[i, YearMin]
+  indicatorMetric <- indicators[i, Metric]
+
+  title <- paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)
+  subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)  
+    
+  wk <- wk5[IndicatorID == indicatorID] %>% setkey(UnitID)
+  
+  wk <- merge(units, wk, all.x = TRUE)
+  
+  ggplot(wk) +
+    labs(title = title , subtitle = subtitle) +
+    geom_sf(aes(fill = EQRS_Class)) +
+    scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
+  
+  ggsave(file.path(outputPath, paste0("Assessment_Indicator_Map_", indicatorCode, ".png")))
+}
+
+# Create Annual Indicator bar charts
+for (i in 1:nrow(indicators)) {
+  indicatorID <- indicators[i, IndicatorID]
+  indicatorCode <- indicators[i, Abbreviation]
+  indicatorName <- indicators[i, Name]
+  indicatorYearMin <- indicators[i, YearMin]
+  indicatorYearMax <- indicators[i, YearMax]
+  indicatorMonthMin <- indicators[i, MonthMin]
+  indicatorMonthMax <- indicators[i, MonthMax]
+  indicatorDepthMin <- indicators[i, DepthMin]
+  indicatorDepthMax <- indicators[i, DepthMax]
+  indicatorYearMin <- indicators[i, YearMin]
+  indicatorMetric <- indicators[i, Metric]
+  for (j in 1:nrow(units)) {
+    unitID <- as.data.table(units)[j, UnitID]
+    unitCode <- as.data.table(units)[j, Code]
+    unitName <- as.data.table(units)[j, Description]
+
+    title <- paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)
+    subtitle <- paste0(indicatorName, " (", indicatorCode, ")", " in ", unitName, " (", unitCode, ")", "\n")
+    subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+    subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+    subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+
+    wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
+    
+    if (nrow(wk) > 0) {
+      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = EQRS)) +
+        labs(title = title , subtitle = subtitle) +
+        geom_col() +
+        scale_x_discrete("Year", factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +  
+        scale_y_continuous(limits = c(0.0, 1.0))
+
+      ggsave(file.path(outputPath, paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png")))
+    }
+  }
+}
