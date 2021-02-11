@@ -12,9 +12,9 @@ ipak(packages)
 inputPath <- "Input"
 outputPath <- "Output"
 
-# Define assessment period 
+# Define assessment period - Uncomment the period you want to run the assessment for!
 assessmentPeriod <- "2006-2014"
-assessmentPeriod <- "2015-2020"
+#assessmentPeriod <- "2015-2020"
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
@@ -463,7 +463,7 @@ wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
 # Category ---------------------------------------------------------------------
 
 # Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, ER, EQR, EQRS, C
-wk6 <- wk5[!is.na(ER), .(.N, ER = sum(ER * IW / 100), EQR = sum(EQR * IW / 100), EQRS = sum(EQRS * IW / 100), C = sum(C * IW / 100)), .(CategoryID, UnitID)]
+wk6 <- wk5[!is.na(ER), .(.N, ER = weighted.mean(ER, IW, na.rm = TRUE), EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
 
 wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","ER","EQR","EQRS","C"))
 
@@ -473,7 +473,6 @@ wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","ER","EQR","EQRS","C"))
 wk81 <- wk6[CategoryID %in% c(2,3), .(NE = .N, ER = max(ER), EQR = min(EQR), EQRS = min(EQRS)), (UnitID)] %>% setkey(UnitID)
 wk82 <- wk6[, .(NC = .N, C = mean(C)), (UnitID)] %>% setkey(UnitID)
 wk8 <- wk81[wk82]
-
 
 wk9 <- wk7[wk8, on = .(UnitID = UnitID), nomatch=0]
 
@@ -502,7 +501,7 @@ ggplot(wk) +
   geom_sf(aes(fill = EQRS_Class)) +
   scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
 
-ggsave(file.path(outputPath, "Assessment_Map.png"))
+ggsave(file.path(outputPath, "Assessment_Map.png"), width = 12, height = 9, dpi = 300)
 
 # Create Assessment Indicator maps
 for (i in 1:nrow(indicators)) {
@@ -522,7 +521,8 @@ for (i in 1:nrow(indicators)) {
   subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
   subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
   subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
-  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)  
+  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, ".png"))
     
   wk <- wk5[IndicatorID == indicatorID] %>% setkey(UnitID)
   
@@ -533,7 +533,7 @@ for (i in 1:nrow(indicators)) {
     geom_sf(aes(fill = EQRS_Class)) +
     scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
   
-  ggsave(file.path(outputPath, gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, ".png"))))
+  ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
 }
 
 # Create Annual Indicator bar charts
@@ -559,6 +559,7 @@ for (i in 1:nrow(indicators)) {
     subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
     subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
     subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+    fileName <- gsub(":", "", paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png"))
 
     wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
     
@@ -569,7 +570,7 @@ for (i in 1:nrow(indicators)) {
         scale_x_discrete("Year", factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +  
         scale_y_continuous(limits = c(0.0, 1.0))
 
-      ggsave(file.path(outputPath, gsub(":", "", paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png"))))
+      ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
     }
   }
 }
