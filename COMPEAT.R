@@ -320,6 +320,12 @@ wk2 <- rbindlist(wk2list)
 # Combine with indicator and indicator unit configuration tables
 wk3 <- indicators[indicatorUnits[wk2]]
 
+# Standard Error
+wk3[, SE := SD / sqrt(N)]
+
+# 95 % Confidence Interval
+wk3[, CI := qnorm(0.975) * SE]
+
 # Calculate Eutrophication Ratio (ER)
 wk3[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
 
@@ -541,6 +547,7 @@ for (i in 1:nrow(indicators)) {
   indicatorID <- indicators[i, IndicatorID]
   indicatorCode <- indicators[i, Code]
   indicatorName <- indicators[i, Name]
+  indicatorUnit <- indicators[i, Units]
   indicatorYearMin <- indicators[i, YearMin]
   indicatorYearMax <- indicators[i, YearMax]
   indicatorMonthMin <- indicators[i, MonthMin]
@@ -554,21 +561,25 @@ for (i in 1:nrow(indicators)) {
     unitCode <- as.data.table(units)[j, Code]
     unitName <- as.data.table(units)[j, Description]
 
-    title <- paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)
+    title <- paste0("Eutrophication State [ES, CI, N] and Threshold [ET] ", indicatorYearMin, "-", indicatorYearMax)
     subtitle <- paste0(indicatorName, " (", indicatorCode, ")", " in ", unitName, " (", unitCode, ")", "\n")
     subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
     subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
-    subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+    subtitle <- paste0(subtitle, "Metric: ", indicatorMetric, ", ")
+    subtitle <- paste0(subtitle, "Unit: ", indicatorUnit)
     fileName <- gsub(":", "", paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png"))
 
     wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
-    
+
     if (nrow(wk) > 0) {
-      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = EQRS)) +
+      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
         labs(title = title , subtitle = subtitle) +
         geom_col() +
-        scale_x_discrete("Year", factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +  
-        scale_y_continuous(limits = c(0.0, 1.0))
+        geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+        geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
+        geom_hline(aes(yintercept = ET)) +
+        scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
+        scale_y_continuous(NULL)
 
       ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
     }
