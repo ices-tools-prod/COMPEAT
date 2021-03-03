@@ -494,7 +494,7 @@ fwrite(wk9, file = file.path(outputPath, "Assessment.csv"))
 
 # Create plots
 EQRS_Class_colors <- c("#3BB300", "#99FF66", "#FFCABF", "#FF8066", "#FF0000")
-EQRS_Class_breaks <- c("High", "Good", "Moderate", "Poor", "Bad")
+EQRS_Class_limits <- c("High", "Good", "Moderate", "Poor", "Bad")
 EQRS_Class_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0.6 (Moderate)", ">= 0.2 - 0.4 (Poor)", ">= 0.0 - 0.2 (Bad)")
 
 #basemap <- get_map(location=c(lon = -1, lat = 53), zoom = 5)
@@ -505,7 +505,7 @@ wk <- merge(units, wk9, all.x = TRUE)
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
   geom_sf(aes(fill = EQRS_Class)) +
-  scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
+  scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
 
 ggsave(file.path(outputPath, "Assessment_Map.png"), width = 12, height = 9, dpi = 300)
 
@@ -537,7 +537,7 @@ for (i in 1:nrow(indicators)) {
   ggplot(wk) +
     labs(title = title , subtitle = subtitle) +
     geom_sf(aes(fill = EQRS_Class)) +
-    scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, breaks = EQRS_Class_breaks, labels = EQRS_Class_labels)
+    scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
   
   ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
 }
