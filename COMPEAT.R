@@ -326,9 +326,6 @@ wk3[, SE := SD / sqrt(N)]
 # 95 % Confidence Interval
 wk3[, CI := qnorm(0.975) * SE]
 
-# Calculate Eutrophication Ratio (ER)
-wk3[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
-
 # Calculate (BEST)
 wk3[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
 
@@ -439,9 +436,6 @@ wk5[, ACLC_OBS := ifelse(ACL_OBS > 0.9, 100, ifelse(ACL_OBS < 0.7, 0, 50))]
 
 # ------------------------------------------------------------------------------
 
-# Calculate Eutrophication Ratio (ER)
-wk5[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
-
 # Calculate (BEST)
 wk5[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
 
@@ -468,15 +462,15 @@ wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
 
 # Category ---------------------------------------------------------------------
 
-# Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, ER, EQR, EQRS, C
-wk6 <- wk5[!is.na(ER), .(.N, ER = weighted.mean(ER, IW, na.rm = TRUE), EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
+# Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, EQR, EQRS, C
+wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
 
-wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","ER","EQR","EQRS","C"))
+wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","EQR","EQRS","C"))
 
 # Assessment -------------------------------------------------------------------
 
-# Assessment result - UnitID, N, ER, EQR, EQRS, C
-wk81 <- wk6[CategoryID %in% c(2,3), .(NE = .N, ER = max(ER), EQR = min(EQR), EQRS = min(EQRS)), (UnitID)] %>% setkey(UnitID)
+# Assessment result - UnitID, N, EQR, EQRS, C
+wk81 <- wk6[CategoryID %in% c(2,3), .(NE = .N, EQR = min(EQR), EQRS = min(EQRS)), (UnitID)] %>% setkey(UnitID)
 wk82 <- wk6[, .(NC = .N, C = mean(C)), (UnitID)] %>% setkey(UnitID)
 wk8 <- wk81[wk82]
 
