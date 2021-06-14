@@ -326,9 +326,6 @@ wk3[, SE := SD / sqrt(N)]
 # 95 % Confidence Interval
 wk3[, CI := qnorm(0.975) * SE]
 
-# Calculate Eutrophication Ratio (ER)
-wk3[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
-
 # Calculate (BEST)
 wk3[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
 
@@ -379,68 +376,61 @@ rm(a,b,c,d)
 # Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
 wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
 
-# Add Year Count where STC = 100
+# Add Year Count where STC = 100 --> NSTC100
 wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, UnitID)][wk4, on = .(IndicatorID, UnitID)]
+
+# Adjust Specific Spatial Confidence if number of years where STC = 100 is at least half of the number of years with measurements
 wk4[, STC := ifelse(!is.na(NSTC100) & NSTC100 >= N/2, 100, STC)]
-
-wk4 <- wk4[, TC := (GTC + STC) / 2]
-
-wk4 <- wk4[, SC := (GSC + SSC) / 2]
-
-wk4 <- wk4[, C := (TC + SC) / 2]
 
 # Combine with indicator and indicator unit configuration tables
 wk5 <- indicators[indicatorUnits[wk4]]
 
-# Standard Error
-wk5[, SE := SD / sqrt(N)]
-
-# 95 % Confidence Interval
-wk5[, CI := qnorm(0.975) * SE]
-
 #-------------------------------------------------------------------------------
-# Accuracy Confidence Assessment
+# Confidence Assessment
 # ------------------------------------------------------------------------------
 
-# Accuracy Confidence Level for Non-Problem Area
-wk5[, ACL_NPA := ifelse(Response == 1, pnorm(ET, ES, SD), pnorm(ES, ET, SD))]
+# Calculate Temporal Confidence averaging General and Specific Temporal Confidence 
+wk5 <- wk5[, TC := (GTC + STC) / 2]
 
-# Accuracy Confidence Level for Problem Area
-wk5[, ACL_PA := 1 - ACL_NPA]
+wk5[, TC_Class := ifelse(TC >= 75, "High", ifelse(TC >= 50, "Moderate", "Low"))]
 
-# Accuracy Confidence Level Area Class
-wk5[, ACLAC := ifelse(ACL_NPA > 0.5, 1, ifelse(ACL_NPA < 0.5, 3, 2))]
+# Calculate Spatial Confidence averaging General and Specific Spatial Confidence 
+wk5 <- wk5[, SC := (GSC + SSC) / 2]
 
-# Accuracy Confidence Level
-wk5[, ACL := ifelse(ACL_NPA > ACL_PA, ACL_NPA, ACL_PA)]
+wk5[, SC_Class := ifelse(SC >= 75, "High", ifelse(SC >= 50, "Moderate", "Low"))]
 
-# Accuracy Confidence Level Class
-wk5[, ACLC := ifelse(ACL > 0.9, 100, ifelse(ACL < 0.7, 0, 50))]
+# Standard Error - using number of years in the assessment period and the associated standard deviation
+#wk5[, SE := SD / sqrt(N)]
+
+# Accuracy Confidence for Non-Problem Area
+#wk5[, AC_NPA := ifelse(Response == 1, pnorm(ET, ES, SD), pnorm(ES, ET, SD))]
+
+# Standard Error - using number of observations behind the annual mean - to be used in Accuracy Confidence Calculation!!!
+wk5[, AC_SE := SD / sqrt(N_OBS)]
+
+# Accuracy Confidence for Non-Problem Area
+wk5[, AC_NPA := ifelse(Response == 1, pnorm(ET, ES, AC_SE), pnorm(ES, ET, AC_SE))]
+
+# Accuracy Confidence for Problem Area
+wk5[, AC_PA := 1 - AC_NPA]
+
+# Accuracy Confidence Area Class - Not sure what this should be used for?
+#wk5[, ACAC := ifelse(AC_NPA > 0.5, "NPA", ifelse(AC_NPA < 0.5, "PA", "PPA"))]
+
+# Accuracy Confidence
+wk5[, AC := ifelse(AC_NPA > AC_PA, AC_NPA, AC_PA)]
+
+# Accuracy Confidence Class
+wk5[, ACC := ifelse(AC > 0.9, 100, ifelse(AC < 0.7, 0, 50))]
+
+wk5[, ACC_Class := ifelse(ACC >= 75, "High", ifelse(ACC >= 50, "Moderate", "Low"))]
+
+# Calculate Overall Confidence
+wk5 <- wk5[, C := (TC + SC + ACC) / 3]
+
+wk5[, C_Class := ifelse(C >= 75, "High", ifelse(C >= 50, "Moderate", "Low"))]
 
 # ------------------------------------------------------------------------------
-
-# Standard Error using number of observations behind the annual mean !!!
-wk5[, SE_OBS := SD / sqrt(N_OBS)]
-
-# Accuracy Confidence Level for Non-Problem Area
-wk5[, ACL_NPA_OBS := ifelse(Response == 1, pnorm(ET, ES, SE_OBS), pnorm(ES, ET, SE_OBS))]
-
-# Accuracy Confidence Level for Problem Area
-wk5[, ACL_PA_OBS := 1 - ACL_NPA_OBS]
-
-# Accuracy Confidence Level Area Class
-wk5[, ACLAC_OBS := ifelse(ACL_NPA_OBS > 0.5, 1, ifelse(ACL_NPA_OBS < 0.5, 3, 2))]
-
-# Accuracy Confidence Level
-wk5[, ACL_OBS := ifelse(ACL_NPA_OBS > ACL_PA_OBS, ACL_NPA_OBS, ACL_PA_OBS)]
-
-# Accuracy Confidence Level Class
-wk5[, ACLC_OBS := ifelse(ACL_OBS > 0.9, 100, ifelse(ACL_OBS < 0.7, 0, 50))]
-
-# ------------------------------------------------------------------------------
-
-# Calculate Eutrophication Ratio (ER)
-wk5[, ER := ifelse(Response == 1, ES / ET, ET / ES)]
 
 # Calculate (BEST)
 wk5[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
@@ -468,15 +458,15 @@ wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
 
 # Category ---------------------------------------------------------------------
 
-# Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, ER, EQR, EQRS, C
-wk6 <- wk5[!is.na(ER), .(.N, ER = weighted.mean(ER, IW, na.rm = TRUE), EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
+# Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, EQR, EQRS, C
+wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
 
-wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","ER","EQR","EQRS","C"))
+wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","EQR","EQRS","C"))
 
 # Assessment -------------------------------------------------------------------
 
-# Assessment result - UnitID, N, ER, EQR, EQRS, C
-wk81 <- wk6[CategoryID %in% c(2,3), .(NE = .N, ER = max(ER), EQR = min(EQR), EQRS = min(EQRS)), (UnitID)] %>% setkey(UnitID)
+# Assessment result - UnitID, N, EQR, EQRS, C
+wk81 <- wk6[CategoryID %in% c(2,3), .(NE = .N, EQR = min(EQR), EQRS = min(EQRS)), (UnitID)] %>% setkey(UnitID)
 wk82 <- wk6[, .(NC = .N, C = mean(C)), (UnitID)] %>% setkey(UnitID)
 wk8 <- wk81[wk82]
 
@@ -486,6 +476,33 @@ wk9[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
                            ifelse(EQRS >= 0.6, "Good",
                                   ifelse(EQRS >= 0.4, "Moderate",
                                          ifelse(EQRS >= 0.2, "Poor","Bad"))))]
+wk9[, EQRS_11_Class := ifelse(EQRS_11 >= 0.8, "High",
+                             ifelse(EQRS_11 >= 0.6, "Good",
+                                    ifelse(EQRS_11 >= 0.4, "Moderate",
+                                           ifelse(EQRS_11 >= 0.2, "Poor","Bad"))))]
+wk9[, EQRS_12_Class := ifelse(EQRS_12 >= 0.8, "High",
+                              ifelse(EQRS_12 >= 0.6, "Good",
+                                     ifelse(EQRS_12 >= 0.4, "Moderate",
+                                            ifelse(EQRS_12 >= 0.2, "Poor","Bad"))))]
+wk9[, EQRS_2_Class := ifelse(EQRS_2 >= 0.8, "High",
+                             ifelse(EQRS_2 >= 0.6, "Good",
+                                    ifelse(EQRS_2 >= 0.4, "Moderate",
+                                           ifelse(EQRS_2 >= 0.2, "Poor","Bad"))))]
+wk9[, EQRS_3_Class := ifelse(EQRS_3 >= 0.8, "High",
+                             ifelse(EQRS_3 >= 0.6, "Good",
+                                    ifelse(EQRS_3 >= 0.4, "Moderate",
+                                           ifelse(EQRS_3 >= 0.2, "Poor","Bad"))))]
+
+wk9[, C_Class := ifelse(C >= 75, "High",
+                        ifelse(C >= 50, "Moderate", "Low"))]
+wk9[, C_11_Class := ifelse(C_11 >= 75, "High",
+                          ifelse(C_11 >= 50, "Moderate", "Low"))]
+wk9[, C_12_Class := ifelse(C_12 >= 75, "High",
+                          ifelse(C_12 >= 50, "Moderate", "Low"))]
+wk9[, C_2_Class := ifelse(C_2 >= 75, "High",
+                          ifelse(C_2 >= 50, "Moderate", "Low"))]
+wk9[, C_3_Class := ifelse(C_3 >= 75, "High",
+                          ifelse(C_3 >= 50, "Moderate", "Low"))]
 
 # Write results
 fwrite(wk3, file = file.path(outputPath, "Annual_Indicator.csv"))
@@ -497,17 +514,74 @@ EQRS_Class_colors <- c("#3BB300", "#99FF66", "#FFCABF", "#FF8066", "#FF0000")
 EQRS_Class_limits <- c("High", "Good", "Moderate", "Poor", "Bad")
 EQRS_Class_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0.6 (Moderate)", ">= 0.2 - 0.4 (Poor)", ">= 0.0 - 0.2 (Bad)")
 
-#basemap <- get_map(location=c(lon = -1, lat = 53), zoom = 5)
+C_Class_colors <- c("#3BB300", "#FFCABF", "#FF0000")
+C_Class_limits <- c("High", "Moderate", "Low")
+C_Class_labels <- c(">= 75 % (High)", "50 - 74 % (Moderate)", "< 50 % (Low)")
 
-# Assessment map
+# Assessment map Status + Confidence
 wk <- merge(units, wk9, all.x = TRUE)
 
+# Status maps
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
   geom_sf(aes(fill = EQRS_Class)) +
   scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS.png"), width = 12, height = 9, dpi = 300)
 
-ggsave(file.path(outputPath, "Assessment_Map.png"), width = 12, height = 9, dpi = 300)
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
+  geom_sf(aes(fill = EQRS_11_Class)) +
+  scale_fill_manual(name = "EQRS_11", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_11.png"), width = 12, height = 9, dpi = 300)
+
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
+  geom_sf(aes(fill = EQRS_12_Class)) +
+  scale_fill_manual(name = "EQRS_12", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_12.png"), width = 12, height = 9, dpi = 300)
+
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
+  geom_sf(aes(fill = EQRS_2_Class)) +
+  scale_fill_manual(name = "EQRS_2", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_2.png"), width = 12, height = 9, dpi = 300)
+
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
+  geom_sf(aes(fill = EQRS_3_Class)) +
+  scale_fill_manual(name = "EQRS_3", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_3.png"), width = 12, height = 9, dpi = 300)
+
+# Confidence maps
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
+  geom_sf(aes(fill = C_Class)) +
+  scale_fill_manual(name = "C", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_C.png"), width = 12, height = 9, dpi = 300)
+
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
+  geom_sf(aes(fill = C_11_Class)) +
+  scale_fill_manual(name = "C_11", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_C_11.png"), width = 12, height = 9, dpi = 300)
+
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
+  geom_sf(aes(fill = C_12_Class)) +
+  scale_fill_manual(name = "C_12", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_C_12.png"), width = 12, height = 9, dpi = 300)
+
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
+  geom_sf(aes(fill = C_2_Class)) +
+  scale_fill_manual(name = "C_2", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_C_2.png"), width = 12, height = 9, dpi = 300)
+
+ggplot(wk) +
+  ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
+  geom_sf(aes(fill = C_3_Class)) +
+  scale_fill_manual(name = "C_3", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+ggsave(file.path(outputPath, "Assessment_Map_C_3.png"), width = 12, height = 9, dpi = 300)
 
 # Create Assessment Indicator maps
 for (i in 1:nrow(indicators)) {
@@ -522,23 +596,79 @@ for (i in 1:nrow(indicators)) {
   indicatorDepthMax <- indicators[i, DepthMax]
   indicatorYearMin <- indicators[i, YearMin]
   indicatorMetric <- indicators[i, Metric]
+  
+  wk <- wk5[IndicatorID == indicatorID] %>% setkey(UnitID)
+  
+  wk <- merge(units, wk, all.x = TRUE)  
 
+  # Status map (EQRS)
   title <- paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)
   subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
   subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
   subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
   subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
-  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, ".png"))
-    
-  wk <- wk5[IndicatorID == indicatorID] %>% setkey(UnitID)
-  
-  wk <- merge(units, wk, all.x = TRUE)
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_EQRS", ".png"))
   
   ggplot(wk) +
     labs(title = title , subtitle = subtitle) +
     geom_sf(aes(fill = EQRS_Class)) +
     scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
+  ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
   
+  # Temporal Confidence map (TC)
+  title <- paste0("Eutrophication Temporal Confidence ", indicatorYearMin, "-", indicatorYearMax)
+  subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_TC", ".png"))
+  
+  ggplot(wk) +
+    labs(title = title , subtitle = subtitle) +
+    geom_sf(aes(fill = TC_Class)) +
+    scale_fill_manual(name = "TC", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+  ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+  
+  # Spatial Confidence map (SC)
+  title <- paste0("Eutrophication Spatial Confidence ", indicatorYearMin, "-", indicatorYearMax)
+  subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_SC", ".png"))
+  
+  ggplot(wk) +
+    labs(title = title , subtitle = subtitle) +
+    geom_sf(aes(fill = SC_Class)) +
+    scale_fill_manual(name = "SC", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+  ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+  
+  # Accuracy Confidence Class map (ACC)
+  title <- paste0("Eutrophication Accuracy Class Confidence ", indicatorYearMin, "-", indicatorYearMax)
+  subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_ACC", ".png"))
+  
+  ggplot(wk) +
+    labs(title = title , subtitle = subtitle) +
+    geom_sf(aes(fill = ACC_Class)) +
+    scale_fill_manual(name = "ACC", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+  ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+  
+  # Confidence map (C)
+  title <- paste0("Eutrophication Confidence ", indicatorYearMin, "-", indicatorYearMax)
+  subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_C", ".png"))
+  
+  ggplot(wk) +
+    labs(title = title , subtitle = subtitle) +
+    geom_sf(aes(fill = C_Class)) +
+    scale_fill_manual(name = "C", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
   ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
 }
 
