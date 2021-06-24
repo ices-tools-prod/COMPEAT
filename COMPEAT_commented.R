@@ -164,7 +164,7 @@ stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east."
 stationSamples <- st_transform(stationSamples, crs = 3035)
 
 # Classify stations into assessment units
-stationSamples$UnitID <- st_intersects(stationSamples, units) %>% as.numeric()
+#stationSamples$UnitID <- st_intersects(stationSamples, units) %>% as.numeric()
 
 # Classify stations into 10,30 and 60k gridunits
 #stationSamples <- st_join(stationSamples, gridunits10 %>% select(GridID.10k = GridID, Area.10k = Area), join = st_intersects)
@@ -297,7 +297,7 @@ for(i in 1:nrow(indicators)){
   
   if (metric == 'Mean'){
     # Calculate station mean --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk1 <- wk0[, .(ES = mean(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    wk1 <- wk0[, .(ES = mean(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)] #KC I think this is where any profiles would be averaged. In the original data profiles are binned to ICES standard depths (0,5,10,20,30,50,75,100,150,200,300 etc).So you would get a mean biased towards the surface which is a bit odd. It may be that this is just how the data is stored in the ICES database and they don't have full profiles?
     
     # Calculate annual mean --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
@@ -314,11 +314,11 @@ for(i in 1:nrow(indicators)){
 }
 
 # Combine station and annual indicator results
-wk1 <- rbindlist(wk1list)
-wk2 <- rbindlist(wk2list)
+wk1 <- rbindlist(wk1list) # station
+wk2 <- rbindlist(wk2list) # annual
 
 # Combine with indicator and indicator unit configuration tables
-wk3 <- indicators[indicatorUnits[wk2]]
+wk3 <- indicators[indicatorUnits[wk2]] #KC - ACDEV (the acceptable deviation) is added here. So it is predetermined. 40 for oxygen, 50 for everything else.
 
 # Standard Error
 wk3[, SE := SD / sqrt(N)]
@@ -351,13 +351,13 @@ wk3[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
                                          ifelse(EQRS >= 0.2, "Poor","Bad"))))]
 
 # Calculate General Temporal Confidence (GTC) - Confidence in number of annual observations
-wk3[, GTC := ifelse(N > GTC_HM, 100, ifelse(N < GTC_ML, 0, 50))]
+wk3[, GTC := ifelse(N > GTC_HM, 100, ifelse(N < GTC_ML, 0, 50))] #KC GTC_HM and GTC_ML are from the indicators file too, but I have no idea what they actually are.. ML is half of HM.. N seems to be number of obs WITHIN a year. So not what I would call annual observations. I think what this does is if there are more than GTC_HM data points (which is 12 for nuts and oxy, 26 for chl) then confidence is 100, if it is more than GTC_ML then it is 50, if less than that then 0.
 
 # Calculate Number of Months Potential
 wk3[, NMP := ifelse(MonthMin > MonthMax, 12 - MonthMin + 1 + MonthMax, MonthMax - MonthMin + 1)]
 
 # Calculate Specific Temporal Confidence (STC) - Confidence in number of annual missing months
-wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
+wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))] # KC - So this uses the number of months with data vs the potential number of months. So if all (or all but one for chlorophyll) the potential months are sampled it gets 100, if half (roughly) it gets 50, otherwise 0.
 
 # Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids 
 #wk3 <- wk3[as.data.table(gridunits)[, .(NG = .N), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
