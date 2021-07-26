@@ -258,7 +258,7 @@ for(i in 1:nrow(indicators)){
     wk0 <- wk[
       (Period >= year.min & Period <= year.max) &
         (Month >= month.min | Month <= month.max) &
-        (Depth..m.db..PRIMARYVAR.DOUBLE >= depth.min & Depth..m.db..PRIMARYVAR.DOUBLE <= depth.max) &
+        (Depth..m.db..PRIMARYVAR.DOUBLE >= depth.min & Depth..m.db..PRIMARYVAR.DOUBLE <= depth.max) & #KC - depth max is 10m so only surface data after this
         !is.na(ES) & 
         !is.na(UnitID),
       .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
@@ -318,7 +318,7 @@ wk1 <- rbindlist(wk1list) # station
 wk2 <- rbindlist(wk2list) # annual
 
 # Combine with indicator and indicator unit configuration tables
-wk3 <- indicators[indicatorUnits[wk2]] #KC - ACDEV (the acceptable deviation) is added here. So it is predetermined. 40 for oxygen, 50 for everything else.
+wk3 <- indicators[indicatorUnits[wk2]] #KC - ACDEV (the acceptable deviation) is added here. So it is predetermined. 40 for oxygen, 50 for everything else. ET is also added here.
 
 # Standard Error
 wk3[, SE := SD / sqrt(N)]
