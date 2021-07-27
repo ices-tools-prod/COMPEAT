@@ -10,7 +10,7 @@ ipak(packages)
 
 # Define paths
 inputPath <- "Input"
-outputPath <- "Output"
+outputPath <- "Output_oxy_meanq25"
 
 # Define assessment period - Uncomment the period you want to run the assessment for!
 assessmentPeriod <- "2006-2014"
@@ -30,6 +30,21 @@ download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
     }
   }
 }
+
+#defining function to average lowest quartile
+mean25 <- function(x){
+  Q25 = quantile(x, 0.25,na.rm = TRUE)
+  q = x[x <= Q25] 
+  return(mean(q,na.rm = TRUE))
+}
+
+#defining function to calculate standard deviation of lowest quartile
+sd25 <- function(x){
+  Q25 = quantile(x, 0.25,na.rm = TRUE)
+  q = x[x <= Q25] 
+  return(sd(q,na.rm = TRUE))
+}
+
 
 if (assessmentPeriod == "2006-2014"){
   # Assessment Period 2006-2014
@@ -301,12 +316,16 @@ for(i in 1:nrow(indicators)){
     
     # Calculate annual mean --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
-  } else if (metric == 'Minimum') {
-    # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+  }
+  #Oxygen indicator follows:
+  else if (metric == 'Minimum') {
+    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station
+    wk01 <- as.data.table(wk01)
+    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
-    # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+    # Calculate annual meanq25 --> UnitID, Period, ES, SD, N, NM
+    wk2 <- wk1[, .(ES = mean25(ES), SD = sd25(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
   }
   
   wk1list[[i]] <- wk1
@@ -326,14 +345,15 @@ wk3[, SE := SD / sqrt(N)]
 # 95 % Confidence Interval
 wk3[, CI := qnorm(0.975) * SE]
 
-# Calculate (BEST)
-wk3[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
+# Calculate (BEST) #From an email explanation: "The acronym stands for best values, meaning reference conditions, that are needed for the calculation of the EQRs. The name ‘best values’ comes from HELCOM processes using ‘best’ and ‘worst’ value ranges in the biodiversity assessment (BEAT tool). The acceptable deviation between the best and target values (ET), determines the class boundaries of the EQRs in the calculation process."
+#So Basically, BEST is the reference level, calculated from the threshold.
+wk3[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))] #This is subtracting 50% to the threshold, which it should not do as it has already been done.
 
 # Calculate Ecological Quality Ratio (ERQ)
-wk3[, EQR := ifelse(Response == 1, ifelse(BEST > ES, 1, BEST / ES), ifelse(ES > BEST, 1, ES / BEST))]
+wk3[, EQR := ifelse(Response == 1, ifelse(BEST > ES, 1, BEST / ES), ifelse(ES > BEST, 1, ES / BEST))] #For response = 1 (chl, din etc), if data below ref level then EQR = 1, else ref level divided by data. For response = 0 (oxy), if data above ref level then EQR = 1, else data divided by ref level.
 
 # Calculate Ecological Quality Ratio Boundaries (ERQ_HG/GM/MP/PB)
-wk3[, EQR_GM := ifelse(Response == 1, 1 / (1 + ACDEV / 100), 1 - ACDEV / 100)]
+wk3[, EQR_GM := ifelse(Response == 1, 1 / (1 + ACDEV / 100), 1 - ACDEV / 100)] #If ACDEV = 50 this is 0.66. Basically takes it back to the original threshold.
 wk3[, EQR_HG := 0.5 * 0.95 + 0.5 * EQR_GM]
 wk3[, EQR_PB := 2 * EQR_GM - 0.95]
 wk3[, EQR_MP := 0.5 * EQR_GM + 0.5 * EQR_PB]
@@ -715,3 +735,4 @@ for (i in 1:nrow(indicators)) {
     }
   }
 }
+

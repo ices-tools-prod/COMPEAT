@@ -31,6 +31,20 @@ download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
   }
 }
 
+#defining function to average lowest quartile
+mean25 <- function(x){
+  Q25 = quantile(x, 0.25,na.rm = TRUE)
+  q = x[x <= Q25] 
+  return(mean(q,na.rm = TRUE))
+}
+
+#defining function to calculate standard deviation of lowest quartile
+sd25 <- function(x){
+  Q25 = quantile(x, 0.25,na.rm = TRUE)
+  q = x[x <= Q25] 
+  return(sd(q,na.rm = TRUE))
+}
+
 if (assessmentPeriod == "2006-2014"){
   # Assessment Period 2006-2014
   urls <- c("https://www.dropbox.com/s/xzktj5nejp6tyn8/AssessmentUnits.zip?dl=1",
@@ -164,7 +178,7 @@ stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east."
 stationSamples <- st_transform(stationSamples, crs = 3035)
 
 # Classify stations into assessment units
-stationSamples$UnitID <- st_intersects(stationSamples, units) %>% as.numeric()
+#stationSamples$UnitID <- st_intersects(stationSamples, units) %>% as.numeric()
 
 # Classify stations into 10,30 and 60k gridunits
 #stationSamples <- st_join(stationSamples, gridunits10 %>% select(GridID.10k = GridID, Area.10k = Area), join = st_intersects)
@@ -301,12 +315,20 @@ for(i in 1:nrow(indicators)){
     
     # Calculate annual mean --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
-  } else if (metric == 'Minimum') {
-    # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+  }
+  else if (metric == 'Minimum') {
+    # # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    # wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    # # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
+    # wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
     
-    # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
+    wk01 <- as.data.table(wk01)
+    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    
+    # Calculate annual meanq25 --> UnitID, Period, ES, SD, N, NM
+    wk2 <- wk1[, .(ES = mean25(ES), SD = sd25(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
   }
   
   wk1list[[i]] <- wk1
