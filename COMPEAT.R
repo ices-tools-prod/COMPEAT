@@ -10,11 +10,11 @@ ipak(packages)
 
 # Define paths
 inputPath <- "Input"
-outputPath <- "Output"
+outputPath <- "Output_oxy_meanq25"
 
 # Define assessment period - Uncomment the period you want to run the assessment for!
-assessmentPeriod <- "2006-2014"
-#assessmentPeriod <- "2015-2020"
+#assessmentPeriod <- "2006-2014"
+assessmentPeriod <- "2015-2020"
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
@@ -192,6 +192,7 @@ stationSamples <- st_set_geometry(stationSamples, NULL)
 
 # Read indicator configuration files -------------------------------------------
 indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID) 
+indicators[4, Metric := "MeanQ25"]
 indicatorUnits <- fread(input = indicatorUnitsFile) %>% setkey(IndicatorID, UnitID)
 
 wk1list = list()
@@ -316,7 +317,7 @@ for(i in 1:nrow(indicators)){
     # Calculate annual mean --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
   }
-  else if (metric == 'Minimum') {
+  else if (metric == 'MeanQ25') {
     # # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
     # wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     # # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
@@ -737,3 +738,4 @@ for (i in 1:nrow(indicators)) {
     }
   }
 }
+

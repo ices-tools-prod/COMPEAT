@@ -192,7 +192,8 @@ stationSamples <- st_join(stationSamples, st_cast(gridunits), join = st_intersec
 stationSamples <- st_set_geometry(stationSamples, NULL)
 
 # Read indicator configuration files -------------------------------------------
-indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID) 
+indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID)
+indicators[4, Metric := "MeanQ25"]
 indicatorUnits <- fread(input = indicatorUnitsFile) %>% setkey(IndicatorID, UnitID)
 
 wk1list = list()
