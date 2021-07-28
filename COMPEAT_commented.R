@@ -8,9 +8,22 @@ ipak <- function(pkg){
 packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview")
 ipak(packages)
 
+#metric for oxygen
+#metricoxy <- "MeanQ25"
+metricoxy <- "5th percentile"
+#metricoxy <- "10th percentile"
+
 # Define paths
 inputPath <- "Input"
-outputPath <- "Output_oxy_meanq25"
+if (metricoxy == "MeanQ25") {
+  outputPath = "Output_oxy_meanq25"
+}
+if (metricoxy == "5th percentile") {
+  outputPath = "Output_oxy_q05"
+}
+if (metricoxy == "10th percentile") {
+  outputPath = "Output_oxy_q10"
+}
 
 # Define assessment period - Uncomment the period you want to run the assessment for!
 assessmentPeriod <- "2006-2014"
@@ -45,6 +58,11 @@ sd25 <- function(x){
   return(sd(q,na.rm = TRUE))
 }
 
+n25 <- function(x){
+  Q25 = quantile(x, 0.25,na.rm = TRUE)
+  q = x[x <= Q25] 
+  return(sum(!is.na(q)))
+}
 
 if (assessmentPeriod == "2006-2014"){
   # Assessment Period 2006-2014
@@ -193,7 +211,7 @@ stationSamples <- st_set_geometry(stationSamples, NULL)
 
 # Read indicator configuration files -------------------------------------------
 indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID)
-indicators[4, Metric := "MeanQ25"]
+indicators[4, Metric := metricoxy]
 indicatorUnits <- fread(input = indicatorUnitsFile) %>% setkey(IndicatorID, UnitID)
 
 wk1list = list()
@@ -320,13 +338,37 @@ for(i in 1:nrow(indicators)){
   }
   #Oxygen indicator follows:
   else if (metric == 'Minimum') {
+    # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
+    wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+  }
+  else if (metric == 'MeanQ25') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
     wk01 <- as.data.table(wk01)
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
     # Calculate annual meanq25 --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = mean25(ES), SD = sd25(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
+    wk2 <- wk1[, .(ES = mean25(ES), SD = sd25(ES), N = n25(ES), NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
+  }
+  else if (metric == '5th percentile') {
+    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
+    wk01 <- as.data.table(wk01)
+    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    
+    # Calculate annual 5th percentile --> UnitID, Period, ES, SD, N, NM
+    wk2 <- wk1[, .(ES = quantile(ES, 0.05,na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
+  }
+  else if (metric == '10th percentile') {
+    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
+    wk01 <- as.data.table(wk01)
+    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    
+    # Calculate annual 10th percentile --> UnitID, Period, ES, SD, N, NM
+    wk2 <- wk1[, .(ES = quantile(ES, 0.1,na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
   }
   
   wk1list[[i]] <- wk1
