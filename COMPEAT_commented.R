@@ -162,7 +162,8 @@ gridunits10 <- make.gridunits(units, 10000)
 gridunits30 <- make.gridunits(units, 30000)
 gridunits60 <- make.gridunits(units, 60000)
 
-unitGridSize <-  fread(input = unitGridSizeFile) %>% setkey(UnitID)
+unitGridSize <-  fread(input = unitGridSizeFile) %>% setkey(UnitID) # sets grid size for each unit depending on input file. Grids are smaller for smaller areas.
+plot(gridunits["UnitID"])#plots grid units
 
 a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% select(UnitID, GridID, GridArea = Area))
 b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% select(UnitID, GridID, GridArea = Area))
@@ -204,7 +205,7 @@ stationSamples <- st_transform(stationSamples, crs = 3035)
 #stationSamples <- st_join(stationSamples, gridunits30 %>% select(GridID.30k = GridID, Area.30k = Area), join = st_intersects)
 #stationSamples <- st_join(stationSamples, gridunits60 %>% select(GridID.60k = GridID, Area.60k = Area), join = st_intersects)
 
-stationSamples <- st_join(stationSamples, st_cast(gridunits), join = st_intersects)
+stationSamples <- st_join(stationSamples, st_cast(gridunits), join = st_intersects) # joins station samples with grid units so each is assigned to a grid id.
 
 # Remove spatial column
 stationSamples <- st_set_geometry(stationSamples, NULL)
@@ -436,7 +437,7 @@ wk3 <- wk3[d[,.(IndicatorID, UnitID, Period, UnitArea, GridArea)], on = .(Indica
 wk3[, SSC := ifelse(GridArea / UnitArea * 100 > SSC_HM, 100, ifelse(GridArea / UnitArea * 100 < SSC_ML, 0, 50))]
 rm(a,b,c,d)
 
-# Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
+# Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC #KC- This is where it averages across years to the whole assessment period.
 wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
 
 # Add Year Count where STC = 100 --> NSTC100

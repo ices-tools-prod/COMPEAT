@@ -8,20 +8,20 @@ ipak <- function(pkg){
 packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview")
 ipak(packages)
 #metric for oxygen
-#metricoxy <- "MeanQ25"
-metricoxy <- "5th percentile"
+metricoxy <- "MeanQ25"
+#metricoxy <- "5th percentile"
 #metricoxy <- "10th percentile"
 
 # Define paths
 inputPath <- "Input"
 if (metricoxy == "MeanQ25") {
-  outputPath = "Output_oxy_meanq25"
+  outputPath = "Output_oxy_meanq25_grid"
 }
 if (metricoxy == "5th percentile") {
-  outputPath = "Output_oxy_q05"
+  outputPath = "Output_oxy_q05_grid"
 }
 if (metricoxy == "10th percentile") {
-  outputPath = "Output_oxy_q10"
+  outputPath = "Output_oxy_q10_grid"
 }
 # Define assessment period - Uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "2006-2014"
@@ -332,14 +332,14 @@ for(i in 1:nrow(indicators)){
     wk1 <- wk0[, .(ES = mean(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
     # Calculate annual mean --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+    wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, GridID, Period)]
   }
   #Oxygen indicator
   else if (metric == 'Minimum') {
     # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
     wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+    wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, GridID, Period)]
   }
   else if (metric == 'MeanQ25') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
@@ -348,7 +348,7 @@ for(i in 1:nrow(indicators)){
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
     # Calculate annual meanq25 --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = mean25(ES), SD = sd25(ES), N = n25(ES), NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
+    wk2 <- wk1[, .(ES = mean25(ES), SD = sd25(ES), N = n25(ES), NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, GridID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
   }
   else if (metric == '5th percentile') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
@@ -357,7 +357,7 @@ for(i in 1:nrow(indicators)){
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
     # Calculate annual 5th percentile --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = quantile(ES, 0.05,na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
+    wk2 <- wk1[, .(ES = quantile(ES, 0.05,na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, GridID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
   }
   else if (metric == '10th percentile') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
@@ -366,7 +366,7 @@ for(i in 1:nrow(indicators)){
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
     # Calculate annual 10th percentile --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = quantile(ES, 0.1,na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
+    wk2 <- wk1[, .(ES = quantile(ES, 0.1,na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, GridID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
   }
   
   wk1list[[i]] <- wk1
@@ -419,32 +419,37 @@ wk3[, NMP := ifelse(MonthMin > MonthMax, 12 - MonthMin + 1 + MonthMax, MonthMax 
 # Calculate Specific Temporal Confidence (STC) - Confidence in number of annual missing months
 wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
 
-# Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids 
-#wk3 <- wk3[as.data.table(gridunits)[, .(NG = .N), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
-wk3 <- wk3[as.data.table(gridunits)[, .(NG = as.numeric(sum(GridArea) / mean(GridSize^2))), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
-wk3[, GSC := ifelse(N / NG > GSC_HM, 100, ifelse(N / NG < GSC_ML, 0, 50))]
+##Below section commented out as assessing at grid level instead of unit level.
 
-# Calculate Specific Spatial Confidence (SSC) - Confidence in area of sampled grid units as a percentage to the total unit area
-a <- wk1[, .N, keyby = .(IndicatorID, UnitID, Period, GridID, GridArea)] # UnitGrids
-b <- a[, .(GridArea = sum(as.numeric(GridArea))), keyby = .(IndicatorID, UnitID, Period)] #GridAreas
-c <- as.data.table(units)[, .(UnitArea = as.numeric(UnitArea)), keyby = .(UnitID)] # UnitAreas
-d <- c[b, on = .(UnitID = UnitID)] # UnitAreas ~ GridAreas
-wk3 <- wk3[d[,.(IndicatorID, UnitID, Period, UnitArea, GridArea)], on = .(IndicatorID = IndicatorID, UnitID = UnitID, Period = Period)]
-wk3[, SSC := ifelse(GridArea / UnitArea * 100 > SSC_HM, 100, ifelse(GridArea / UnitArea * 100 < SSC_ML, 0, 50))]
-rm(a,b,c,d)
+# # Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids 
+# #wk3 <- wk3[as.data.table(gridunits)[, .(NG = .N), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
+# wk3 <- wk3[as.data.table(gridunits)[, .(NG = as.numeric(sum(GridArea) / mean(GridSize^2))), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
+# wk3[, GSC := ifelse(N / NG > GSC_HM, 100, ifelse(N / NG < GSC_ML, 0, 50))]
+# 
+# # Calculate Specific Spatial Confidence (SSC) - Confidence in area of sampled grid units as a percentage to the total unit area
+# a <- wk1[, .N, keyby = .(IndicatorID, UnitID, Period, GridID, GridArea)] # UnitGrids
+# b <- a[, .(GridArea = sum(as.numeric(GridArea))), keyby = .(IndicatorID, UnitID, Period)] #GridAreas
+# c <- as.data.table(units)[, .(UnitArea = as.numeric(UnitArea)), keyby = .(UnitID)] # UnitAreas
+# d <- c[b, on = .(UnitID = UnitID)] # UnitAreas ~ GridAreas
+# wk3 <- wk3[d[,.(IndicatorID, UnitID, Period, UnitArea, GridArea)], on = .(IndicatorID = IndicatorID, UnitID = UnitID, Period = Period)]
+# wk3[, SSC := ifelse(GridArea / UnitArea * 100 > SSC_HM, 100, ifelse(GridArea / UnitArea * 100 < SSC_ML, 0, 50))]
+# rm(a,b,c,d)
 
 # Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
-wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
+# wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
+wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC)), .(IndicatorID, GridID)]
 
 # Add Year Count where STC = 100 --> NSTC100
-wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, UnitID)][wk4, on = .(IndicatorID, UnitID)]
+wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, GridID)][wk4, on = .(IndicatorID, GridID)]
 
 # Adjust Specific Spatial Confidence if number of years where STC = 100 is at least half of the number of years with measurements
-wk4[, STC := ifelse(!is.na(NSTC100) & NSTC100 >= N/2, 100, STC)]
+# wk4[, STC := ifelse(!is.na(NSTC100) & NSTC100 >= N/2, 100, STC)]
 
 # Combine with indicator and indicator unit configuration tables
-wk5 <- indicators[indicatorUnits[wk4]]
-
+#First getting thresholds for each grid unit. These are from the thresholds for each assessment area, but presumably the thresholds could be provided at the grid unit scale? Not relevant for oxygen though.
+indicatorGridunits <- merge(st_drop_geometry(gridunits[1:3]), indicatorUnits[], by = "UnitID", allow.cartesian = T) %>% setkey(IndicatorID,GridID)
+wk5 <- indicators[indicatorGridunits[wk4]] 
+indicatorGridunits[wk4]
 #-------------------------------------------------------------------------------
 # Confidence Assessment
 # ------------------------------------------------------------------------------
@@ -454,10 +459,10 @@ wk5 <- wk5[, TC := (GTC + STC) / 2]
 
 wk5[, TC_Class := ifelse(TC >= 75, "High", ifelse(TC >= 50, "Moderate", "Low"))]
 
-# Calculate Spatial Confidence averaging General and Specific Spatial Confidence 
-wk5 <- wk5[, SC := (GSC + SSC) / 2]
-
-wk5[, SC_Class := ifelse(SC >= 75, "High", ifelse(SC >= 50, "Moderate", "Low"))]
+# # Calculate Spatial Confidence averaging General and Specific Spatial Confidence 
+# wk5 <- wk5[, SC := (GSC + SSC) / 2]
+# 
+# wk5[, SC_Class := ifelse(SC >= 75, "High", ifelse(SC >= 50, "Moderate", "Low"))]
 
 # Standard Error - using number of years in the assessment period and the associated standard deviation
 #wk5[, SE := SD / sqrt(N)]
@@ -519,7 +524,8 @@ wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
 # Category ---------------------------------------------------------------------
 
 # Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, EQR, EQRS, C
-wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
+# wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
+wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, GridID)]
 
 wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","EQR","EQRS","C"))
 
