@@ -8,10 +8,10 @@ ipak <- function(pkg){
 packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview")
 ipak(packages)
 #metric for oxygen
-metricoxy <- "MeanQ25"
+#metricoxy <- "MeanQ25"
 #metricoxy <- "5th percentile"
 #metricoxy <- "10th percentile"
-
+metricoxy <- "Minimum"
 # Define paths
 inputPath <- "Input"
 if (metricoxy == "MeanQ25") {
@@ -22,6 +22,9 @@ if (metricoxy == "5th percentile") {
 }
 if (metricoxy == "10th percentile") {
   outputPath = "Output_oxy_q10_grid"
+}
+if (metricoxy == "Minimum") {
+  outputPath = "Output_oxy_minimum_grid"
 }
 # Define assessment period - Uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "2006-2014"
@@ -378,9 +381,9 @@ for(i in 1:nrow(indicators)){
 # Combine station and annual indicator results
 wk1 <- rbindlist(wk1list)
 #export wk1
-write.csv(wk1, "station_grids.csv")
+#write.csv(wk1, "station_grids.csv")
 wk2 <- rbindlist(wk2list)
-write.csv(wk2, "annual_station_grids.csv")
+#write.csv(wk2, "annual_station_grids.csv")
 
 # Combine with indicator and indicator unit configuration tables
 wk3 <- indicators[indicatorUnits[wk2]]
@@ -673,9 +676,9 @@ for (i in 1:nrow(indicators)) {
   indicatorYearMin <- indicators[i, YearMin]
   indicatorMetric <- indicators[i, Metric]
   
-  wk <- wk5[IndicatorID == indicatorID] %>% setkey(UnitID)
+  wk <- wk5[IndicatorID == indicatorID] %>% setkey(GridID)
   
-  wk <- merge(units, wk, all.x = TRUE)  
+  wk <- merge(gridunits, wk, all.x = TRUE, by = "GridID")  
 
   # Status map (EQRS)
   title <- paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)
