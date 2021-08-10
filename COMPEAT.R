@@ -166,6 +166,8 @@ a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% select(UnitID, GridI
 b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% select(UnitID, GridID, GridArea = Area))
 c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% select(UnitID, GridID, GridArea = Area))
 gridunits <- st_as_sf(rbindlist(list(a,b,c)))
+gridunits_polygon <- st_collection_extract(gridunits, "POLYGON")
+st_write(gridunits_polygon, "gridunits.shp")
 rm(a,b,c)
 
 # Plot
@@ -375,7 +377,10 @@ for(i in 1:nrow(indicators)){
 
 # Combine station and annual indicator results
 wk1 <- rbindlist(wk1list)
+#export wk1
+write.csv(wk1, "station_grids.csv")
 wk2 <- rbindlist(wk2list)
+write.csv(wk2, "annual_station_grids.csv")
 
 # Combine with indicator and indicator unit configuration tables
 wk3 <- indicators[indicatorUnits[wk2]]
@@ -418,7 +423,7 @@ wk3[, NMP := ifelse(MonthMin > MonthMax, 12 - MonthMin + 1 + MonthMax, MonthMax 
 
 # Calculate Specific Temporal Confidence (STC) - Confidence in number of annual missing months
 wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
-
+write.csv(wk3, "annual_result_grids.csv")
 ##Below section commented out as assessing at grid level instead of unit level.
 
 # # Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids 
@@ -437,7 +442,8 @@ wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
 
 # Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
 # wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
-wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC)), .(IndicatorID, GridID)]
+wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC)), .(IndicatorID, UnitID, GridID)]
+write.csv(wk4, "period_result_grids.csv")
 
 # Add Year Count where STC = 100 --> NSTC100
 wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, GridID)][wk4, on = .(IndicatorID, GridID)]
@@ -447,9 +453,12 @@ wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, GridID)][wk4, on = .(Indi
 
 # Combine with indicator and indicator unit configuration tables
 #First getting thresholds for each grid unit. These are from the thresholds for each assessment area, but presumably the thresholds could be provided at the grid unit scale? Not relevant for oxygen though.
-indicatorGridunits <- merge(st_drop_geometry(gridunits[1:3]), indicatorUnits[], by = "UnitID", allow.cartesian = T) %>% setkey(IndicatorID,GridID)
-wk5 <- indicators[indicatorGridunits[wk4]] 
-indicatorGridunits[wk4]
+indicatorGridunits <- merge(st_drop_geometry(gridunits[c(1,3)]), indicatorUnits, by = "UnitID", allow.cartesian = T) %>% setkey(IndicatorID,GridID)
+#indicatorGridunits <- indicatorGridunits[,2:4]
+#wk5 <- indicators[indicatorGridunits[wk4]] # for some reason I do not understand this does not match things up right. Trying merge instead.
+wk5 <- merge(wk4, indicators, by = "IndicatorID")
+wk5 <- merge(wk5, indicatorGridunits, by = c("IndicatorID", "GridID", "UnitID"), all.x = T)
+write.csv(wk5, "period_result_grids_thresholds.csv")
 #-------------------------------------------------------------------------------
 # Confidence Assessment
 # ------------------------------------------------------------------------------
@@ -489,10 +498,11 @@ wk5[, AC := ifelse(AC_NPA > AC_PA, AC_NPA, AC_PA)]
 wk5[, ACC := ifelse(AC > 0.9, 100, ifelse(AC < 0.7, 0, 50))]
 
 wk5[, ACC_Class := ifelse(ACC >= 75, "High", ifelse(ACC >= 50, "Moderate", "Low"))]
-
-# Calculate Overall Confidence
-wk5 <- wk5[, C := (TC + SC + ACC) / 3]
-
+# 
+# # Calculate Overall Confidence
+# wk5 <- wk5[, C := (TC + SC + ACC) / 3]
+wk5 <- wk5[, C := (TC + ACC) / 2]
+# 
 wk5[, C_Class := ifelse(C >= 75, "High", ifelse(C >= 50, "Moderate", "Low"))]
 
 # ------------------------------------------------------------------------------
@@ -527,16 +537,16 @@ wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
 # wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
 wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, GridID)]
 
-wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","EQR","EQRS","C"))
+wk7 <- dcast(wk6, GridID ~ CategoryID, value.var = c("N","EQR","EQRS","C"))
 
 # Assessment -------------------------------------------------------------------
 
 # Assessment result - UnitID, N, EQR, EQRS, C
-wk81 <- wk6[CategoryID %in% c(2,3), .(NE = .N, EQR = min(EQR), EQRS = min(EQRS)), (UnitID)] %>% setkey(UnitID)
-wk82 <- wk6[, .(NC = .N, C = mean(C)), (UnitID)] %>% setkey(UnitID)
+wk81 <- wk6[CategoryID %in% c(2,3), .(NE = .N, EQR = min(EQR), EQRS = min(EQRS)), (GridID)] %>% setkey(GridID)
+wk82 <- wk6[, .(NC = .N, C = mean(C)), (GridID)] %>% setkey(GridID)
 wk8 <- wk81[wk82]
 
-wk9 <- wk7[wk8, on = .(UnitID = UnitID), nomatch=0]
+wk9 <- wk7[wk8, on = .(GridID = GridID), nomatch=0]
 
 wk9[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
                            ifelse(EQRS >= 0.6, "Good",
@@ -585,69 +595,69 @@ C_Class_limits <- c("High", "Moderate", "Low")
 C_Class_labels <- c(">= 75 % (High)", "50 - 74 % (Moderate)", "< 50 % (Low)")
 
 # Assessment map Status + Confidence
-wk <- merge(units, wk9, all.x = TRUE)
+wk <- merge(gridunits, wk9, all.x = TRUE, by = "GridID")
 
 # Status maps
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
   geom_sf(aes(fill = EQRS_Class)) +
   scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_EQRS.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_grid.png"), width = 12, height = 9, dpi = 300)
 
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
   geom_sf(aes(fill = EQRS_11_Class)) +
   scale_fill_manual(name = "EQRS_11", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_EQRS_11.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_11_grid.png"), width = 12, height = 9, dpi = 300)
 
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
   geom_sf(aes(fill = EQRS_12_Class)) +
   scale_fill_manual(name = "EQRS_12", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_EQRS_12.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_12_grid.png"), width = 12, height = 9, dpi = 300)
 
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
   geom_sf(aes(fill = EQRS_2_Class)) +
   scale_fill_manual(name = "EQRS_2", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_EQRS_2.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_2_grid.png"), width = 12, height = 9, dpi = 300)
 
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Status ", assessmentPeriod)) +
   geom_sf(aes(fill = EQRS_3_Class)) +
   scale_fill_manual(name = "EQRS_3", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_EQRS_3.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_EQRS_3_grid.png"), width = 12, height = 9, dpi = 300)
 
 # Confidence maps
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
   geom_sf(aes(fill = C_Class)) +
   scale_fill_manual(name = "C", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_C.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_C_grid.png"), width = 12, height = 9, dpi = 300)
 
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
   geom_sf(aes(fill = C_11_Class)) +
   scale_fill_manual(name = "C_11", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_C_11.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_C_11_grid.png"), width = 12, height = 9, dpi = 300)
 
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
   geom_sf(aes(fill = C_12_Class)) +
   scale_fill_manual(name = "C_12", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_C_12.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_C_12_grid.png"), width = 12, height = 9, dpi = 300)
 
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
   geom_sf(aes(fill = C_2_Class)) +
   scale_fill_manual(name = "C_2", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_C_2.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_C_2_grid.png"), width = 12, height = 9, dpi = 300)
 
 ggplot(wk) +
   ggtitle(label = paste0("Eutrophication Confidence ", assessmentPeriod)) +
   geom_sf(aes(fill = C_3_Class)) +
   scale_fill_manual(name = "C_3", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
-ggsave(file.path(outputPath, "Assessment_Map_C_3.png"), width = 12, height = 9, dpi = 300)
+ggsave(file.path(outputPath, "Assessment_Map_C_3_grid.png"), width = 12, height = 9, dpi = 300)
 
 # Create Assessment Indicator maps
 for (i in 1:nrow(indicators)) {
@@ -673,7 +683,7 @@ for (i in 1:nrow(indicators)) {
   subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
   subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
   subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
-  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_EQRS", ".png"))
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_EQRS", "_grid.png"))
   
   ggplot(wk) +
     labs(title = title , subtitle = subtitle) +
@@ -687,7 +697,7 @@ for (i in 1:nrow(indicators)) {
   subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
   subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
   subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
-  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_TC", ".png"))
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_TC", "_grid.png"))
   
   ggplot(wk) +
     labs(title = title , subtitle = subtitle) +
@@ -695,19 +705,19 @@ for (i in 1:nrow(indicators)) {
     scale_fill_manual(name = "TC", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
   ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
   
-  # Spatial Confidence map (SC)
-  title <- paste0("Eutrophication Spatial Confidence ", indicatorYearMin, "-", indicatorYearMax)
-  subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
-  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
-  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
-  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
-  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_SC", ".png"))
-  
-  ggplot(wk) +
-    labs(title = title , subtitle = subtitle) +
-    geom_sf(aes(fill = SC_Class)) +
-    scale_fill_manual(name = "SC", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
-  ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+  # # Spatial Confidence map (SC)
+  # title <- paste0("Eutrophication Spatial Confidence ", indicatorYearMin, "-", indicatorYearMax)
+  # subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+  # subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  # subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+  # subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+  # fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_SC", ".png"))
+  # 
+  # ggplot(wk) +
+  #   labs(title = title , subtitle = subtitle) +
+  #   geom_sf(aes(fill = SC_Class)) +
+  #   scale_fill_manual(name = "SC", values = C_Class_colors, limits = C_Class_limits, labels = C_Class_labels)
+  # ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
   
   # Accuracy Confidence Class map (ACC)
   title <- paste0("Eutrophication Accuracy Class Confidence ", indicatorYearMin, "-", indicatorYearMax)
@@ -715,7 +725,7 @@ for (i in 1:nrow(indicators)) {
   subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
   subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
   subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
-  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_ACC", ".png"))
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_ACC", "_grid.png"))
   
   ggplot(wk) +
     labs(title = title , subtitle = subtitle) +
@@ -729,7 +739,7 @@ for (i in 1:nrow(indicators)) {
   subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
   subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
   subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
-  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_C", ".png"))
+  fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_C", "_grid.png"))
   
   ggplot(wk) +
     labs(title = title , subtitle = subtitle) +
@@ -738,59 +748,59 @@ for (i in 1:nrow(indicators)) {
   ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
 }
 
-# Create Annual Indicator bar charts
-for (i in 1:nrow(indicators)) {
-  indicatorID <- indicators[i, IndicatorID]
-  indicatorCode <- indicators[i, Code]
-  indicatorName <- indicators[i, Name]
-  indicatorUnit <- indicators[i, Units]
-  indicatorYearMin <- indicators[i, YearMin]
-  indicatorYearMax <- indicators[i, YearMax]
-  indicatorMonthMin <- indicators[i, MonthMin]
-  indicatorMonthMax <- indicators[i, MonthMax]
-  indicatorDepthMin <- indicators[i, DepthMin]
-  indicatorDepthMax <- indicators[i, DepthMax]
-  indicatorYearMin <- indicators[i, YearMin]
-  indicatorMetric <- indicators[i, Metric]
-  for (j in 1:nrow(units)) {
-    unitID <- as.data.table(units)[j, UnitID]
-    unitCode <- as.data.table(units)[j, Code]
-    unitName <- as.data.table(units)[j, Description]
-
-    title <- paste0("Eutrophication State [ES, CI, N] and Threshold [ET] ", indicatorYearMin, "-", indicatorYearMax)
-    subtitle <- paste0(indicatorName, " (", indicatorCode, ")", " in ", unitName, " (", unitCode, ")", "\n")
-    subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
-    subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
-    subtitle <- paste0(subtitle, "Metric: ", indicatorMetric, ", ")
-    subtitle <- paste0(subtitle, "Unit: ", indicatorUnit)
-    fileName <- gsub(":", "", paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png"))
-
-    wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
-
-    if (nrow(wk) > 0 & indicatorMetric %in% c("Mean", "MeanQ25")) {
-      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
-        labs(title = title , subtitle = subtitle) +
-        geom_col() +
-        geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
-        geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
-        geom_hline(aes(yintercept = ET)) +
-        scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
-        scale_y_continuous(NULL)
-      
-      ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
-    }
-    if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "10th percentile")) {
-      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
-        labs(title = title , subtitle = subtitle) +
-        geom_col() +
-        geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
-        #geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
-        geom_hline(aes(yintercept = ET)) +
-        scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
-        scale_y_continuous(NULL)
-      
-      ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
-    }
-  }
-}
+# # Create Annual Indicator bar charts
+# for (i in 1:nrow(indicators)) {
+#   indicatorID <- indicators[i, IndicatorID]
+#   indicatorCode <- indicators[i, Code]
+#   indicatorName <- indicators[i, Name]
+#   indicatorUnit <- indicators[i, Units]
+#   indicatorYearMin <- indicators[i, YearMin]
+#   indicatorYearMax <- indicators[i, YearMax]
+#   indicatorMonthMin <- indicators[i, MonthMin]
+#   indicatorMonthMax <- indicators[i, MonthMax]
+#   indicatorDepthMin <- indicators[i, DepthMin]
+#   indicatorDepthMax <- indicators[i, DepthMax]
+#   indicatorYearMin <- indicators[i, YearMin]
+#   indicatorMetric <- indicators[i, Metric]
+#   for (j in 1:nrow(units)) {
+#     unitID <- as.data.table(units)[j, UnitID]
+#     unitCode <- as.data.table(units)[j, Code]
+#     unitName <- as.data.table(units)[j, Description]
+# 
+#     title <- paste0("Eutrophication State [ES, CI, N] and Threshold [ET] ", indicatorYearMin, "-", indicatorYearMax)
+#     subtitle <- paste0(indicatorName, " (", indicatorCode, ")", " in ", unitName, " (", unitCode, ")", "\n")
+#     subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+#     subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+#     subtitle <- paste0(subtitle, "Metric: ", indicatorMetric, ", ")
+#     subtitle <- paste0(subtitle, "Unit: ", indicatorUnit)
+#     fileName <- gsub(":", "", paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png"))
+# 
+#     wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
+# 
+#     if (nrow(wk) > 0 & indicatorMetric %in% c("Mean", "MeanQ25")) {
+#       ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
+#         labs(title = title , subtitle = subtitle) +
+#         geom_col() +
+#         geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+#         geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
+#         geom_hline(aes(yintercept = ET)) +
+#         scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
+#         scale_y_continuous(NULL)
+#       
+#       ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+#     }
+#     if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "10th percentile")) {
+#       ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
+#         labs(title = title , subtitle = subtitle) +
+#         geom_col() +
+#         geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+#         #geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
+#         geom_hline(aes(yintercept = ET)) +
+#         scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
+#         scale_y_continuous(NULL)
+#       
+#       ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+#     }
+#   }
+# }
 
