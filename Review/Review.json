@@ -1,0 +1,109 @@
+{
+	"title": "COMPEAT review",
+	"review": [
+		{
+			"level": "Core Data",
+			"acceptance": [
+				{
+					"title": "No observations missing",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "No double observations",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "No removable observations",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "No missing parameters in observations",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				}
+			]			
+		},
+		{
+			"level": "Core Indicator",
+			"acceptance": [
+				{
+					"title": "DIN",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "DIP",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "Chlorophyll a",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "Dissolved Oxygen",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				}
+			]
+		},
+		{
+			"level": "Coastal Indicator",
+			"acceptance": [
+				{
+					"title": "All coastal units are represented and assigned with the indicators relevant for them",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "All indicators are represented and assigned with ES, ET and ER in the relevant assessment units",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "Accuracy of ES value: for all indicators, all relevant coastal units",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "Accuracy of ET value: for all indicators, all relevant coastal units",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "Accuracy of ER calculation: for all indicators, all relevant coastal units",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				},
+				{
+					"title": "Accuracy of map: assessment period; MSFD classification, MSFD & 5-levels, MSFD & 10-levels",
+					"checked": false,
+					"accepted": false,
+					"exceptions": ""
+				}
+			]
+		},
+		{
+			"level": "Assessment",
+			"acceptance": [
+			]
+		}	
+	]
+}
