@@ -13,8 +13,8 @@ inputPath <- "Input"
 outputPath <- "Output"
 
 # Define assessment period - Uncomment the period you want to run the assessment for!
-assessmentPeriod <- "2006-2014"
-#assessmentPeriod <- "2015-2020"
+#assessmentPeriod <- "2006-2014"
+assessmentPeriod <- "2015-2020"
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
