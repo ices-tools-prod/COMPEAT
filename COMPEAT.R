@@ -207,6 +207,10 @@ stationSamples$bathy_flag <- 0
 stationSamples$bathy_flag[is.na(stationSamples$Bot..Depth..m.)] <- 1
 stationSamples$Bot..Depth..m.[is.na(stationSamples$Bot..Depth..m.)] <- stationSamples$Bathymetry[is.na(stationSamples$Bot..Depth..m.)] * (-1)
 
+#calculate height above seafloor of samples
+stationSamples$SampleHeight <- (stationSamples$Bot..Depth..m. - stationSamples$Depth..m.db..PRIMARYVAR.DOUBLE)
+
+
 # Transform projection into ETRS_1989_LAEA
 stationSamples <- st_transform(stationSamples, crs = 3035)
 
@@ -308,6 +312,12 @@ for(i in 1:nrow(indicators)){
   wk <- wk[unitGridSize, on="UnitID", nomatch=0]
 
   # Filter stations rows and columns --> UnitID, GridID, GridArea, Period, Month, StationID, Depth, Temperature, Salinity, ES
+  #first filter oxygen only to select only samples within 10m of seabed
+  if (name == 'Oxygen Deficiency') {
+    wk <- wk[
+    (SampleHeight <= 10),]
+  }
+  
   if (month.min > month.max) {
     wk0 <- wk[
       (Period >= year.min & Period <= year.max) &
@@ -358,8 +368,10 @@ for(i in 1:nrow(indicators)){
   }
   #Oxygen indicator
   else if (metric == 'Minimum') {
-    # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
+    wk01 <- as.data.table(wk01)
+    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
   }
