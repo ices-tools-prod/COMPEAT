@@ -191,6 +191,22 @@ stationSamples <- fread(input = stationSamplesFile, sep = "\t", na.strings = "NU
 # Make stations spatial keeping original latitude/longitude
 stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
 
+#Read in bathymetry - this is the emodnet bathymetry downloaded on 14/10/21, the 2020 version.
+
+bathy <- raster(file.path(inputPath, "emodnet_bathy_2020.tif"))
+
+#extract bathymetry for each data point
+
+stationSamples$Bathymetry <- raster::extract(x=bathy, y=stationSamples, method="simple")
+str(stationSamples)
+
+
+#where wcdepth is missing fill this in from bathy and add a flag to say this is what has been done
+
+stationSamples$bathy_flag <- 0
+stationSamples$bathy_flag[is.na(stationSamples$Bot..Depth..m.)] <- 1
+stationSamples$Bot..Depth..m.[is.na(stationSamples$Bot..Depth..m.)] <- stationSamples$Bathymetry[is.na(stationSamples$Bot..Depth..m.)] * (-1)
+
 # Transform projection into ETRS_1989_LAEA
 stationSamples <- st_transform(stationSamples, crs = 3035)
 
@@ -206,6 +222,9 @@ stationSamples <- st_join(stationSamples, st_cast(gridunits), join = st_intersec
 
 # Remove spatial column
 stationSamples <- st_set_geometry(stationSamples, NULL)
+
+
+
 
 # Read indicator configuration files -------------------------------------------
 indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID) 
