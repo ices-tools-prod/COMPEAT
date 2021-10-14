@@ -44,7 +44,9 @@ if (assessmentPeriod == "2006-2014"){
             "https://www.dropbox.com/s/0idmdxxcbinz4qf/Indicators.csv?dl=1",
             "https://www.dropbox.com/s/jqb03sfdqa18cph/IndicatorUnits.csv?dl=1",
             "https://www.dropbox.com/s/cubpuuus8ab7aki/UnitGridSize.csv?dl=1",
-            "https://www.dropbox.com/s/2er9ngl5rnon426/StationSamples.txt.gz?dl=1")  
+            "https://www.dropbox.com/s/gy9zlice5zxuaje/StationSamples.txt.gz?dl=1",
+            "https://www.dropbox.com/s/z6j6hmh7dzltsv5/Indicator_CPHL_EO_ARGANS_02.csv?dl=1",
+            "https://www.dropbox.com/s/lsfr9mp478qkqsn/Indicator_CPHL_EO_RBINS_02.csv?dl=1")  
 }
 
 files <- sapply(urls, download.file.unzip.maybe, path = inputPath)
@@ -54,6 +56,8 @@ indicatorsFile <- file.path(inputPath, "Indicators.csv")
 indicatorUnitsFile <- file.path(inputPath, "IndicatorUnits.csv")
 unitGridSizeFile <- file.path(inputPath, "UnitGridSize.csv")
 stationSamplesFile <- file.path(inputPath, "StationSamples.txt.gz")
+indicator_CPHL_EO_ARGANS_02 <- file.path(inputPath, "Indicator_CPHL_EO_ARGANS_02.csv")
+indicator_CPHL_EO_RBINS_02 <- file.path(inputPath, "Indicator_CPHL_EO_RBINS_02.csv")
 
 # Assessment Units + Grid Units-------------------------------------------------
 
@@ -138,11 +142,16 @@ gridunits <- st_as_sf(rbindlist(list(a,b,c)))
 rm(a,b,c)
 
 # Plot
-#ggplot() + geom_sf(data = units) + coord_sf()
-#ggplot() + geom_sf(data = gridunits10) + coord_sf()
-#ggplot() + geom_sf(data = gridunits30) + coord_sf()
-#ggplot() + geom_sf(data = gridunits60) + coord_sf()
-#ggplot() + geom_sf(data = gridunits) + coord_sf()
+ggplot() + geom_sf(data = units) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_Units.png"), width = 12, height = 9, dpi = 300)
+ggplot() + geom_sf(data = gridunits10) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_GridUnits10.png"), width = 12, height = 9, dpi = 300)
+ggplot() + geom_sf(data = gridunits30) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_GridUnits30.png"), width = 12, height = 9, dpi = 300)
+ggplot() + geom_sf(data = gridunits60) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_GridUnits60.png"), width = 12, height = 9, dpi = 300)
+ggplot() + geom_sf(data = st_cast(gridunits)) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_GridUnits.png"), width = 12, height = 9, dpi = 300)
 
 # Read stationSamples ----------------------------------------------------------
 stationSamples <- fread(input = stationSamplesFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
@@ -317,6 +326,22 @@ for(i in 1:nrow(indicators)){
 wk1 <- rbindlist(wk1list)
 wk2 <- rbindlist(wk2list)
 
+# Add Chlorophyll a satellite indicators if they exists
+if (file.exists(indicator_CPHL_EO_RBINS_02)) {
+  wk2_EO_RBINS <- fread(file.path(inputPath, "Indicator_CPHL_EO_RBINS_02.csv"))
+  wk2_EO_RBINS[, IndicatorID := 301]
+  wk2_EO_RBINS[units, on = .(AssessmentUnitCode = Code), UnitID := UnitID]
+  wk2_EO_RBINS <- wk2_EO_RBINS[, .(IndicatorID, UnitID, Period = Year, ES = Mean, SD = STD, N)]
+  wk2 <- rbindlist(list(wk2, wk2_EO_RBINS), fill = TRUE)
+}
+if (file.exists(indicator_CPHL_EO_ARGANS_02)) {
+  wk2_EO_ARGANS <- fread(file.path(inputPath, "Indicator_CPHL_EO_ARGANS_02.csv"))
+  wk2_EO_ARGANS[, IndicatorID := 302]
+  wk2_EO_ARGANS[units, on = .(AssessmentUnitCode = Code), UnitID := UnitID]
+  wk2_EO_ARGANS <- wk2_EO_ARGANS[, .(IndicatorID, UnitID, Period = Year, ES = Mean, SD = STD, N)]
+  wk2 <- rbindlist(list(wk2, wk2_EO_ARGANS), fill = TRUE)
+}
+
 # Combine with indicator and indicator unit configuration tables
 wk3 <- indicators[indicatorUnits[wk2]]
 
@@ -369,7 +394,8 @@ a <- wk1[, .N, keyby = .(IndicatorID, UnitID, Period, GridID, GridArea)] # UnitG
 b <- a[, .(GridArea = sum(as.numeric(GridArea))), keyby = .(IndicatorID, UnitID, Period)] #GridAreas
 c <- as.data.table(units)[, .(UnitArea = as.numeric(UnitArea)), keyby = .(UnitID)] # UnitAreas
 d <- c[b, on = .(UnitID = UnitID)] # UnitAreas ~ GridAreas
-wk3 <- wk3[d[,.(IndicatorID, UnitID, Period, UnitArea, GridArea)], on = .(IndicatorID = IndicatorID, UnitID = UnitID, Period = Period)]
+#wk3 <- wk3[d[,.(IndicatorID, UnitID, Period, UnitArea, GridArea)], on = .(IndicatorID = IndicatorID, UnitID = UnitID, Period = Period)]
+wk3 <- merge(wk3, d, by = c("IndicatorID", "UnitID", "Period"), all.x = TRUE)
 wk3[, SSC := ifelse(GridArea / UnitArea * 100 > SSC_HM, 100, ifelse(GridArea / UnitArea * 100 < SSC_ML, 0, 50))]
 rm(a,b,c,d)
 
@@ -459,7 +485,7 @@ wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
 # Category ---------------------------------------------------------------------
 
 # Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, EQR, EQRS, C
-wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
+wk6 <- wk5[IndicatorID < 100 & !is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
 
 wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","EQR","EQRS","C"))
 

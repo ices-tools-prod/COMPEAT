@@ -18,7 +18,7 @@ colnames(OSPAR_Assessment_Units)[1] <- "AssessmentUnitCode"
 OSPAR_Assessment_Units <- st_transform(OSPAR_Assessment_Units, crs = 3035)
 
 # Get netcdf files
-path <- "D:\\COMPEAT\\CPHL_EO_RBINS\\v1.0\\CHL_daily_2015_2020\\"
+path <- "D:\\COMPEAT\\CPHL_EO_RBINS\\v1.01\\CHL_daily_2015_2020\\"
 filenames <- list.files(path = path, full.names = TRUE)
 
 # Loop netcdf files
@@ -71,12 +71,12 @@ dt1 <- lapply(filenames, function(filename) {
     dt <- st_set_geometry(dt, NULL)
     
     # Write data table
-    fwrite(dt,paste0("D:\\COMPEAT\\CPHL_EO_RBINS\\v1.0\\csv\\",datestring,".csv"))
+    fwrite(dt,paste0("D:\\COMPEAT\\CPHL_EO_RBINS\\v1.01\\csv\\",datestring,".csv"))
   }
 })
 
 # Read csv files into data table
-path <- "D:\\COMPEAT\\CPHL_EO_RBINS\\v1.0\\csv\\"
+path <- "D:\\COMPEAT\\CPHL_EO_RBINS\\v1.01\\csv\\"
 
 years <- c("2015", "2016", "2017", "2018", "2019", "2020")
 

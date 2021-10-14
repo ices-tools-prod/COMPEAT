@@ -3,6 +3,7 @@ library(data.table)
 library(ncdf4)
 library(tidyverse)
 library(R.utils)
+library(ggplot2)
 
 # Read OSPAR assessment units
 OSPAR_Assessment_Units <- st_read("MSSQL:server=SQL09;database=OceanCOMPEAT_20152020_COMP4;trusted_connection=yes;", layer = "AssessmentUnit")
@@ -91,10 +92,17 @@ dt4 <- lapply(years, function(year) {
   # Combine list of data tables into one
   dt2 <- rbindlist(dt1)
   # Calculate indicator
-  dt3 <- dt2[, list(Mean = mean(Chlorophyll), STD = sd(Chlorophyll), .N), list(AssessmentUnitCode,Year)]
+  dt3 <- dt2[, list(Mean = mean(Chlorophyll), STD = sd(Chlorophyll), .N), list(AssessmentUnitCode, Year)]
 })
 # Combine annual results into one
 dt5 <- rbindlist(dt4)
 
 # Write data table
 fwrite(dt5,paste0("D:\\COMPEAT\\Indicator_CPHL_EO_ARGANS_02.csv"))
+
+#dt3 <- dt2[, .(Chlorophyll = mean(Chlorophyll)), by = .(Longitude, Latitude)]
+
+#ggplot() +
+#  geom_sf() +
+#  geom_point(data = dt3, aes(x = Longitude, y = Latitude, colour = Chlorophyll)) 
+#  scale_colour_gradient2()
