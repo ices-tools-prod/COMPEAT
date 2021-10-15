@@ -5,7 +5,7 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
-packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview")
+packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview", "raster")
 ipak(packages)
 #metric for oxygen
 #metricoxy <- "MeanQ25"
