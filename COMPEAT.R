@@ -369,7 +369,7 @@ for(i in 1:nrow(indicators)){
   #Oxygen indicator
   else if (metric == 'Minimum') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. 
     wk01 <- as.data.table(wk01)
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
@@ -377,7 +377,7 @@ for(i in 1:nrow(indicators)){
   }
   else if (metric == 'MeanQ25') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station.
     wk01 <- as.data.table(wk01)
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
@@ -386,7 +386,7 @@ for(i in 1:nrow(indicators)){
   }
   else if (metric == '5th percentile') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. 
     wk01 <- as.data.table(wk01)
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
@@ -395,7 +395,7 @@ for(i in 1:nrow(indicators)){
   }
   else if (metric == '10th percentile') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. If following tech spec should also check if samples are within 10m of seabed. Skipping that step for now.
+    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. 
     wk01 <- as.data.table(wk01)
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
