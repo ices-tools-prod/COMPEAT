@@ -235,6 +235,8 @@ stationSamples <- st_set_geometry(stationSamples, NULL)
 # Read indicator configuration files -------------------------------------------
 indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID) 
 indicators[4, Metric := metricoxy]
+#Change oxygen indicator so only samples shallower than 500m are used. 
+indicators[4, DepthMax := 500]
 indicatorUnits <- fread(input = indicatorUnitsFile) %>% setkey(IndicatorID, UnitID)
 
 wk1list = list()
