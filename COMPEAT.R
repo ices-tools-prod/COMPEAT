@@ -9,9 +9,9 @@ packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview", "r
 ipak(packages)
 #metric for oxygen
 #metricoxy <- "MeanQ25"
-#metricoxy <- "5th percentile"
+metricoxy <- "5th percentile"
 #metricoxy <- "10th percentile"
-metricoxy <- "Minimum"
+#metricoxy <- "Minimum"
 # Define paths
 inputPath <- "Input"
 if (metricoxy == "MeanQ25") {
@@ -165,9 +165,9 @@ gridunits60 <- make.gridunits(units, 60000)
 
 unitGridSize <-  fread(input = unitGridSizeFile) %>% setkey(UnitID)
 
-a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% select(UnitID, GridID, GridArea = Area))
-b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% select(UnitID, GridID, GridArea = Area))
-c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% select(UnitID, GridID, GridArea = Area))
+a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% dplyr::select(UnitID, GridID, GridArea = Area))
+b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% dplyr::select(UnitID, GridID, GridArea = Area))
+c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% dplyr::select(UnitID, GridID, GridArea = Area))
 gridunits <- st_as_sf(rbindlist(list(a,b,c)))
 gridunits_polygon <- st_collection_extract(gridunits, "POLYGON")
 #st_write(gridunits_polygon, "gridunits2.shp")
