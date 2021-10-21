@@ -4,11 +4,12 @@ library(tidyverse)
 library(ncdf4)
 library(R.utils)
 
-path <- "D:/COMPEAT/CPHL_EO_ARGANS/OSPARIV"
+pathARGANS <- "D:/COMPEAT/CPHL_EO_ARGANS/OSPARIV"
+pathRBINS <- "D:/COMPEAT/CPHL_EO_RBINS/v1.01"
 
-# Convert netCDF into CSV if it hasn't already been done
-if (length(list.files(file.path(path, "csv"))) == 0) {
-  filenames <- list.files(path = file.path(path, "modis"), pattern = "*.nc.gz", full.names = TRUE)
+# Convert ARGANS netCDF into CSV if it hasn't already been done
+if (length(list.files(file.path(pathARGANS, "csv"))) == 0) {
+  filenames <- list.files(path = file.path(pathARGANS, "modis"), pattern = "*.nc.gz", full.names = TRUE)
   
   dt1 <- lapply(filenames, function(filename) {
     # Extract date string
@@ -47,7 +48,50 @@ if (length(list.files(file.path(path, "csv"))) == 0) {
       colnames(dt) <- c("Year", "Month", "Day", "Longitude", "Latitude", "Chlorophyll")
       
       # Write data table
-      fwrite(dt, file.path(path, "csv", paste0(datestring, ".csv")))
+      fwrite(dt, file.path(pathARGANS, "csv", paste0(datestring, ".csv")))
+    }
+  })
+}
+
+# Convert RBINS netCDF into CSV if it hasn't already been done
+if (length(list.files(file.path(pathRBINS, "csv"))) == 0) {
+  filenames <- list.files(path = file.path(pathRBINS, "CHL_daily_2015_2020"), pattern = "*.nc", full.names = TRUE)
+  
+  dt1 <- lapply(filenames, function(filename) {
+    # Extract date string
+    datestring <- regmatches(filename, regexpr("[0-9]{8}", filename))
+    
+    # Extract year, month and day
+    year <- substring(datestring,1,4) %>% as.numeric()
+    month <- substring(datestring,5,6) %>% as.numeric()
+    day <- substring(datestring,7,8) %>% as.numeric()
+    
+    if(year >= 2015 && year <= 2020 && month >= 3 && month <= 10) {
+      # Open netcdf file
+      nc <- nc_open(filename)
+      
+      # Read variables
+      lon <- ncvar_get(nc, "lon")
+      lat <- ncvar_get(nc, "lat")
+      chl <- ncvar_get(nc, "CHL")
+      
+      # Read fill value
+      fillvalue <- ncatt_get(nc, "CHL", "_FillValue")
+      
+      # Close netcdf file
+      nc_close(nc)
+      
+      # Replace netCDF fill values with NA's
+      chl[chl == fillvalue$value] <- NA
+      
+      # Make data table filtering out NA
+      dt <- na.omit(data.table(cbind(year,month,day,expand.grid(lon,lat),as.vector(chl))))
+      
+      # Change column names
+      colnames(dt) <- c("Year","Month","Day","Longitude","Latitude","Chlorophyll")
+      
+      # Write data table
+      fwrite(dt,file.path(pathRBINS, "csv", paste0(datestring, ".csv")))
     }
   })
 }
@@ -55,17 +99,20 @@ if (length(list.files(file.path(path, "csv"))) == 0) {
 # Read Grid Units
 gridunits <- st_read(file.path("Output", "gridunits.shp"))
 
+# Define years
 years <- c("2015", "2016", "2017", "2018", "2019", "2020")
 
 dt6 <- lapply(years, function(year) {
   # Get file names for the given year
-  filenames <- list.files(path = file.path(path, "csv"), pattern = paste0(year, "[0-9]{4}"), full.names = TRUE)
+  filenamesARGANS <- list.files(path = file.path(pathARGANS, "csv"), pattern = paste0(year, "[0-9]{4}"), full.names = TRUE)
+  filenamesRBINS <- list.files(path = file.path(pathRBINS, "csv"), pattern = paste0(year, "[0-9]{4}"), full.names = TRUE)
   # Read csv files into list of data tables of each file 
-  dt1 <- lapply(filenames, function(filename) { fread(filename) })
+  dt1ARGANS <- lapply(filenamesARGANS, function(filename) { fread(filename) })
+  dt1RBINS <- lapply(filenamesRBINS, function(filename) { fread(filename) })
   # Combine list of data tables into one
-  dt2 <- rbindlist(dt1)
+  dt2 <- rbindlist(c(dt1ARGANS, dt1RBINS))
   
-  rm(filenames, dt1)
+  rm(filenamesARGANS, filenamesRBINS , dt1ARGANS, dt1RBINS)
   
   # Extract Longitude/Latitude pairs    
   dt3 <- dt2[, .N, keyby = .(Longitude, Latitude)] %>% setkey(Longitude, Latitude)
@@ -95,4 +142,4 @@ dt6 <- lapply(years, function(year) {
 dt7 <- rbindlist(dt6)
 
 # Write data table
-fwrite(dt7, file.path("D:/COMPEAT", "Indicator_CPHL_EO_ARGANS_02.csv"))
+fwrite(dt7, file.path("D:/COMPEAT", "Indicator_CPHL_EO_02.csv"))
