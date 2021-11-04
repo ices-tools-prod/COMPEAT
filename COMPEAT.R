@@ -13,8 +13,8 @@ inputPath <- "Input"
 outputPath <- "Output"
 
 # Define assessment period - Uncomment the period you want to run the assessment for!
-assessmentPeriod <- "2006-2014"
-#assessmentPeriod <- "2015-2020"
+#assessmentPeriod <- "2006-2014"
+assessmentPeriod <- "2015-2020"
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
@@ -44,7 +44,8 @@ if (assessmentPeriod == "2006-2014"){
             "https://www.dropbox.com/s/0idmdxxcbinz4qf/Indicators.csv?dl=1",
             "https://www.dropbox.com/s/jqb03sfdqa18cph/IndicatorUnits.csv?dl=1",
             "https://www.dropbox.com/s/cubpuuus8ab7aki/UnitGridSize.csv?dl=1",
-            "https://www.dropbox.com/s/2er9ngl5rnon426/StationSamples.txt.gz?dl=1")  
+            "https://www.dropbox.com/s/gy9zlice5zxuaje/StationSamples.txt.gz?dl=1",
+            "https://www.dropbox.com/s/8vtuvy9cki1jz8p/Indicator_CPHL_EO_02.csv?dl=1")  
 }
 
 files <- sapply(urls, download.file.unzip.maybe, path = inputPath)
@@ -54,6 +55,7 @@ indicatorsFile <- file.path(inputPath, "Indicators.csv")
 indicatorUnitsFile <- file.path(inputPath, "IndicatorUnits.csv")
 unitGridSizeFile <- file.path(inputPath, "UnitGridSize.csv")
 stationSamplesFile <- file.path(inputPath, "StationSamples.txt.gz")
+indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02.csv")
 
 # Assessment Units + Grid Units-------------------------------------------------
 
@@ -137,12 +139,21 @@ c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% select(UnitID, GridI
 gridunits <- st_as_sf(rbindlist(list(a,b,c)))
 rm(a,b,c)
 
+gridunits <- st_cast(gridunits)
+
+st_write(gridunits, file.path(outputPath, "gridunits.shp"), delete_layer = TRUE)
+
 # Plot
-#ggplot() + geom_sf(data = units) + coord_sf()
-#ggplot() + geom_sf(data = gridunits10) + coord_sf()
-#ggplot() + geom_sf(data = gridunits30) + coord_sf()
-#ggplot() + geom_sf(data = gridunits60) + coord_sf()
-#ggplot() + geom_sf(data = gridunits) + coord_sf()
+ggplot() + geom_sf(data = units) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_Units.png"), width = 12, height = 9, dpi = 300)
+ggplot() + geom_sf(data = gridunits10) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_GridUnits10.png"), width = 12, height = 9, dpi = 300)
+ggplot() + geom_sf(data = gridunits30) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_GridUnits30.png"), width = 12, height = 9, dpi = 300)
+ggplot() + geom_sf(data = gridunits60) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_GridUnits60.png"), width = 12, height = 9, dpi = 300)
+ggplot() + geom_sf(data = st_cast(gridunits)) + coord_sf()
+ggsave(file.path(outputPath, "Assessment_GridUnits.png"), width = 12, height = 9, dpi = 300)
 
 # Read stationSamples ----------------------------------------------------------
 stationSamples <- fread(input = stationSamplesFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
@@ -180,7 +191,6 @@ stationSamples <- st_set_geometry(stationSamples, NULL)
 indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID) 
 indicatorUnits <- fread(input = indicatorUnitsFile) %>% setkey(IndicatorID, UnitID)
 
-wk1list = list()
 wk2list = list()
 
 # Loop indicators --------------------------------------------------------------
@@ -217,7 +227,7 @@ for(i in 1:nrow(indicators)){
   else if (name == 'Dissolved Inorganic Phosphorus') {
     wk[,ES := Phosphate..umol.l.]
   }
-  else if (name == 'Chlorophyll a') {
+  else if (name == 'Chlorophyll a (in-situ)') {
     wk[, ES := Chlorophyll.a..ug.l.]
   }
   else if (name == 'Oxygen Deficiency') {
@@ -309,13 +319,28 @@ for(i in 1:nrow(indicators)){
     wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
   }
   
-  wk1list[[i]] <- wk1
+  # Calculate grid area --> UnitID, Period, ES, SD, N, NM, GridArea
+  a <- wk1[, .N, keyby = .(IndicatorID, UnitID, Period, GridID, GridArea)] # UnitGrids
+  b <- a[, .(GridArea = sum(as.numeric(GridArea))), keyby = .(IndicatorID, UnitID, Period)] #GridAreas
+  wk2 <- merge(wk2, b, by = c("IndicatorID", "UnitID", "Period"), all.x = TRUE)
+
   wk2list[[i]] <- wk2
 }
 
 # Combine station and annual indicator results
-wk1 <- rbindlist(wk1list)
 wk2 <- rbindlist(wk2list)
+
+# Add Chlorophyll a EO indicator if it exists
+if (file.exists(indicator_CPHL_EO_02)) {
+  wk2_CPHL_EO <- fread(file.path(inputPath, "Indicator_CPHL_EO_02.csv"))
+  wk2_CPHL_EO[, IndicatorID := 302]
+  wk2_CPHL_EO <- wk2_CPHL_EO[, .(IndicatorID, UnitID, Period, ES, SD, N, NM, GridArea)]
+  wk2 <- rbindlist(list(wk2, wk2_CPHL_EO), fill = TRUE)
+}
+
+# Add combined Chlorophyll a indicator
+wk2_CPHL <- wk2[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea)), by = .(UnitID, Period)]
+wk2 <- rbindlist(list(wk2, wk2_CPHL), fill = TRUE)
 
 # Combine with indicator and indicator unit configuration tables
 wk3 <- indicators[indicatorUnits[wk2]]
@@ -359,19 +384,13 @@ wk3[, NMP := ifelse(MonthMin > MonthMax, 12 - MonthMin + 1 + MonthMax, MonthMax 
 # Calculate Specific Temporal Confidence (STC) - Confidence in number of annual missing months
 wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
 
-# Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids 
-#wk3 <- wk3[as.data.table(gridunits)[, .(NG = .N), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
+# Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids
 wk3 <- wk3[as.data.table(gridunits)[, .(NG = as.numeric(sum(GridArea) / mean(GridSize^2))), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
 wk3[, GSC := ifelse(N / NG > GSC_HM, 100, ifelse(N / NG < GSC_ML, 0, 50))]
 
 # Calculate Specific Spatial Confidence (SSC) - Confidence in area of sampled grid units as a percentage to the total unit area
-a <- wk1[, .N, keyby = .(IndicatorID, UnitID, Period, GridID, GridArea)] # UnitGrids
-b <- a[, .(GridArea = sum(as.numeric(GridArea))), keyby = .(IndicatorID, UnitID, Period)] #GridAreas
-c <- as.data.table(units)[, .(UnitArea = as.numeric(UnitArea)), keyby = .(UnitID)] # UnitAreas
-d <- c[b, on = .(UnitID = UnitID)] # UnitAreas ~ GridAreas
-wk3 <- wk3[d[,.(IndicatorID, UnitID, Period, UnitArea, GridArea)], on = .(IndicatorID = IndicatorID, UnitID = UnitID, Period = Period)]
+wk3 <- merge(wk3, as.data.table(units)[, .(UnitArea = as.numeric(UnitArea)), keyby = .(UnitID)], by = c("UnitID"), all.x = TRUE)
 wk3[, SSC := ifelse(GridArea / UnitArea * 100 > SSC_HM, 100, ifelse(GridArea / UnitArea * 100 < SSC_ML, 0, 50))]
-rm(a,b,c,d)
 
 # Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
 wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
@@ -459,7 +478,7 @@ wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
 # Category ---------------------------------------------------------------------
 
 # Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, EQR, EQRS, C
-wk6 <- wk5[!is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
+wk6 <- wk5[IndicatorID < 100 & !is.na(EQRS), .(.N, EQR = weighted.mean(EQR, IW, na.rm = TRUE), EQRS = weighted.mean(EQRS, IW, na.rm = TRUE), C = weighted.mean(C, IW, na.rm = TRUE)), .(CategoryID, UnitID)]
 
 wk7 <- dcast(wk6, UnitID ~ CategoryID, value.var = c("N","EQR","EQRS","C"))
 
@@ -715,3 +734,4 @@ for (i in 1:nrow(indicators)) {
     }
   }
 }
+
