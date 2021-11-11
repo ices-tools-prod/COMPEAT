@@ -37,7 +37,8 @@ if (assessmentPeriod == "2006-2014"){
             "https://www.dropbox.com/s/2wf5keany1jv5je/Indicators.csv?dl=1",
             "https://www.dropbox.com/s/n6p0x5onmi9ugga/IndicatorUnits.csv?dl=1",
             "https://www.dropbox.com/s/l1ymgionvhcjk2w/UnitGridSize.csv?dl=1",
-            "https://www.dropbox.com/s/vwdoi9slemltdzh/StationSamples.txt.gz?dl=1")  
+            "https://www.dropbox.com/s/9x8qot08i9g4s8x/StationSamples.txt.gz?dl=1",
+            "https://www.dropbox.com/s/lynzurgeoee8u8y/Indicator_CPHL_EO_02.csv?dl=1")  
 } else {
   # Assessment Period 2015-2020
   urls <- c("https://www.dropbox.com/s/zpu0t1zc3uk1jlw/AssessmentUnits.zip?dl=1",
@@ -734,4 +735,3 @@ for (i in 1:nrow(indicators)) {
     }
   }
 }
-
