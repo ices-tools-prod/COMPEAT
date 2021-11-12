@@ -8,6 +8,9 @@ ipak <- function(pkg){
 packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview")
 ipak(packages)
 
+# Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
+combined_Chlorophylla_IsWeighted <- FALSE
+
 # Define paths
 inputPath <- "Input"
 outputPath <- "Output"
@@ -340,11 +343,41 @@ if (file.exists(indicator_CPHL_EO_02)) {
 }
 
 # Add combined Chlorophyll a indicator
-wk2_CPHL <- wk2[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea)), by = .(UnitID, Period)]
-wk2 <- rbindlist(list(wk2, wk2_CPHL), fill = TRUE)
+#wk2_CPHL <- wk2[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea)), by = .(UnitID, Period)]
+#wk2 <- rbindlist(list(wk2, wk2_CPHL), fill = TRUE)
 
 # Combine with indicator and indicator unit configuration tables
 wk3 <- indicators[indicatorUnits[wk2]]
+
+# Calculate General Temporal Confidence (GTC) - Confidence in number of annual observations
+wk3[, GTC := ifelse(N > GTC_HM, 100, ifelse(N < GTC_ML, 0, 50))]
+
+# Calculate Number of Months Potential
+wk3[, NMP := ifelse(MonthMin > MonthMax, 12 - MonthMin + 1 + MonthMax, MonthMax - MonthMin + 1)]
+
+# Calculate Specific Temporal Confidence (STC) - Confidence in number of annual missing months
+wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
+
+# Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids
+wk3 <- wk3[as.data.table(gridunits)[, .(NG = as.numeric(sum(GridArea) / mean(GridSize^2))), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
+wk3[, GSC := ifelse(N / NG > GSC_HM, 100, ifelse(N / NG < GSC_ML, 0, 50))]
+
+# Calculate Specific Spatial Confidence (SSC) - Confidence in area of sampled grid units as a percentage to the total unit area
+wk3 <- merge(wk3, as.data.table(units)[, .(UnitArea = as.numeric(UnitArea)), keyby = .(UnitID)], by = c("UnitID"), all.x = TRUE)
+wk3[, SSC := ifelse(GridArea / UnitArea * 100 > SSC_HM, 100, ifelse(GridArea / UnitArea * 100 < SSC_ML, 0, 50))]
+
+if (combined_Chlorophylla_IsWeighted) {
+  # Calculate combined chlorophyll a indicator as a weighted average
+  wk3[, C := (GTC + STC + GSC + SSC) / 4]
+  wk3[IndicatorID == 301, W := ifelse(C >= 75, 50/50, ifelse(C >= 50, 30/70, 10/90))]
+  wk3[IndicatorID == 302, W := 1]
+  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = weighted.mean(ES, W), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea)), by = .(UnitID, Period)]
+  wk3 <- rbindlist(list(wk3, wk3_CPHL), fill = TRUE)
+} else {
+  # Calculate combined chlorophyll a indicator as a simple average
+  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea)), by = .(UnitID, Period)]
+  wk3 <- rbindlist(list(wk3, wk3_CPHL), fill = TRUE)
+}
 
 # Standard Error
 wk3[, SE := SD / sqrt(N)]
@@ -375,23 +408,6 @@ wk3[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
                            ifelse(EQRS >= 0.6, "Good",
                                   ifelse(EQRS >= 0.4, "Moderate",
                                          ifelse(EQRS >= 0.2, "Poor","Bad"))))]
-
-# Calculate General Temporal Confidence (GTC) - Confidence in number of annual observations
-wk3[, GTC := ifelse(N > GTC_HM, 100, ifelse(N < GTC_ML, 0, 50))]
-
-# Calculate Number of Months Potential
-wk3[, NMP := ifelse(MonthMin > MonthMax, 12 - MonthMin + 1 + MonthMax, MonthMax - MonthMin + 1)]
-
-# Calculate Specific Temporal Confidence (STC) - Confidence in number of annual missing months
-wk3[, STC := ifelse(NMP - NM <= STC_HM, 100, ifelse(NMP - NM >= STC_ML, 0, 50))]
-
-# Calculate General Spatial Confidence (GSC) - Confidence in number of annual observations per number of grids
-wk3 <- wk3[as.data.table(gridunits)[, .(NG = as.numeric(sum(GridArea) / mean(GridSize^2))), .(UnitID)], on = .(UnitID = UnitID), nomatch=0]
-wk3[, GSC := ifelse(N / NG > GSC_HM, 100, ifelse(N / NG < GSC_ML, 0, 50))]
-
-# Calculate Specific Spatial Confidence (SSC) - Confidence in area of sampled grid units as a percentage to the total unit area
-wk3 <- merge(wk3, as.data.table(units)[, .(UnitArea = as.numeric(UnitArea)), keyby = .(UnitID)], by = c("UnitID"), all.x = TRUE)
-wk3[, SSC := ifelse(GridArea / UnitArea * 100 > SSC_HM, 100, ifelse(GridArea / UnitArea * 100 < SSC_ML, 0, 50))]
 
 # Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
 wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
