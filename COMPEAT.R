@@ -179,7 +179,7 @@ stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east."
 stationSamples <- st_transform(stationSamples, crs = 3035)
 
 # Classify stations into assessment units
-#stationSamples$UnitID <- st_intersects(stationSamples, units) %>% as.numeric()
+stationSamples$UnitID <- st_intersects(stationSamples, units) %>% as.numeric()
 
 # Classify stations into 10,30 and 60k gridunits
 #stationSamples <- st_join(stationSamples, gridunits10 %>% select(GridID.10k = GridID, Area.10k = Area), join = st_intersects)
