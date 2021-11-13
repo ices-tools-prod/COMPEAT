@@ -8,16 +8,16 @@ ipak <- function(pkg){
 packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview")
 ipak(packages)
 
+# Define assessment period - Uncomment the period you want to run the assessment for!
+#assessmentPeriod <- "2006-2014"
+assessmentPeriod <- "2015-2020"
+
 # Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
 combined_Chlorophylla_IsWeighted <- FALSE
 
 # Define paths
-inputPath <- "Input"
-outputPath <- "Output"
-
-# Define assessment period - Uncomment the period you want to run the assessment for!
-#assessmentPeriod <- "2006-2014"
-assessmentPeriod <- "2015-2020"
+inputPath <- file.path("Input", assessmentPeriod)
+outputPath <- file.path("Output", assessmentPeriod)
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
@@ -162,30 +162,13 @@ ggsave(file.path(outputPath, "Assessment_GridUnits.png"), width = 12, height = 9
 # Read stationSamples ----------------------------------------------------------
 stationSamples <- fread(input = stationSamplesFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
 
-# Stations
-#stationSamples[, StationID := .GRP, by = .(Cruise, Station, Year, Month, Day, Hour, Minute, Latitude..degrees_north., Longitude..degrees_east.)]
-#stationSamples[, .N, .(StationID, Cruise, Station, Year, Month, Day, Hour, Minute, Latitude..degrees_north., Longitude..degrees_east.)]
-#stationSamples[, .N, .(StationID.METAVAR.INDEXED_TEXT)]
-
-# Samples
-#stationSamples[, SampleID := .GRP, by = .(Cruise, Station, Year, Month, Day, Hour, Minute, Latitude..degrees_north., Longitude..degrees_east., Depth..m.db..PRIMARYVAR.DOUBLE)]
-#stationSamples[, .N, .(StationID, Cruise, Station, Year, Month, Day, Hour, Minute, Latitude..degrees_north., Longitude..degrees_east., Depth..m.db..PRIMARYVAR.DOUBLE)]
-#stationSamples[, .N, .(SampleID.METAVAR.INDEXED_TEXT)]
-
 # Make stations spatial keeping original latitude/longitude
 stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
 
 # Transform projection into ETRS_1989_LAEA
 stationSamples <- st_transform(stationSamples, crs = 3035)
 
-# Classify stations into assessment units
-stationSamples$UnitID <- st_intersects(stationSamples, units) %>% as.numeric()
-
-# Classify stations into 10,30 and 60k gridunits
-#stationSamples <- st_join(stationSamples, gridunits10 %>% select(GridID.10k = GridID, Area.10k = Area), join = st_intersects)
-#stationSamples <- st_join(stationSamples, gridunits30 %>% select(GridID.30k = GridID, Area.30k = Area), join = st_intersects)
-#stationSamples <- st_join(stationSamples, gridunits60 %>% select(GridID.60k = GridID, Area.60k = Area), join = st_intersects)
-
+# Classify stations into grid units
 stationSamples <- st_join(stationSamples, st_cast(gridunits), join = st_intersects)
 
 # Remove spatial column
@@ -229,7 +212,7 @@ for(i in 1:nrow(indicators)){
     })
   }
   else if (name == 'Dissolved Inorganic Phosphorus') {
-    wk[,ES := Phosphate..umol.l.]
+    wk[, ES := Phosphate..umol.l.]
   }
   else if (name == 'Chlorophyll a (in-situ)') {
     wk[, ES := Chlorophyll.a..ug.l.]
@@ -238,13 +221,13 @@ for(i in 1:nrow(indicators)){
     wk[, ES := Oxygen..ml.l. / 0.7] # Convert ml/l to mg/l by factor of 0.7
   }
   else if (name == 'Total Nitrogen') {
-    wk[,ES := Total.Nitrogen..umol.l.]
+    wk[, ES := Total.Nitrogen..umol.l.]
   }
   else if (name == 'Total Phosphorus') {
-    wk[,ES := Total.Phosphorus..umol.l.]
+    wk[, ES := Total.Phosphorus..umol.l.]
   }
   else if (name == 'Secchi Depth') {
-    wk[,ES := Secchi.Depth..m..METAVAR.DOUBLE]
+    wk[, ES := Secchi.Depth..m..METAVAR.DOUBLE]
   }
   else if (name == 'Dissolved Inorganic Nitrogen/Dissolved Inorganic Phosphorus') {
     wk$ES <- apply(wk[, list(Nitrate..umol.l., Nitrite..umol.l., Ammonium..umol.l.)], 1, function(x){
@@ -255,10 +238,10 @@ for(i in 1:nrow(indicators)){
         sum(x, na.rm = TRUE)
       }
     })
-    wk[,ES := ES/Phosphate..umol.l.]
+    wk[, ES := ES/Phosphate..umol.l.]
   }
   else if (name == 'Total Nitrogen/Total Phosphorus') {
-    wk[,ES := Total.Nitrogen..umol.l./Total.Phosphorus..umol.l.]
+    wk[, ES := Total.Nitrogen..umol.l./Total.Phosphorus..umol.l.]
   }
   else {
     next
@@ -342,10 +325,6 @@ if (file.exists(indicator_CPHL_EO_02)) {
   wk2 <- rbindlist(list(wk2, wk2_CPHL_EO), fill = TRUE)
 }
 
-# Add combined Chlorophyll a indicator
-#wk2_CPHL <- wk2[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea)), by = .(UnitID, Period)]
-#wk2 <- rbindlist(list(wk2, wk2_CPHL), fill = TRUE)
-
 # Combine with indicator and indicator unit configuration tables
 wk3 <- indicators[indicatorUnits[wk2]]
 
@@ -371,11 +350,11 @@ if (combined_Chlorophylla_IsWeighted) {
   wk3[, C := (GTC + STC + GSC + SSC) / 4]
   wk3[IndicatorID == 301, W := ifelse(C >= 75, 50/50, ifelse(C >= 50, 30/70, 10/90))]
   wk3[IndicatorID == 302, W := 1]
-  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = weighted.mean(ES, W), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea)), by = .(UnitID, Period)]
+  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = weighted.mean(ES, W), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = weighted.mean(GTC, W), NMP = max(NMP), STC = weighted.mean(STC, W), GSC = weighted.mean(GSC, W), SSC = weighted.mean(SSC, W)), by = .(UnitID, Period)]
   wk3 <- rbindlist(list(wk3, wk3_CPHL), fill = TRUE)
 } else {
   # Calculate combined chlorophyll a indicator as a simple average
-  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea)), by = .(UnitID, Period)]
+  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = mean(GTC), NMP = max(NMP), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), by = .(UnitID, Period)]
   wk3 <- rbindlist(list(wk3, wk3_CPHL), fill = TRUE)
 }
 
