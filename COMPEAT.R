@@ -9,8 +9,9 @@ packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview", "r
 ipak(packages)
 #metric for oxygen
 #metricoxy <- "MeanQ25"
-metricoxy <- "5th percentile"
+#metricoxy <- "5th percentile"
 #metricoxy <- "10th percentile"
+metricoxy <- "Minimum"
 
 # Define assessment period - Uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "2006-2014"
@@ -32,6 +33,9 @@ if (metricoxy == "5th percentile") {
 }
 if (metricoxy == "10th percentile") {
   outputPath = file.path("Output_oxy_q10", assessmentPeriod)
+}
+if (metricoxy == "Minimum") {
+  outputPath = file.path("Output_oxy_minimum", assessmentPeriod)
 }
 
 # if (combined_Chlorophylla_IsWeighted == "TRUE") {
