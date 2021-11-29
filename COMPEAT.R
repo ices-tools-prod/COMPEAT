@@ -180,9 +180,9 @@ gridunits60 <- make.gridunits(units, 60000)
 
 unitGridSize <-  fread(input = unitGridSizeFile) %>% setkey(UnitID)
 
-a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% select(UnitID, GridID, GridArea = Area))
-b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% select(UnitID, GridID, GridArea = Area))
-c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% select(UnitID, GridID, GridArea = Area))
+a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% dplyr::select(UnitID, GridID, GridArea = Area))
+b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% dplyr::select(UnitID, GridID, GridArea = Area))
+c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% dplyr::select(UnitID, GridID, GridArea = Area))
 gridunits <- st_as_sf(rbindlist(list(a,b,c)))
 rm(a,b,c)
 
@@ -210,7 +210,7 @@ stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east."
 
 #Read in bathymetry - this is the emodnet bathymetry downloaded on 14/10/21, the 2020 version.
 
-bathy <- raster(file.path(inputPath, "emodnet_bathy_2020.tif"))
+bathy <- raster("Input/emodnet_bathy_2020.tif")
 
 #extract bathymetry for each data point
 
