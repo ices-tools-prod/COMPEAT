@@ -17,7 +17,12 @@ combined_Chlorophylla_IsWeighted <- FALSE
 
 # Define paths
 inputPath <- file.path("Input", assessmentPeriod)
-outputPath <- file.path("Output", assessmentPeriod)
+if (combined_Chlorophylla_IsWeighted == "TRUE") {
+  outputPath <- file.path("Output_chl_weighted", assessmentPeriod)
+} else {
+  outputPath <- file.path("Output", assessmentPeriod)
+}
+
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
