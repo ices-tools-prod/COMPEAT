@@ -189,7 +189,6 @@ b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% dplyr::select(UnitID
 c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% dplyr::select(UnitID, GridID, GridArea = Area))
 gridunits <- st_as_sf(rbindlist(list(a,b,c)))
 gridunits_polygon <- st_collection_extract(gridunits, "POLYGON")
-#st_write(gridunits_polygon, "gridunits2.shp")
 rm(a,b,c)
 
 gridunits <- st_cast(gridunits)
