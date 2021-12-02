@@ -9,9 +9,9 @@ packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview", "r
 ipak(packages)
 #metric for oxygen
 #metricoxy <- "MeanQ25"
-metricoxy <- "5th percentile"
+#metricoxy <- "5th percentile"
 #metricoxy <- "10th percentile"
-#metricoxy <- "Minimum"
+metricoxy <- "Minimum"
 
 # Define assessment period - Uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "2006-2014"
@@ -213,7 +213,7 @@ stationSamples <- fread(input = stationSamplesFile, sep = "\t", na.strings = "NU
 # Make stations spatial keeping original latitude/longitude
 stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
 
-#Read in bathymetry - this is the emodnet bathymetry downloaded on 14/10/21, the 2020 version.
+#Read in bathymetry - this is the emodnet bathymetry downloaded on 14/10/21, the 2020 version. Look at bathy.R to explain where to download and tile the bathymetry to make this file.
 
 bathy <- raster("Input/emodnet_bathy_2020.tif")
 
