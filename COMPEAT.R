@@ -9,9 +9,9 @@ packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview", "r
 ipak(packages)
 #metric for oxygen
 #metricoxy <- "MeanQ25"
-#metricoxy <- "5th percentile"
+metricoxy <- "5th percentile"
 #metricoxy <- "10th percentile"
-metricoxy <- "Minimum"
+#metricoxy <- "Minimum"
 
 # Define assessment period - Uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "2006-2014"
