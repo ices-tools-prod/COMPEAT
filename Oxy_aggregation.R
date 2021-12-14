@@ -159,7 +159,7 @@ EQRS_Class_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0
 str(oxy)
 #categorise grid cells into pass or fail
 oxy[, EQRS_pass_fail := ifelse(EQRS >= 0.6, "Pass", "Fail")]
-#sum grid area by pass/fail
+#sum grid area by pass/fail ###GRID AREA IS NOT CORRECT< WHERE DOES IT COME FROM??
 oxy_area_pass <- oxy[, .(GridArea = sum(GridArea), N_GRIDS = .N),.(IndicatorID, UnitID, Period, Name, Code, Parameters, Units, DepthMin, DepthMax, Metric, UnitArea, EQRS_pass_fail)]
 #cast gridarea on pass/fail
 oxy_percentage <- dcast(oxy_area_pass, IndicatorID + UnitID + Period + Name + Code + Parameters + Units + DepthMin + DepthMax + Metric + UnitArea ~ EQRS_pass_fail, value.var = c("GridArea","N_GRIDS"))
@@ -169,15 +169,19 @@ oxy_percentage[is.na(GridArea_Pass), GridArea_Pass:= 0]
 oxy_percentage[is.na(N_GRIDS_Fail), N_GRIDS_Fail:= 0]
 oxy_percentage[is.na(N_GRIDS_Pass), N_GRIDS_Pass:= 0]
 oxy_percentage[, PercentFail:= GridArea_Fail/(GridArea_Fail+GridArea_Pass)*100]
+oxy_percentage[, PercentFailWholeArea:= GridArea_Fail/(UnitArea)*100]
+
 oxy_percentage[, TenPC:= ifelse(PercentFail >= 10, "Fail", "Pass")]
+oxy_percentage[, TenPCWholeArea:= ifelse(PercentFailWholeArea >= 10, "Fail", "Pass")]
 oxy_percentage[, N_GRIDS:= N_GRIDS_Fail+N_GRIDS_Pass]
 
 
 fwrite(oxy_percentage, file = file.path(outputPath, "Annual_percent_grid.csv"))
 
 
-oxy_percentage_period <- oxy_percentage[, .(Period = min(Period) * 10000 + max(Period), PercentFail = mean(PercentFail), NYears = .N, AVG_N_GRIDS = mean(N_GRIDS)), .(IndicatorID, UnitID)]
+oxy_percentage_period <- oxy_percentage[, .(Period = min(Period) * 10000 + max(Period), PercentFail = mean(PercentFail), PercentFailWholeArea = mean(PercentFailWholeArea), NYears = .N, AVG_N_GRIDS = mean(N_GRIDS)), .(IndicatorID, UnitID)]
 oxy_percentage_period[, TenPC:= ifelse(PercentFail >= 10, "Fail", "Pass")]
+oxy_percentage_period[, TenPCWholeArea:= ifelse(PercentFailWholeArea >= 10, "Fail", "Pass")]
 
 
 fwrite(oxy_percentage_period, file = file.path(outputPath, "Period_percent_grid.csv"))
@@ -187,8 +191,8 @@ wk <- oxy_percentage_period[IndicatorID == indicatorID] %>% setkey(UnitID)
 
 wk <- merge(units, wk, all.x = TRUE)  
 
-# Map
-title <- paste0("Percentage of grid cells falling below good status ", indicatorYearMin, "-", indicatorYearMax)
+# Map percentage of area with data
+title <- paste0("Percentage of grid cells with data falling below good status ", indicatorYearMin, "-", indicatorYearMax)
 subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
 subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
 subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
@@ -200,7 +204,7 @@ ggplot(wk) +
   geom_sf(aes(fill = PercentFail))
 ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
 
-title <- paste0(">= 10 % of grid cells falling below good status ", indicatorYearMin, "-", indicatorYearMax)
+title <- paste0(">= 10 % of grid cells with data falling below good status ", indicatorYearMin, "-", indicatorYearMax)
 subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
 subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
 subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
@@ -212,5 +216,31 @@ ggplot(wk) +
   geom_sf(aes(fill = TenPC))
 ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
 
+#Map percentage of whole area
+title <- paste0("Percentage of grid cells falling below good status ", indicatorYearMin, "-", indicatorYearMax)
+subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_percent_fail_wholearea", ".png"))
+
+ggplot(wk) +
+  labs(title = title , subtitle = subtitle) +
+  geom_sf(aes(fill = PercentFailWholeArea))
+ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+
+title <- paste0(">= 10 % of grid cells falling below good status ", indicatorYearMin, "-", indicatorYearMax)
+subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_percent_fail_classified_wholearea", ".png"))
+
+ggplot(wk) +
+  labs(title = title , subtitle = subtitle) +
+  geom_sf(aes(fill = TenPCWholeArea))
+ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+
 View(st_drop_geometry(units))
+
 

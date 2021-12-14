@@ -420,14 +420,14 @@ for(i in 1:nrow(indicators)){
   
   # Calculate grid area --> UnitID, Period, ES, SD, N, NM, GridArea
   a <- wk1[, .N, keyby = .(IndicatorID, UnitID, Period, GridID, GridArea)] # UnitGrids
-  b <- a[, .(GridArea = sum(as.numeric(GridArea))), keyby = .(IndicatorID, UnitID, Period)] #GridAreas
-  wk2 <- merge(wk2, b, by = c("IndicatorID", "UnitID", "Period"), all.x = TRUE)
+  b <- a[, .(GridArea = sum(as.numeric(GridArea))), keyby = .(IndicatorID, UnitID, GridID, Period)] #GridAreas
+  wk2 <- merge(wk2, b, by = c("IndicatorID", "UnitID", "GridID", "Period"), all.x = TRUE)
 
   wk2list[[i]] <- wk2
 }
 
 # Combine station and annual indicator results
-wk1 <- rbindlist(wk1list)
+#wk1 <- rbindlist(wk1list)
 #export wk1
 #write.csv(wk1, "station_grids.csv")
 wk2 <- rbindlist(wk2list)
