@@ -48,7 +48,8 @@ indicator_CPHL_EO_02 <- file.path(inputPath, "")
 if (assessmentPeriod == "1990-2000") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/eouhsa10p8ri5qs/Configuration1990-2000.xlsx?dl=1",
-            "https://www.dropbox.com/s/8xqjs53m2gwg1th/StationSamples1990-2000.txt.gz?dl=1")
+            "https://www.dropbox.com/s/8xqjs53m2gwg1th/StationSamples1990-2000.txt.gz?dl=1",
+            "https://www.dropbox.com/s/d07i8xzxh1qq8xd/Indicator_CPHL_EO_02_1990-2000.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1990-2000.xlsx")
   stationSamplesFile <- file.path(inputPath, "StationSamples1990-2000.txt.gz")
@@ -56,7 +57,8 @@ if (assessmentPeriod == "1990-2000") {
 } else if (assessmentPeriod == "2001-2006") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/st7p60a8rr4yu8s/Configuration2001-2006.xlsx?dl=1",
-            "https://www.dropbox.com/s/nsybpem5rpk3l6a/StationSamples2001-2006.txt.gz?dl=1")
+            "https://www.dropbox.com/s/nsybpem5rpk3l6a/StationSamples2001-2006.txt.gz?dl=1",
+            "https://www.dropbox.com/s/yrbqfmfnfk32rum/Indicator_CPHL_EO_02_2001-2006.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2001-2006.xlsx")
   stationSamplesFile <- file.path(inputPath, "StationSamples2001-2006.txt.gz")
@@ -64,7 +66,8 @@ if (assessmentPeriod == "1990-2000") {
 } else if (assessmentPeriod == "2006-2014") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/q5awsqulaj1z4jw/Configuration2006-2014.xlsx?dl=1",
-            "https://www.dropbox.com/s/8330oux4zp7og29/StationSamples2006-2014.txt.gz?dl=1")
+            "https://www.dropbox.com/s/8330oux4zp7og29/StationSamples2006-2014.txt.gz?dl=1",
+            "https://www.dropbox.com/s/kpbugtd4rwdxr9s/Indicator_CPHL_EO_02_2006-2014.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2006-2014.xlsx")
   stationSamplesFile <- file.path(inputPath, "StationSamples2006-2014.txt.gz")
@@ -72,7 +75,8 @@ if (assessmentPeriod == "1990-2000") {
 } else if (assessmentPeriod == "2015-2020") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/pt7g4b7q9gh18yf/Configuration2015-2020.xlsx?dl=1",
-            "https://www.dropbox.com/s/btcrjn7jzfmndl3/StationSamples2015-2020.txt.gz?dl=1")
+            "https://www.dropbox.com/s/btcrjn7jzfmndl3/StationSamples2015-2020.txt.gz?dl=1",
+            "https://www.dropbox.com/s/d5gpsbcqsbtz09l/Indicator_CPHL_EO_02_2015-2020.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
   stationSamplesFile <- file.path(inputPath, "StationSamples2015-2020.txt.gz")
@@ -340,7 +344,7 @@ wk2 <- rbindlist(wk2list)
 
 # Add Chlorophyll a EO indicator if it exists
 if (file.exists(indicator_CPHL_EO_02)) {
-  wk2_CPHL_EO <- fread(file.path(inputPath, "Indicator_CPHL_EO_02.csv"))
+  wk2_CPHL_EO <- fread(indicator_CPHL_EO_02)
   wk2_CPHL_EO[, IndicatorID := 302]
   wk2_CPHL_EO <- wk2_CPHL_EO[, .(IndicatorID, UnitID, Period, ES, SD, N, NM, GridArea)]
   wk2 <- rbindlist(list(wk2, wk2_CPHL_EO), fill = TRUE)
