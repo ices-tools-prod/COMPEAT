@@ -5,7 +5,8 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
-packages <- c("sf", "data.table", "tidyverse", "ggplot2", "ggmap", "mapview", "raster")
+
+packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "mapview", "raster")
 ipak(packages)
 #metric for oxygen
 #metricoxy <- "MeanQ25"
@@ -13,9 +14,14 @@ metricoxy <- "5th percentile"
 #metricoxy <- "10th percentile"
 #metricoxy <- "Minimum"
 
-# Define assessment period - Uncomment the period you want to run the assessment for!
-#assessmentPeriod <- "2006-2014"
-assessmentPeriod <- "2015-2020"
+# Extract 'Bottle and low resolution CTD' + 'Pump' data from https://data.ices.dk
+# Longitude between -16.08 and 12.68, Latitude between 34.87 and 63.89
+
+# Define assessment period i.e. uncomment the period you want to run the assessment for!
+#assessmentPeriod <- "1990-2000" # COMP1
+#assessmentPeriod <- "2001-2006" # COMP2
+#assessmentPeriod <- "2006-2014" # COMP3
+assessmentPeriod <- "2015-2020" # COMP4
 
 # Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
 combined_Chlorophylla_IsWeighted <- FALSE
@@ -61,6 +67,7 @@ download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
   }
 }
 
+
 #defining function to average lowest quartile
 mean25 <- function(x){
   Q25 = quantile(x, 0.25,na.rm = TRUE)
@@ -81,32 +88,52 @@ n25 <- function(x){
   return(sum(!is.na(q)))
 }
 
-if (assessmentPeriod == "2006-2014"){
-  # Assessment Period 2006-2014
-  urls <- c("https://www.dropbox.com/s/xzktj5nejp6tyn8/AssessmentUnits.zip?dl=1",
-            "https://www.dropbox.com/s/2wf5keany1jv5je/Indicators.csv?dl=1",
-            "https://www.dropbox.com/s/n6p0x5onmi9ugga/IndicatorUnits.csv?dl=1",
-            "https://www.dropbox.com/s/l1ymgionvhcjk2w/UnitGridSize.csv?dl=1",
-            "https://www.dropbox.com/s/9x8qot08i9g4s8x/StationSamples.txt.gz?dl=1",
-            "https://www.dropbox.com/s/lynzurgeoee8u8y/Indicator_CPHL_EO_02.csv?dl=1")  
-} else {
-  # Assessment Period 2015-2020
-  urls <- c("https://www.dropbox.com/s/zpu0t1zc3uk1jlw/AssessmentUnits.zip?dl=1",
-            "https://www.dropbox.com/s/0idmdxxcbinz4qf/Indicators.csv?dl=1",
-            "https://www.dropbox.com/s/jqb03sfdqa18cph/IndicatorUnits.csv?dl=1",
-            "https://www.dropbox.com/s/cubpuuus8ab7aki/UnitGridSize.csv?dl=1",
-            "https://www.dropbox.com/s/gy9zlice5zxuaje/StationSamples.txt.gz?dl=1",
-            "https://www.dropbox.com/s/8vtuvy9cki1jz8p/Indicator_CPHL_EO_02.csv?dl=1")  
+
+urls <- c()
+unitsFile <- file.path(inputPath, "")
+configurationFile <- file.path(inputPath, "")
+stationSamplesFile <- file.path(inputPath, "")
+indicator_CPHL_EO_02 <- file.path(inputPath, "")
+
+if (assessmentPeriod == "1990-2000") {
+  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
+            "https://www.dropbox.com/s/eouhsa10p8ri5qs/Configuration1990-2000.xlsx?dl=1",
+            "https://www.dropbox.com/s/8xqjs53m2gwg1th/StationSamples1990-2000.txt.gz?dl=1",
+            "https://www.dropbox.com/s/d07i8xzxh1qq8xd/Indicator_CPHL_EO_02_1990-2000.csv?dl=1")
+  unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
+  configurationFile <- file.path(inputPath, "Configuration1990-2000.xlsx")
+  stationSamplesFile <- file.path(inputPath, "StationSamples1990-2000.txt.gz")
+  indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_1990-2000.csv")
+} else if (assessmentPeriod == "2001-2006") {
+  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
+            "https://www.dropbox.com/s/st7p60a8rr4yu8s/Configuration2001-2006.xlsx?dl=1",
+            "https://www.dropbox.com/s/nsybpem5rpk3l6a/StationSamples2001-2006.txt.gz?dl=1",
+            "https://www.dropbox.com/s/yrbqfmfnfk32rum/Indicator_CPHL_EO_02_2001-2006.csv?dl=1")
+  unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
+  configurationFile <- file.path(inputPath, "Configuration2001-2006.xlsx")
+  stationSamplesFile <- file.path(inputPath, "StationSamples2001-2006.txt.gz")
+  indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2001-2006.csv")
+} else if (assessmentPeriod == "2006-2014") {
+  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
+            "https://www.dropbox.com/s/q5awsqulaj1z4jw/Configuration2006-2014.xlsx?dl=1",
+            "https://www.dropbox.com/s/8330oux4zp7og29/StationSamples2006-2014.txt.gz?dl=1",
+            "https://www.dropbox.com/s/kpbugtd4rwdxr9s/Indicator_CPHL_EO_02_2006-2014.csv?dl=1")
+  unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
+  configurationFile <- file.path(inputPath, "Configuration2006-2014.xlsx")
+  stationSamplesFile <- file.path(inputPath, "StationSamples2006-2014.txt.gz")
+  indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2006-2014.csv")
+} else if (assessmentPeriod == "2015-2020") {
+  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
+            "https://www.dropbox.com/s/pt7g4b7q9gh18yf/Configuration2015-2020.xlsx?dl=1",
+            "https://www.dropbox.com/s/btcrjn7jzfmndl3/StationSamples2015-2020.txt.gz?dl=1",
+            "https://www.dropbox.com/s/d5gpsbcqsbtz09l/Indicator_CPHL_EO_02_2015-2020.csv?dl=1")
+  unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
+  configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
+  stationSamplesFile <- file.path(inputPath, "StationSamples2015-2020.txt.gz")
+  indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2015-2020.csv")
 }
 
 files <- sapply(urls, download.file.unzip.maybe, path = inputPath)
-
-unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
-indicatorsFile <- file.path(inputPath, "Indicators.csv")
-indicatorUnitsFile <- file.path(inputPath, "IndicatorUnits.csv")
-unitGridSizeFile <- file.path(inputPath, "UnitGridSize.csv")
-stationSamplesFile <- file.path(inputPath, "StationSamples.txt.gz")
-indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02.csv")
 
 # Assessment Units + Grid Units-------------------------------------------------
 
@@ -124,16 +151,16 @@ units <- units[order(ID), .(Code = ID, Description = LongName, GEOM = geometry)]
 # Assign IDs
 units$UnitID = 1:nrow(units)
 
-# Identify invalid geometries
-st_is_valid(units)
-
 # Write to database
 # st_write(
 #   units,
-#   dsn = "MSSQL:server=SQL09;database=OceanCOMPEAT_20062014_COMP4;trusted_connection=yes;",
+#   dsn = "MSSQL:server=SQL09;database=OceanCOMPEAT_20152020_COMP4;trusted_connection=yes;",
 #   layer = "AssessmentUnit",
 #   layer_options = c("LAUNDER=NO", "GEOM_NAME=GEOM", "FID=ID")
-# )
+#   )
+
+# Identify invalid geometries
+st_is_valid(units, reason=TRUE)
 
 # Transform projection into ETRS_1989_LAEA
 units <- st_transform(units, crs = 3035)
@@ -182,7 +209,7 @@ gridunits10 <- make.gridunits(units, 10000)
 gridunits30 <- make.gridunits(units, 30000)
 gridunits60 <- make.gridunits(units, 60000)
 
-unitGridSize <-  fread(input = unitGridSizeFile) %>% setkey(UnitID)
+unitGridSize <- as.data.table(read_excel(configurationFile, sheet = "UnitGridSize")) %>% setkey(UnitID)
 
 a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% dplyr::select(UnitID, GridID, GridArea = Area))
 b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% dplyr::select(UnitID, GridID, GridArea = Area))
@@ -247,12 +274,13 @@ stationSamples <- st_set_geometry(stationSamples, NULL)
 
 
 # Read indicator configuration files -------------------------------------------
-indicators <- fread(input = indicatorsFile) %>% setkey(IndicatorID) 
+indicators <- as.data.table(read_excel(configurationFile, sheet = "Indicators")) %>% setkey(IndicatorID) 
 indicators[4, Metric := metricoxy]
 #Change oxygen indicator so only samples shallower than 500m are used. 
 indicators[4, DepthMax := 500]
 
-indicatorUnits <- fread(input = indicatorUnitsFile) %>% setkey(IndicatorID, UnitID)
+indicatorUnits <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnits")) %>% setkey(IndicatorID, UnitID)
+
 
 wk2list = list()
 
@@ -422,6 +450,7 @@ for(i in 1:nrow(indicators)){
   a <- wk1[, .N, keyby = .(IndicatorID, UnitID, Period, GridID, GridArea)] # UnitGrids
   b <- a[, .(GridArea = sum(as.numeric(GridArea))), keyby = .(IndicatorID, UnitID, Period)] #GridAreas
   wk2 <- merge(wk2, b, by = c("IndicatorID", "UnitID", "Period"), all.x = TRUE)
+  rm(a,b)
 
   wk2list[[i]] <- wk2
 }
@@ -431,10 +460,12 @@ wk2 <- rbindlist(wk2list)
 
 # Add Chlorophyll a EO indicator if it exists
 if (file.exists(indicator_CPHL_EO_02)) {
-  wk2_CPHL_EO <- fread(file.path(inputPath, "Indicator_CPHL_EO_02.csv"))
+  wk2_CPHL_EO <- fread(indicator_CPHL_EO_02)
   wk2_CPHL_EO[, IndicatorID := 302]
   wk2_CPHL_EO <- wk2_CPHL_EO[, .(IndicatorID, UnitID, Period, ES, SD, N, NM, GridArea)]
   wk2 <- rbindlist(list(wk2, wk2_CPHL_EO), fill = TRUE)
+} else {
+  warning("CPHL EO data not available and CPHL EO indicator included")
 }
 
 # Combine with indicator and indicator unit configuration tables

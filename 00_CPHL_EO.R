@@ -55,7 +55,7 @@ if (length(list.files(file.path(pathARGANS, "csv"))) == 0) {
 
 # Convert RBINS netCDF into CSV if it hasn't already been done
 if (length(list.files(file.path(pathRBINS, "csv"))) == 0) {
-  filenames <- list.files(path = file.path(pathRBINS, "CHL_daily_2009_2020"), pattern = "*.nc", full.names = TRUE)
+  filenames <- list.files(path = file.path(pathRBINS, "CHL_daily_1998_2020"), pattern = "*.nc", full.names = TRUE)
   
   dt1 <- lapply(filenames, function(filename) {
     # Extract date string
@@ -66,7 +66,7 @@ if (length(list.files(file.path(pathRBINS, "csv"))) == 0) {
     month <- substring(datestring,5,6) %>% as.numeric()
     day <- substring(datestring,7,8) %>% as.numeric()
     
-    if(year >= 2009 && year <= 2020 && month >= 3 && month <= 10) {
+    if(year >= 1998 && year <= 2020 && month >= 3 && month <= 10) {
       # Open netcdf file
       nc <- nc_open(filename)
       
@@ -100,7 +100,11 @@ if (length(list.files(file.path(pathRBINS, "csv"))) == 0) {
 gridunits <- st_read(file.path("Output", "gridunits.shp"))
 
 # Define years
-years <- c("2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020")
+years <- c("2015", "2016", "2017", "2018", "2019", "2020")
+#years <- c("2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014")
+#years <- c("2001", "2002", "2003", "2004", "2005", "2006")
+#years <- c("1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997","1998", "1999", "2000")
+#years <- c("1998", "1999", "2000")
 
 dt6 <- lapply(years, function(year) {
   # Get file names for the given year
@@ -142,4 +146,4 @@ dt6 <- lapply(years, function(year) {
 dt7 <- rbindlist(dt6)
 
 # Write data table
-fwrite(dt7, file.path("D:/COMPEAT", "Indicator_CPHL_EO_02.csv"))
+fwrite(dt7, file.path("D:/COMPEAT", "Indicator_CPHL_EO_02_2015-2020.csv"))
