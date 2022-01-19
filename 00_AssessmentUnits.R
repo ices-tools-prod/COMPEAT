@@ -25,7 +25,7 @@ units <- units[order(ID),list(Code = ID, Description = LongName, GEOM = geometry
 units$UnitID = 1:nrow(units)
 
 # Identify invalid geometries
-st_is_valid(units)
+st_is_valid(units, reason = TRUE)
 
 # Write to database
 #st_write(
