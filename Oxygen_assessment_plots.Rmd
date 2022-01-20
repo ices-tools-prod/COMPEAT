@@ -1,0 +1,65 @@
+---
+title: "Oxygen Assessment Plots"
+author: "Kate Collingridge"
+date: "19/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This R markdown takes the outputs from the COMPEAT tool for dissolved oxygen and creates further plots to summarise the results
+
+```{r read data}
+wk3_COMP1 <- read.csv("Output_oxy_q05/1990-2000/Annual_Indicator.csv")
+wk3_COMP2 <- read.csv("Output_oxy_q05/2001-2006/Annual_Indicator.csv")
+wk3_COMP3 <- read.csv("Output_oxy_q05/2006-2014/Annual_Indicator.csv")
+wk3_COMP3 <- wk3_COMP3[wk3_COMP3$Period != "2006",] #removing 2006 prior to combining to avoid duplicates
+wk3_COMP4 <- read.csv("Output_oxy_q05/2015-2020/Annual_Indicator.csv")
+wk3 <- rbind(wk3_COMP1, wk3_COMP2, wk3_COMP3, wk3_COMP4)
+
+indicatorID <- indicators[4, IndicatorID]
+indicatorCode <- indicators[4, Code]
+indicatorName <- indicators[4, Name]
+indicatorUnit <- indicators[4, Units]
+indicatorDepthMin <- indicators[4, DepthMin]
+indicatorDepthMax <- indicators[4, DepthMax]
+indicatorMetric <- indicators[4, Metric]
+
+
+```
+
+
+```{r trends}
+#Plot of oxygen 5th percentile through time
+
+wk <- wk3[wk3$IndicatorID == 4 & wk3$UnitID == 2,]
+title <- paste0("Eutrophication State [ES] and Threshold [ET] ", 1990, "-", 2020)
+subtitle <- paste0(indicatorName, " (", indicatorCode, ")", " in ", unitName, " (", unitCode, ")", "\n")
+subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, "m, ")
+subtitle <- paste0(subtitle, "Metric: ", indicatorMetric, ", ")
+subtitle <- paste0(subtitle, "Unit: ", indicatorUnit)
+fileName <- gsub(":", "", paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png"))
+ggplot(wk, aes(x = as.Date(as.character(Period), "%Y"), y = ES)) +
+  labs(title = title , subtitle = subtitle) +
+  geom_line() +
+  #geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+  geom_hline(aes(yintercept = ET)) +
+  scale_x_date(date_labels = "%Y") +
+  xlab("Year") +
+  scale_y_continuous(NULL)
+      
+ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
