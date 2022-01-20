@@ -7,6 +7,10 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(plotly)
+outputPath = file.path("Output_oxy_q05")
+
 ```
 
 This R markdown takes the outputs from the COMPEAT tool for dissolved oxygen and creates further plots to summarise the results
@@ -18,6 +22,7 @@ wk3_COMP3 <- read.csv("Output_oxy_q05/2006-2014/Annual_Indicator.csv")
 wk3_COMP3 <- wk3_COMP3[wk3_COMP3$Period != "2006",] #removing 2006 prior to combining to avoid duplicates
 wk3_COMP4 <- read.csv("Output_oxy_q05/2015-2020/Annual_Indicator.csv")
 wk3 <- rbind(wk3_COMP1, wk3_COMP2, wk3_COMP3, wk3_COMP4)
+wk3 <- merge(wk3, st_drop_geometry(units) %>% dplyr::select(UnitID, UnitCode = Code, UnitName = Description), by = c("UnitID"), all.x = TRUE)
 
 indicatorID <- indicators[4, IndicatorID]
 indicatorCode <- indicators[4, Code]
@@ -33,25 +38,52 @@ indicatorMetric <- indicators[4, Metric]
 
 ```{r trends}
 #Plot of oxygen 5th percentile through time
+for (u in unique(wk3$UnitCode)) {
+  wk <- wk3[wk3$IndicatorID == 4 & wk3$UnitCode == u,]
+  
+  unitID <- st_drop_geometry(units)[Code == u]$UnitID
+  unitCode <- u
+  unitName <- st_drop_geometry(units)[Code == u]$Description
+  
+  title <- paste0("Eutrophication State [ES] and Threshold [ET] ", 1990, "-", 2020)
+  subtitle <- paste0(indicatorName, " (", indicatorCode, ")", " in ", unitName, " (", unitCode, ")", "\n")
+  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, "m, ")
+  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric, ", ")
+  subtitle <- paste0(subtitle, "Unit: ", indicatorUnit)
+  
+  fileName <- gsub(":", "", paste0("Annual_Indicator_Line_", indicatorCode, "_", unitCode, ".png"))
+  
+  ggplot(wk, aes(x = as.Date(as.character(Period), "%Y"), y = ES, group = UnitCode, color = UnitCode)) +
+    labs(title = title , subtitle = subtitle) +
+    geom_point() +
+    geom_line() +
+    #geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+    #adding lines for boundaries between high/good/moderate etc
+    geom_hline(aes(yintercept = ET)) +
+    geom_hline(aes(yintercept = 7.75), linetype = 2) +
+    geom_hline(aes(yintercept = 4.25), linetype = 2) +
+    geom_hline(aes(yintercept = 2.5), linetype = 2) +
+    #labelling high/good/moderate etc
+    annotate("text", x = as.Date("2005", "%Y"), y = 5, label = "italic(Moderate)", parse = 2, size = 3.5, color = "grey") + 
+    annotate("text", x = as.Date("2005", "%Y"), y = 6.75, label = "italic(Good)", parse = 2, size = 3.5, color = "grey") +
+    annotate("text", x = as.Date("2005", "%Y"), y = 3.5, label = "italic(Poor)", parse = 2, size = 3.5, color = "grey") +
+    annotate("text", x = as.Date("2005", "%Y"), y = 1.5, label = "italic(Bad)", parse = 2, size = 3.5, color = "grey") +
+    annotate("text", x = as.Date("2005", "%Y"), y = 8.75, label = "italic(High)", parse = 2, size = 3.5, color = "grey") +
+    scale_x_date(date_labels = "%Y") +
+    xlab("Year") +
+    ylab("Oxygen (mg/l)") +
+    scale_y_continuous(limits = c(0,9), breaks = c(0,2,4,6,8))
+  if (nrow(wk) >0) {
+    ggsave(file.path(outputPath, fileName), width = 15, height = 9, dpi = 300)
+    }
+  
+  
+}
 
-wk <- wk3[wk3$IndicatorID == 4 & wk3$UnitID == 2,]
-title <- paste0("Eutrophication State [ES] and Threshold [ET] ", 1990, "-", 2020)
-subtitle <- paste0(indicatorName, " (", indicatorCode, ")", " in ", unitName, " (", unitCode, ")", "\n")
-subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
-subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, "m, ")
-subtitle <- paste0(subtitle, "Metric: ", indicatorMetric, ", ")
-subtitle <- paste0(subtitle, "Unit: ", indicatorUnit)
-fileName <- gsub(":", "", paste0("Annual_Indicator_Bar_", indicatorCode, "_", unitCode, ".png"))
-ggplot(wk, aes(x = as.Date(as.character(Period), "%Y"), y = ES)) +
-  labs(title = title , subtitle = subtitle) +
-  geom_line() +
-  #geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
-  geom_hline(aes(yintercept = ET)) +
-  scale_x_date(date_labels = "%Y") +
-  xlab("Year") +
-  scale_y_continuous(NULL)
-      
-ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+ggplotly(p)  
+
+ggsave(file.path(outputPath, fileName), width = 15, height = 9, dpi = 300)
 ```
 
 ## Including Plots
