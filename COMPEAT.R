@@ -5,17 +5,17 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
-packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "mapview")
+packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "mapview", "httr")
 ipak(packages)
-
-# Extract 'Bottle and low resolution CTD' + 'Pump' data from https://data.ices.dk
-# Longitude between -16.08 and 12.68, Latitude between 34.87 and 63.89
 
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
 assessmentPeriod <- "2015-2020" # COMP4
+
+# Set flag to determined if dissolved inorganic nutrients are being salinity nomalised 
+dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
 
 # Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
 combined_Chlorophylla_IsWeighted <- FALSE
@@ -183,20 +183,66 @@ ggsave(file.path(outputPath, "Assessment_GridUnits60.png"), width = 12, height =
 ggplot() + geom_sf(data = st_cast(gridunits)) + coord_sf()
 ggsave(file.path(outputPath, "Assessment_GridUnits.png"), width = 12, height = 9, dpi = 300)
 
-# Read stationSamples ----------------------------------------------------------
+# Read station samples ---------------------------------------------------------
 stationSamples <- fread(input = stationSamplesFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
 
+# Classify station samples into grid units -------------------------------------
+
+# Extract unique stations i.e. longitude/latitude pairs
+stations <- unique(stationSamples[, .(Longitude..degrees_east., Latitude..degrees_north.)])
+
 # Make stations spatial keeping original latitude/longitude
-stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
+stations <- st_as_sf(stations, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
 
 # Transform projection into ETRS_1989_LAEA
-stationSamples <- st_transform(stationSamples, crs = 3035)
+stations <- st_transform(stations, crs = 3035)
 
 # Classify stations into grid units
-stationSamples <- st_join(stationSamples, st_cast(gridunits), join = st_intersects)
+stations <- st_join(stations, st_cast(gridunits), join = st_intersects)
 
 # Remove spatial column
-stationSamples <- st_set_geometry(stationSamples, NULL)
+stations <- st_set_geometry(stations, NULL)
+
+# Merge stations back into station samples
+stationSamples <- as.data.table(stations)[stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.)]
+
+# # Get bathymetric depth for the oxygen indicator -----------------------------
+
+# Function to get bathymetric depth from EMODnet bathymetry REST web service
+get.bathymetric <- function(x, y, host = "https://rest.emodnet-bathymetry.eu") {
+  query = paste0("/depth_sample?geom=POINT(", x, " ", y,")")
+  path = httr::modify_url(paste0(host, query))
+  r = GET(path)
+  # to catch empty responses in a proper way
+  if(is.numeric(content(r)$avg)){
+    return(paste(content(r)$min, content(r)$max, content(r)$avg, content(r)$stdev, sep = "_"))
+  } else {
+    return(NA_real_)
+  }
+}
+
+# Extract station samples with oxygen and missing bottom depth
+stationSamplesWithOxygen <- stationSamples[!is.na(Oxygen..ml.l.) & is.na(Bot..Depth..m.)]
+
+# Extract stations with oxygen
+stationsWithOxygen <- unique(stationSamplesWithOxygen[, .(Longitude..degrees_east., Latitude..degrees_north.)])
+
+# Get bathymetrics for stations with oxygen
+bathymetrics <- map2(stationsWithOxygen$Longitude..degrees_east., stationsWithOxygen$Latitude..degrees_north., get.bathymetric) %>% unlist
+
+stationsWithOxygen$Bathymetric <- bathymetrics
+
+stationsWithOxygen <- stationsWithOxygen %>%
+  separate(Bathymetric, c("BathymetricMin", "BathymetricMax", "BathymetricAvg", "BathymetricStDev"), sep = "_") %>%
+  mutate(
+    BathymetricMin = -as.numeric(BathymetricMin),
+    BathymetricMax = -as.numeric(BathymetricMax),
+    BathymetricAvg = -as.numeric(BathymetricAvg),
+    BathymetricStDev = -as.numeric(BathymetricStDev),
+  )
+
+# Merge bathymetric back into station samples
+stationSamples <- as.data.table(stationsWithOxygen)[, .(Longitude..degrees_east., Latitude..degrees_north., Bathymetric..m. = BathymetricAvg)][stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.)]
 
 # Read indicator configuration files -------------------------------------------
 indicators <- as.data.table(read_excel(configurationFile, sheet = "Indicators")) %>% setkey(IndicatorID)
@@ -234,26 +280,19 @@ for(i in 1:nrow(indicators)){
         sum(x, na.rm = TRUE)
       }
     })
-  }
-  else if (name == 'Dissolved Inorganic Phosphorus') {
+  } else if (name == 'Dissolved Inorganic Phosphorus') {
     wk[, ES := Phosphate..umol.l.]
-  }
-  else if (name == 'Chlorophyll a (in-situ)') {
+  } else if (name == 'Chlorophyll a (in-situ)') {
     wk[, ES := Chlorophyll.a..ug.l.]
-  }
-  else if (name == 'Oxygen Deficiency') {
+  } else if (name == 'Oxygen Deficiency') {
     wk[, ES := Oxygen..ml.l. / 0.7] # Convert ml/l to mg/l by factor of 0.7
-  }
-  else if (name == 'Total Nitrogen') {
+  } else if (name == 'Total Nitrogen') {
     wk[, ES := Total.Nitrogen..umol.l.]
-  }
-  else if (name == 'Total Phosphorus') {
+  } else if (name == 'Total Phosphorus') {
     wk[, ES := Total.Phosphorus..umol.l.]
-  }
-  else if (name == 'Secchi Depth') {
+  } else if (name == 'Secchi Depth') {
     wk[, ES := Secchi.Depth..m..METAVAR.DOUBLE]
-  }
-  else if (name == 'Dissolved Inorganic Nitrogen/Dissolved Inorganic Phosphorus') {
+  } else if (name == 'Dissolved Inorganic Nitrogen/Dissolved Inorganic Phosphorus') {
     wk$ES <- apply(wk[, list(Nitrate..umol.l., Nitrite..umol.l., Ammonium..umol.l.)], 1, function(x){
       if (all(is.na(x)) | is.na(x[1])) {
         NA
@@ -263,16 +302,11 @@ for(i in 1:nrow(indicators)){
       }
     })
     wk[, ES := ES/Phosphate..umol.l.]
-  }
-  else if (name == 'Total Nitrogen/Total Phosphorus') {
+  } else if (name == 'Total Nitrogen/Total Phosphorus') {
     wk[, ES := Total.Nitrogen..umol.l./Total.Phosphorus..umol.l.]
-  }
-  else {
+  } else {
     next
   }
-
-  # Add unit grid size
-  wk <- wk[unitGridSize, on="UnitID", nomatch=0]
 
   # Filter stations rows and columns --> UnitID, GridID, GridArea, Period, Month, StationID, Depth, Temperature, Salinity, ES
   if (month.min > month.max) {
@@ -282,7 +316,7 @@ for(i in 1:nrow(indicators)){
         (Depth..m.db..PRIMARYVAR.DOUBLE >= depth.min & Depth..m.db..PRIMARYVAR.DOUBLE <= depth.max) &
         !is.na(ES) & 
         !is.na(UnitID),
-      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
+      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Longitude = Longitude..degrees_east., Latitude = Latitude..degrees_north., DepthToBottom = ifelse(is.na(Bot..Depth..m.), Bathymetric..m., Bot..Depth..m.), Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
   } else {
     wk0 <- wk[
       (Period >= year.min & Period <= year.max) &
@@ -290,32 +324,32 @@ for(i in 1:nrow(indicators)){
         (Depth..m.db..PRIMARYVAR.DOUBLE >= depth.min & Depth..m.db..PRIMARYVAR.DOUBLE <= depth.max) &
         !is.na(ES) & 
         !is.na(UnitID),
-      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
+      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Longitude = Longitude..degrees_east., Latitude = Latitude..degrees_north., DepthToBottom = ifelse(is.na(Bot..Depth..m.), Bathymetric..m., Bot..Depth..m.), Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
   }
 
-  # Salinity Normalisation for Nutrients
-  if (name == 'Dissolved Inorganic Nitrogen' || name == 'Dissolved Inorganic Phosphorus') {
-    # Get linear regression coefficients on ES~Salinity and Mean Salinity
-    wk00 <- wk0[!is.na(Salinity),
-                .(N = .N,
-                  MeanSalinity = mean(Salinity, na.rm = TRUE),
-                  B = coef(lm(ES~Salinity))[1],
-                  A = coef(lm(ES~Salinity))[2],
-                  P = ifelse(.N >= 2, summary(lm(ES~Salinity))$coef[2, 4], NA_real_),
-                  R2 = summary(lm(ES~Salinity))$adj.r.squared),
-                keyby = .(IndicatorID, UnitID)]
+  # Dissolved inorganic nutrients salinity normalisation
+  if (dissolved_inorganic_nutrients_are_salinity_normalised == TRUE) {
+    if (name == 'Dissolved Inorganic Nitrogen' || name == 'Dissolved Inorganic Phosphorus') {
+      # Get linear regression coefficients on ES~Salinity and Mean Salinity
+      wk00 <- wk0[!is.na(Salinity),
+                  .(N = .N,
+                    MeanSalinity = mean(Salinity, na.rm = TRUE),
+                    B = coef(lm(ES~Salinity))[1],
+                    A = coef(lm(ES~Salinity))[2],
+                    P = ifelse(.N >= 2, summary(lm(ES~Salinity))$coef[2, 4], NA_real_),
+                    R2 = summary(lm(ES~Salinity))$adj.r.squared),
+                  keyby = .(IndicatorID, UnitID)]
+    }
+    
+    # Merge data tables
+    wk0 <- wk00[wk0]
+    
+    # Normalise indicator concentration if the indicator has a significant relation to salinity e.g. above the 95% confidence level (p<0.05)
+    # ES_normalised = ES_observed + A * (S_reference - S_observed)
+    # https://www.ospar.org/site/assets/files/37302/national_common_procedure_report_2016_sweden.pdf
+    wk0[, ES := ifelse(P < 0.05 & !is.na(P) & !is.na(Salinity), ES + A * (MeanSalinity - Salinity), ES)]
   }
-  
-  # Merge data tables
-  wk0 <- wk00[wk0]
 
-  # Normalise indicator concentration if the indicator has a significant relation to salinity e.g. above the 95% confidence level (p<0.05)
-  # ES_normalised = ES_observed + A * (S_reference - S_observed)
-  # https://www.ospar.org/site/assets/files/37302/national_common_procedure_report_2016_sweden.pdf
-  wk0[, ESS := ifelse(P < 0.05 & !is.na(P) & !is.na(Salinity), ES + A * (MeanSalinity - Salinity), ES)]
-  
-  # NB! Salinity Normalisation above currently only implemented as test and not taken forward yet!  
-  
   if (metric == 'Mean'){
     # Calculate station mean --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
     wk1 <- wk0[, .(ES = mean(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
@@ -328,6 +362,13 @@ for(i in 1:nrow(indicators)){
     
     # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+  } else if (metric == '5th percentile of deepest sample within 10 meters from bottom') {
+    # Select deepest sample at each station within 10 meters from bottom
+    wk1 <- wk0[wk0[, .I[Depth == max(Depth) & DepthToBottom - Depth <= 10], by = StationID]$V1]
+    wk1 <- wk1[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+
+    # Calculate annual 5th percentile --> UnitID, Period, ES, SD, N, NM
+    wk2 <- wk1[, .(ES = quantile(ES, 0.05, na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
   }
   
   # Calculate grid area --> UnitID, Period, ES, SD, N, NM, GridArea
