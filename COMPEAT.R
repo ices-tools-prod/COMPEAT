@@ -24,7 +24,7 @@ metricoxy <- "5th percentile"
 assessmentPeriod <- "2015-2020" # COMP4
 
 # Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
-combined_Chlorophylla_IsWeighted <- FALSE
+combined_Chlorophylla_IsWeighted <- TRUE
 
 # Define paths
 
@@ -43,6 +43,9 @@ if (metricoxy == "10th percentile") {
 if (metricoxy == "Minimum") {
   outputPath = file.path("Output_oxy_minimum", assessmentPeriod)
 }
+
+outputPath = file.path("Output_oxy_q05_20acdev", assessmentPeriod)
+
 
 # if (combined_Chlorophylla_IsWeighted == "TRUE") {
 #   outputPath <- file.path("Output_chl_weighted", assessmentPeriod)
@@ -129,6 +132,7 @@ if (assessmentPeriod == "1990-2000") {
             "https://www.dropbox.com/s/d5gpsbcqsbtz09l/Indicator_CPHL_EO_02_2015-2020.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
+  #configurationFile <- file.path(inputPath, "Configuration2015-2020_20acdev.xlsx")
   stationSamplesFile <- file.path(inputPath, "StationSamples2015-2020.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2015-2020.csv")
 }
