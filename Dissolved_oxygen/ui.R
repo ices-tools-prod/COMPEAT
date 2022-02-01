@@ -18,13 +18,14 @@ shinyUI(fluidPage(
     # Sidebar with a slider input for number of bins
     sidebarLayout(
         sidebarPanel(
-          selectInput("area", label= "Select an assessment unit", choices = unique(units$Code), selected = "SNS", multiple = T)
-          
+          selectInput("area", label= "Select an assessment unit", choices = unique(units$Code), selected = "SNS", multiple = T),
+          plotOutput("eqrs_map")
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
             plotlyOutput("ts")
+            
         )
     )
 ))

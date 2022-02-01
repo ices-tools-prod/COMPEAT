@@ -48,5 +48,26 @@ output$ts <- renderPlotly({
     scale_y_continuous(limits = c(0,9), breaks = c(0,2,4,6,8))
   ggplotly(p) 
 })
+output$eqrs_map <- renderPlot({
+  # Status map (EQRS)
+  EQRS_Class_colors <- c("#3BB300", "#99FF66", "#FFCABF", "#FF8066", "#FF0000")
+  EQRS_Class_limits <- c("High", "Good", "Moderate", "Poor", "Bad")
+  EQRS_Class_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0.6 (Moderate)", ">= 0.2 - 0.4 (Poor)", ">= 0.0 - 0.2 (Bad)")
+  title <- paste0("Eutrophication Status ", indicatorYearMin, "-", indicatorYearMax)
+  subtitle <- paste0(indicatorName, " (", indicatorCode, ")", "\n")
+  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+  subtitle <- paste0(subtitle, "Metric: ", indicatorMetric)
+  #fileName <- gsub(":", "", paste0("Assessment_Indicator_Map_", indicatorCode, "_EQRS", ".png"))
+  wk5 <- as.data.table(wk5)
+  wk <- wk5[IndicatorID == 4] %>% setkey(UnitID)
+  setkey(units, UnitID)
+  wk <- merge(units, wk, all.x = TRUE) 
+  ggplot(wk) +
+    labs(title = title , subtitle = subtitle) +
+    geom_sf(aes(fill = EQRS_Class)) +
+    scale_fill_manual(name = "EQRS", values = EQRS_Class_colors, limits = EQRS_Class_limits, labels = EQRS_Class_labels)
+  #ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+})
 
 })
