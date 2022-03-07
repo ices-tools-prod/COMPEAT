@@ -593,8 +593,11 @@ wk9[, C_3_Class := ifelse(C_3 >= 75, "High",
                           ifelse(C_3 >= 50, "Moderate", "Low"))]
 
 # Write results
+wk3 <- merge(st_drop_geometry(units[1:4]), wk3, by = "UnitID")
 fwrite(wk3, file = file.path(outputPath, "Annual_Indicator.csv"))
+wk5 <- merge(st_drop_geometry(units[1:4]), wk5, by = "UnitID")
 fwrite(wk5, file = file.path(outputPath, "Assessment_Indicator.csv"))
+wk9 <- merge(st_drop_geometry(units[1:4]), wk9, by = "UnitID")
 fwrite(wk9, file = file.path(outputPath, "Assessment.csv"))
 
 # Create plots
