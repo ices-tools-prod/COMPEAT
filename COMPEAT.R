@@ -789,7 +789,7 @@ for (i in 1:nrow(indicators)) {
 
     wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
 
-    if (nrow(wk) > 0) {
+    if (nrow(wk) > 0 & indicatorMetric %in% c("Mean")) {
       ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
         labs(title = title , subtitle = subtitle) +
         geom_col() +
@@ -799,6 +799,18 @@ for (i in 1:nrow(indicators)) {
         scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
         scale_y_continuous(NULL)
 
+      ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+    }
+    if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "10th percentile", "90th percentile")) {
+      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
+        labs(title = title , subtitle = subtitle) +
+        geom_col() +
+        geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+        #geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
+        geom_hline(aes(yintercept = ET)) +
+        scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
+        scale_y_continuous(NULL)
+      
       ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
     }
   }
