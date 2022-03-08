@@ -18,7 +18,7 @@ assessmentPeriod <- "2015-2020" # COMP4
 dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
 
 # Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
-combined_Chlorophylla_IsWeighted <- FALSE
+combined_Chlorophylla_IsWeighted <- TRUE
 
 # Define paths
 inputPath <- file.path("Input", assessmentPeriod)
@@ -804,7 +804,7 @@ for (i in 1:nrow(indicators)) {
 
       ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
     }
-    if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "10th percentile", "90th percentile")) {
+    if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "5th percentile of deepest sample within 10 meters from bottom", "10th percentile", "90th percentile")) {
       ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
         labs(title = title , subtitle = subtitle) +
         geom_col() +
