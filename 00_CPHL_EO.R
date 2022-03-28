@@ -5,7 +5,7 @@ library(ncdf4)
 library(R.utils)
 
 pathARGANS <- "D:/COMPEAT/CPHL_EO_ARGANS/OSPARIV"
-pathRBINS <- "D:/COMPEAT/CPHL_EO_RBINS/v1.02"
+pathRBINS <- "D:/COMPEAT/CPHL_EO_RBINS/v2.00"
 
 # Convert ARGANS netCDF into CSV if it hasn't already been done
 if (length(list.files(file.path(pathARGANS, "csv"))) == 0) {
@@ -142,8 +142,12 @@ dt6 <- lapply(years, function(year) {
   #d <- c[b, on = .(UnitID = UnitID)] # UnitAreas ~ GridAreas
   dt5 <- merge(dt5, b, by = c("UnitID"), all.x = TRUE)
 })
+
 # Combine annual results into one
 dt7 <- rbindlist(dt6)
 
 # Write data table
 fwrite(dt7, file.path("D:/COMPEAT", "Indicator_CPHL_EO_02_2015-2020.csv"))
+#fwrite(dt7, file.path("D:/COMPEAT", "Indicator_CPHL_EO_02_2006-2014.csv"))
+#fwrite(dt7, file.path("D:/COMPEAT", "Indicator_CPHL_EO_02_2001-2006.csv"))
+#fwrite(dt7, file.path("D:/COMPEAT", "Indicator_CPHL_EO_02_1990-2000.csv"))
