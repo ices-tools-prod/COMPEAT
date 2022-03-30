@@ -247,6 +247,7 @@ stationSamples <- as.data.table(stationsWithOxygen)[, .(Longitude..degrees_east.
 # Read indicator configuration files -------------------------------------------
 indicators <- as.data.table(read_excel(configurationFile, sheet = "Indicators")) %>% setkey(IndicatorID)
 indicatorUnits <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnits")) %>% setkey(IndicatorID, UnitID)
+indicatorUnitResults <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnitResults")) %>% setkey(IndicatorID, UnitID)
 
 wk2list = list()
 
@@ -383,6 +384,9 @@ for(i in 1:nrow(indicators)){
 # Combine station and annual indicator results
 wk2 <- rbindlist(wk2list)
 
+# Combine with indicator results reported
+wk2 <- rbindlist(list(wk2, indicatorUnitResults), fill = TRUE)
+
 # Add Chlorophyll a EO indicator if it exists
 if (file.exists(indicator_CPHL_EO_02)) {
   wk2_CPHL_EO <- fread(indicator_CPHL_EO_02)
@@ -418,11 +422,13 @@ if (combined_Chlorophylla_IsWeighted) {
   wk3[, C := (GTC + STC + GSC + SSC) / 4]
   wk3[IndicatorID == 301, W := ifelse(C >= 75, 50/50, ifelse(C >= 50, 30/70, 10/90))]
   wk3[IndicatorID == 302, W := 1]
-  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = weighted.mean(ES, W), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = weighted.mean(GTC, W), NMP = max(NMP), STC = weighted.mean(STC, W), GSC = weighted.mean(GSC, W), SSC = weighted.mean(SSC, W)), by = .(UnitID, Period)]
+  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = weighted.mean(ES, W), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = weighted.mean(GTC, W), NMP = max(NMP), STC = weighted.mean(STC, W), GSC = weighted.mean(GSC, W), SSC = weighted.mean(SSC, W)), by = .(UnitID, Period)] %>% setkey(IndicatorID, UnitID)
+  wk3_CPHL <- indicators[indicatorUnits[wk3_CPHL]]
   wk3 <- rbindlist(list(wk3, wk3_CPHL), fill = TRUE)
 } else {
   # Calculate combined chlorophyll a indicator as a simple average
-  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = mean(GTC), NMP = max(NMP), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), by = .(UnitID, Period)]
+  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = mean(GTC), NMP = max(NMP), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), by = .(UnitID, Period)] %>% setkey(IndicatorID, UnitID)
+  wk3_CPHL <- indicators[indicatorUnits[wk3_CPHL]]
   wk3 <- rbindlist(list(wk3, wk3_CPHL), fill = TRUE)
 }
 
@@ -456,8 +462,13 @@ wk3[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
                                   ifelse(EQRS >= 0.4, "Moderate",
                                          ifelse(EQRS >= 0.2, "Poor","Bad"))))]
 
-# Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
-wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
+# Calculate assessment ES --> UnitID, Period, ES, SD, N, N_OBS, EQR, EQRS, GTC, STC, GSC, SSC
+wk4 <- wk3[, .(Period = ifelse(min(Period) > 9999, min(Period), min(Period) * 10000 + max(Period)), ES = mean(ES), SD = sd(ES), EQR = mean(EQR), EQRS = mean(EQRS), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
+
+wk4[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
+                           ifelse(EQRS >= 0.6, "Good",
+                                  ifelse(EQRS >= 0.4, "Moderate",
+                                         ifelse(EQRS >= 0.2, "Poor","Bad"))))]
 
 # Add Year Count where STC = 100 --> NSTC100
 wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, UnitID)][wk4, on = .(IndicatorID, UnitID)]
@@ -468,9 +479,7 @@ wk4[, STC := ifelse(!is.na(NSTC100) & NSTC100 >= N/2, 100, STC)]
 # Combine with indicator and indicator unit configuration tables
 wk5 <- indicators[indicatorUnits[wk4]]
 
-#-------------------------------------------------------------------------------
-# Confidence Assessment
-# ------------------------------------------------------------------------------
+# Confidence Assessment --------------------------------------------------------
 
 # Calculate Temporal Confidence averaging General and Specific Temporal Confidence 
 wk5 <- wk5[, TC := (GTC + STC) / 2]
@@ -513,32 +522,6 @@ wk5 <- wk5[, C := (TC + SC + ACC) / 3]
 
 wk5[, C_Class := ifelse(C >= 75, "High", ifelse(C >= 50, "Moderate", "Low"))]
 
-# ------------------------------------------------------------------------------
-
-# Calculate (BEST)
-wk5[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
-
-# Calculate Ecological Quality Ratio (ERQ)
-wk5[, EQR := ifelse(Response == 1, ifelse(BEST > ES, 1, BEST / ES), ifelse(ES > BEST, 1, ES / BEST))]
-
-# Calculate Ecological Quality Ratio Boundaries (ERQ_HG/GM/MP/PB)
-wk5[, EQR_GM := ifelse(Response == 1, 1 / (1 + ACDEV / 100), 1 - ACDEV / 100)]
-wk5[, EQR_HG := 0.5 * 0.95 + 0.5 * EQR_GM]
-wk5[, EQR_PB := 2 * EQR_GM - 0.95]
-wk5[, EQR_MP := 0.5 * EQR_GM + 0.5 * EQR_PB]
-
-# Calculate Ecological Quality Ratio Scaled (EQRS)
-wk5[, EQRS := ifelse(EQR <= EQR_PB, (EQR - 0) * (0.2 - 0) / (EQR_PB - 0) + 0,
-                     ifelse(EQR <= EQR_MP, (EQR - EQR_PB) * (0.4 - 0.2) / (EQR_MP - EQR_PB) + 0.2,
-                            ifelse(EQR <= EQR_GM, (EQR - EQR_MP) * (0.6 - 0.4) / (EQR_GM - EQR_MP) + 0.4,
-                                   ifelse(EQR <= EQR_HG, (EQR - EQR_GM) * (0.8 - 0.6) / (EQR_HG - EQR_GM) + 0.6,
-                                          (EQR - EQR_HG) * (1 - 0.8) / (1 - EQR_HG) + 0.8))))]
-
-wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
-                           ifelse(EQRS >= 0.6, "Good",
-                                  ifelse(EQRS >= 0.4, "Moderate",
-                                         ifelse(EQRS >= 0.2, "Poor","Bad"))))]
-
 # Category ---------------------------------------------------------------------
 
 # Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, EQR, EQRS, C
@@ -555,6 +538,7 @@ wk8 <- wk81[wk82]
 
 wk9 <- wk7[wk8, on = .(UnitID = UnitID), nomatch=0]
 
+# Assign Status and Confidence Classes
 wk9[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
                            ifelse(EQRS >= 0.6, "Good",
                                   ifelse(EQRS >= 0.4, "Moderate",
