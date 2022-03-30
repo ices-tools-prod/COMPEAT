@@ -18,11 +18,16 @@ assessmentPeriod <- "2015-2020" # COMP4
 dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
 
 # Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
-combined_Chlorophylla_IsWeighted <- FALSE
+combined_Chlorophylla_IsWeighted <- TRUE
 
 # Define paths
 inputPath <- file.path("Input", assessmentPeriod)
-outputPath <- file.path("Output", assessmentPeriod)
+if (combined_Chlorophylla_IsWeighted == "TRUE") {
+  outputPath <- file.path("Output_chl_weighted", assessmentPeriod)
+} else {
+  outputPath <- file.path("Output", assessmentPeriod)
+}
+
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
@@ -572,8 +577,11 @@ wk9[, C_3_Class := ifelse(C_3 >= 75, "High",
                           ifelse(C_3 >= 50, "Moderate", "Low"))]
 
 # Write results
+wk3 <- merge(st_drop_geometry(units[1:4]), wk3, by = "UnitID")
 fwrite(wk3, file = file.path(outputPath, "Annual_Indicator.csv"))
+wk5 <- merge(st_drop_geometry(units[1:4]), wk5, by = "UnitID")
 fwrite(wk5, file = file.path(outputPath, "Assessment_Indicator.csv"))
+wk9 <- merge(st_drop_geometry(units[1:4]), wk9, by = "UnitID")
 fwrite(wk9, file = file.path(outputPath, "Assessment.csv"))
 
 # Create plots
@@ -768,7 +776,7 @@ for (i in 1:nrow(indicators)) {
 
     wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
 
-    if (nrow(wk) > 0) {
+    if (nrow(wk) > 0 & indicatorMetric %in% c("Mean")) {
       ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
         labs(title = title , subtitle = subtitle) +
         geom_col() +
@@ -778,6 +786,18 @@ for (i in 1:nrow(indicators)) {
         scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
         scale_y_continuous(NULL)
 
+      ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+    }
+    if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "5th percentile of deepest sample within 10 meters from bottom", "10th percentile", "90th percentile")) {
+      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
+        labs(title = title , subtitle = subtitle) +
+        geom_col() +
+        geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+        #geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
+        geom_hline(aes(yintercept = ET)) +
+        scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
+        scale_y_continuous(NULL)
+      
       ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
     }
   }
