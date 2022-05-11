@@ -218,7 +218,7 @@ stationSamplesCTD[, Type := "C"]
 
 # Ocean hydro chemistry - Pump data
 stationSamplesPMP <- fread(input = stationSamplesPMPFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
-stationSamplesBOT[, Type := "P"]
+stationSamplesPMP[, Type := "P"]
 
 # Combine station samples
 stationSamples <- rbindlist(list(stationSamplesBOT, stationSamplesCTD, stationSamplesPMP), use.names = TRUE, fill = TRUE)
@@ -330,7 +330,9 @@ for(i in 1:nrow(indicators)){
         sum(x, na.rm = TRUE)
       }
     })
-    wk[, ESQ := max(QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l., QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l., QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l., na.rm = TRUE)]
+    wk$ESQ <- apply(wk[, .(QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l., QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l., QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l.)], 1, function(x){
+     max(x, na.rm = TRUE)
+    })
   } else if (name == 'Dissolved Inorganic Phosphorus') {
     wk[, ES := Phosphate.Phosphorus..PO4.P...umol.l.]
     wk[, ESQ := QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l.]
@@ -359,10 +361,14 @@ for(i in 1:nrow(indicators)){
       }
     })
     wk[, ES := ES/Phosphate.Phosphorus..PO4.P...umol.l.]
-    wk[, ESQ := max(QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l., QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l., QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l., QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l., na.rm = TRUE)]
+    wk$ESQ <- apply(wk[, .(QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l., QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l., QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l., QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l.)], 1, function(x){
+      max(x, na.rm = TRUE)
+    })
   } else if (name == 'Total Nitrogen/Total Phosphorus') {
     wk[, ES := Total.Nitrogen..N...umol.l./Total.Phosphorus..P...umol.l.]
-    wk[, ESQ := max(QV.ODV.Total.Nitrogen..N...umol.l., QV.ODV.Total.Phosphorus..P...umol.l., na.rm = TRUE)]
+    wk$ESQ <- apply(wk[, .(QV.ODV.Total.Nitrogen..N...umol.l., QV.ODV.Total.Phosphorus..P...umol.l.)], 1, function(x){
+      max(x, na.rm = TRUE)
+    })
   } else {
     next
   }
