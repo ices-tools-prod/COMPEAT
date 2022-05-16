@@ -9,7 +9,7 @@ library(plyr)
 assessmentPeriod <- "2015-2020" # COMP4
 # Define paths
 
-inputPath <- file.path("../Input/", assessmentPeriod)
+inputPath <- file.path("data/")
 configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
 indicators <- as.data.table(read_excel(configurationFile, sheet = "Indicators")) %>% setkey(IndicatorID) 
 
@@ -41,15 +41,15 @@ units$UnitID = 1:nrow(units)
 
 #Read in annual indicator results for all periods
 
-wk3_COMP1 <- read.csv("../Output_chl_weighted/1990-2000-HS1/Annual_Indicator.csv")
-wk3_COMP2 <- read.csv("../Output_chl_weighted/2001-2006-HS1/Annual_Indicator.csv")
-wk3_COMP3 <- read.csv("../Output_chl_weighted/2006-2014-HS1/Annual_Indicator.csv")
-wk3_COMP4 <- read.csv("../Output_chl_weighted/2015-2020-HS1/Annual_Indicator.csv")
+wk3_COMP1 <- read.csv("data/1990-2000-HS1/Annual_Indicator.csv")
+wk3_COMP2 <- read.csv("data/2001-2006-HS1/Annual_Indicator.csv")
+wk3_COMP3 <- read.csv("data/2006-2014-HS1/Annual_Indicator.csv")
+wk3_COMP4 <- read.csv("data/2015-2020-HS1/Annual_Indicator.csv")
 wk3 <- rbind.fill(wk3_COMP1, wk3_COMP2, wk3_COMP3, wk3_COMP4)
 wk3 <- merge(wk3, st_drop_geometry(units) %>% dplyr::select(UnitID, UnitCode = Code, UnitName = Description), by = c("UnitID"), all.x = TRUE)
 
 #Read in indicator results for COMP4
-wk5 <- read.csv("../Output_oxy_q05/2015-2020/Assessment_Indicator.csv")
+wk5 <- read.csv("data/2015-2020-HS1/Assessment_Indicator.csv")
 
 
 
