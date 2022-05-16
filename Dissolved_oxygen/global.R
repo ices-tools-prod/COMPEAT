@@ -3,6 +3,7 @@ library(plotly)
 library(sf)
 library(data.table)
 library(readxl)
+library(plyr)
 
 # Read indicator configuration files -------------------------------------------
 assessmentPeriod <- "2015-2020" # COMP4
@@ -40,12 +41,11 @@ units$UnitID = 1:nrow(units)
 
 #Read in annual indicator results for all periods
 
-wk3_COMP1 <- read.csv("../Output_oxy_q05/1990-2000/Annual_Indicator.csv")
-wk3_COMP2 <- read.csv("../Output_oxy_q05/2001-2006/Annual_Indicator.csv")
-wk3_COMP3 <- read.csv("../Output_oxy_q05/2006-2014/Annual_Indicator.csv")
-wk3_COMP3 <- wk3_COMP3[wk3_COMP3$Period != "2006",] #removing 2006 prior to combining to avoid duplicates
-wk3_COMP4 <- read.csv("../Output_oxy_q05/2015-2020/Annual_Indicator.csv")
-wk3 <- rbind(wk3_COMP1, wk3_COMP2, wk3_COMP3, wk3_COMP4)
+wk3_COMP1 <- read.csv("../Output_chl_weighted/1990-2000-HS1/Annual_Indicator.csv")
+wk3_COMP2 <- read.csv("../Output_chl_weighted/2001-2006-HS1/Annual_Indicator.csv")
+wk3_COMP3 <- read.csv("../Output_chl_weighted/2006-2014-HS1/Annual_Indicator.csv")
+wk3_COMP4 <- read.csv("../Output_chl_weighted/2015-2020-HS1/Annual_Indicator.csv")
+wk3 <- rbind.fill(wk3_COMP1, wk3_COMP2, wk3_COMP3, wk3_COMP4)
 wk3 <- merge(wk3, st_drop_geometry(units) %>% dplyr::select(UnitID, UnitCode = Code, UnitName = Description), by = c("UnitID"), all.x = TRUE)
 
 #Read in indicator results for COMP4

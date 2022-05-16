@@ -9,10 +9,10 @@ packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "ma
 ipak(packages)
 
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
-#assessmentPeriod <- "1990-2000" # COMP1
+assessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
-assessmentPeriod <- "2015-2020" # COMP4
+#assessmentPeriod <- "2015-2020" # COMP4
 
 # Set flag to determined if dissolved inorganic nutrients are being salinity nomalised 
 dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
