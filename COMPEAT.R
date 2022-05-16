@@ -6,13 +6,7 @@ ipak <- function(pkg){
   sapply(pkg, require, character.only = TRUE)
 }
 packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "mapview", "httr")
-
 ipak(packages)
-#metric for oxygen
-#metricoxy <- "MeanQ25"
-metricoxy <- "5th percentile"
-#metricoxy <- "10th percentile"
-#metricoxy <- "Minimum"
 
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "1990-2000" # COMP1
@@ -27,32 +21,12 @@ dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
 combined_Chlorophylla_IsWeighted <- TRUE
 
 # Define paths
-
 inputPath <- file.path("Input", assessmentPeriod)
-
-
-if (metricoxy == "MeanQ25") {
-  outputPath = file.path("Output_oxy_meanq25", assessmentPeriod)
+if (combined_Chlorophylla_IsWeighted == "TRUE") {
+  outputPath <- file.path("Output_chl_weighted", assessmentPeriod)
+} else {
+  outputPath <- file.path("Output", assessmentPeriod)
 }
-if (metricoxy == "5th percentile") {
-  outputPath = file.path("Output_oxy_q05", assessmentPeriod)
-}
-if (metricoxy == "10th percentile") {
-  outputPath = file.path("Output_oxy_q10", assessmentPeriod)
-}
-if (metricoxy == "Minimum") {
-  outputPath = file.path("Output_oxy_minimum", assessmentPeriod)
-}
-
-outputPath = file.path("Output_oxy_q05_20acdev", assessmentPeriod)
-
-
-# if (combined_Chlorophylla_IsWeighted == "TRUE") {
-#   outputPath <- file.path("Output_chl_weighted", assessmentPeriod)
-# } else {
-#   outputPath <- file.path("Output", assessmentPeriod)
-# }
-
 
 
 # Create paths
@@ -69,28 +43,6 @@ download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
     }
   }
 }
-
-
-#defining function to average lowest quartile
-mean25 <- function(x){
-  Q25 = quantile(x, 0.25,na.rm = TRUE)
-  q = x[x <= Q25] 
-  return(mean(q,na.rm = TRUE))
-}
-
-#defining function to calculate standard deviation of lowest quartile
-sd25 <- function(x){
-  Q25 = quantile(x, 0.25,na.rm = TRUE)
-  q = x[x <= Q25] 
-  return(sd(q,na.rm = TRUE))
-}
-
-n25 <- function(x){
-  Q25 = quantile(x, 0.25,na.rm = TRUE)
-  q = x[x <= Q25] 
-  return(sum(!is.na(q)))
-}
-
 
 urls <- c()
 unitsFile <- file.path(inputPath, "")
@@ -148,7 +100,6 @@ if (assessmentPeriod == "1990-2000") {
             "https://www.dropbox.com/s/d5gpsbcqsbtz09l/Indicator_CPHL_EO_02_2015-2020.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
-
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples2015-2020BOT.txt.gz")
   stationSamplesCTDFile <- file.path(inputPath, "StationSamples2015-2020CTD.txt.gz")
   stationSamplesPMPFile <- file.path(inputPath, "StationSamples2015-2020PMP.txt.gz")
@@ -233,9 +184,9 @@ gridunits60 <- make.gridunits(units, 60000)
 
 unitGridSize <- as.data.table(read_excel(configurationFile, sheet = "UnitGridSize")) %>% setkey(UnitID)
 
-a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% dplyr::select(UnitID, GridID, GridArea = Area))
-b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% dplyr::select(UnitID, GridID, GridArea = Area))
-c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% dplyr::select(UnitID, GridID, GridArea = Area))
+a <- merge(unitGridSize[GridSize == 10000], gridunits10 %>% select(UnitID, GridID, GridArea = Area))
+b <- merge(unitGridSize[GridSize == 30000], gridunits30 %>% select(UnitID, GridID, GridArea = Area))
+c <- merge(unitGridSize[GridSize == 60000], gridunits60 %>% select(UnitID, GridID, GridArea = Area))
 gridunits <- st_as_sf(rbindlist(list(a,b,c)))
 rm(a,b,c)
 
@@ -289,32 +240,10 @@ stations <- unique(stationSamples[, .( Longitude..degrees_east., Latitude..degre
 # Make stations spatial keeping original latitude/longitude
 stations <- st_as_sf(stations, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
 
-#Read in bathymetry - this is the emodnet bathymetry downloaded on 14/10/21, the 2020 version.
-
-bathy <- raster("Input/emodnet_bathy_2020.tif")
-
-#extract bathymetry for each data point
-
-stationSamples$Bathymetry <- raster::extract(x=bathy, y=stationSamples, method="simple")
-str(stationSamples)
-
-
-#where wcdepth is missing fill this in from bathy and add a flag to say this is what has been done
-
-stationSamples$bathy_flag <- 0
-stationSamples$bathy_flag[is.na(stationSamples$Bot..Depth..m.)] <- 1
-stationSamples$Bot..Depth..m.[is.na(stationSamples$Bot..Depth..m.)] <- stationSamples$Bathymetry[is.na(stationSamples$Bot..Depth..m.)] * (-1)
-
-#calculate height above seafloor of samples
-stationSamples$SampleHeight <- (stationSamples$Bot..Depth..m. - stationSamples$Depth..m.db..PRIMARYVAR.DOUBLE)
-
-
 # Transform projection into ETRS_1989_LAEA
 stations <- st_transform(stations, crs = 3035)
 
-
 # Classify stations into grid units
-
 stations <- st_join(stations, st_cast(gridunits), join = st_intersects)
 
 # Delete stations not classified
@@ -364,18 +293,10 @@ stationsWithOxygen <- stationsWithOxygen %>%
 # Merge bathymetric back into station samples
 stationSamples <- as.data.table(stationsWithOxygen)[, .(Longitude..degrees_east., Latitude..degrees_north., Bathymetric..m. = BathymetricAvg)][stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.)]
 
-
-
-
 # Read indicator configuration files -------------------------------------------
-indicators <- as.data.table(read_excel(configurationFile, sheet = "Indicators")) %>% setkey(IndicatorID) 
-indicators[4, Metric := metricoxy]
-#Change oxygen indicator so only samples shallower than 500m are used. 
-indicators[4, DepthMax := 500]
-
+indicators <- as.data.table(read_excel(configurationFile, sheet = "Indicators")) %>% setkey(IndicatorID)
 indicatorUnits <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnits")) %>% setkey(IndicatorID, UnitID)
 indicatorUnitResults <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnitResults")) %>% setkey(IndicatorID, UnitID)
-
 
 wk2list = list()
 
@@ -453,12 +374,6 @@ for(i in 1:nrow(indicators)){
   }
 
   # Filter stations rows and columns --> UnitID, GridID, GridArea, Period, Month, StationID, Depth, Temperature, Salinity, ES
-  #first filter oxygen only to select only samples within 10m of seabed
-  if (name == 'Oxygen Deficiency') {
-    wk <- wk[
-    (SampleHeight <= 10),]
-  }
-  
   if (month.min > month.max) {
     wk0 <- wk[
       (Period >= year.min & Period <= year.max) &
@@ -511,13 +426,10 @@ for(i in 1:nrow(indicators)){
     
     # Calculate annual mean --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
-  }
-  #Oxygen indicator
-  else if (metric == 'Minimum') {
-    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. 
-    wk01 <- as.data.table(wk01)
-    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+  } else if (metric == 'Minimum') {
+    # Calculate station minimum --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
+    wk1 <- wk0[, .(ES = min(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+    
     # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
   } else if (metric == '5th percentile of deepest sample within 10 meters from bottom') {
@@ -527,33 +439,6 @@ for(i in 1:nrow(indicators)){
 
     # Calculate annual 5th percentile --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = quantile(ES, 0.05, na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
-  }
-  else if (metric == 'MeanQ25') {
-    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station.
-    wk01 <- as.data.table(wk01)
-    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
-    
-    # Calculate annual meanq25 --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = mean25(ES), SD = sd25(ES), N = n25(ES), NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
-  }
-  else if (metric == '5th percentile') {
-    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. 
-    wk01 <- as.data.table(wk01)
-    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
-    
-    # Calculate annual 5th percentile --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = quantile(ES, 0.05,na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
-  }
-  else if (metric == '10th percentile') {
-    # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
-    wk01 <- wk0 %>% group_by(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID) %>% filter(Depth==max(Depth)) #select only deepest sample at each station. 
-    wk01 <- as.data.table(wk01)
-    wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
-    
-    # Calculate annual 10th percentile --> UnitID, Period, ES, SD, N, NM
-    wk2 <- wk1[, .(ES = quantile(ES, 0.1,na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)] #to use 5th percentile instead ES=quantile(ES, .05), 
   }
   
   # Calculate grid area --> UnitID, Period, ES, SD, N, NM, GridArea
@@ -955,7 +840,6 @@ for (i in 1:nrow(indicators)) {
 
     wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
 
-
     if (nrow(wk) > 0 & indicatorMetric %in% c("Mean")) {
       ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
         labs(title = title , subtitle = subtitle) +
@@ -965,19 +849,7 @@ for (i in 1:nrow(indicators)) {
         geom_hline(aes(yintercept = ET)) +
         scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
         scale_y_continuous(NULL)
-      
-      ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
-    }
-    if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "10th percentile")) {
-      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
-        labs(title = title , subtitle = subtitle) +
-        geom_col() +
-        geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
-        #geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
-        geom_hline(aes(yintercept = ET)) +
-        scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
-        scale_y_continuous(NULL)
-      
+
       ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
     }
     if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "5th percentile of deepest sample within 10 meters from bottom", "10th percentile", "90th percentile")) {
@@ -994,4 +866,3 @@ for (i in 1:nrow(indicators)) {
     }
   }
 }
-
