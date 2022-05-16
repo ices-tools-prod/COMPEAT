@@ -5,8 +5,8 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
+packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "mapview", "httr")
 
-packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "mapview", "raster")
 ipak(packages)
 #metric for oxygen
 #metricoxy <- "MeanQ25"
@@ -14,14 +14,14 @@ metricoxy <- "5th percentile"
 #metricoxy <- "10th percentile"
 #metricoxy <- "Minimum"
 
-# Extract 'Bottle and low resolution CTD' + 'Pump' data from https://data.ices.dk
-# Longitude between -16.08 and 12.68, Latitude between 34.87 and 63.89
-
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
 assessmentPeriod <- "2015-2020" # COMP4
+
+# Set flag to determined if dissolved inorganic nutrients are being salinity nomalised 
+dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
 
 # Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
 combined_Chlorophylla_IsWeighted <- TRUE
@@ -95,45 +95,63 @@ n25 <- function(x){
 urls <- c()
 unitsFile <- file.path(inputPath, "")
 configurationFile <- file.path(inputPath, "")
-stationSamplesFile <- file.path(inputPath, "")
+stationSamplesBOTFile <- file.path(inputPath, "")
+stationSamplesCTDFile <- file.path(inputPath, "")
+stationSamplesPMPFile <- file.path(inputPath, "")
 indicator_CPHL_EO_02 <- file.path(inputPath, "")
 
 if (assessmentPeriod == "1990-2000") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/eouhsa10p8ri5qs/Configuration1990-2000.xlsx?dl=1",
-            "https://www.dropbox.com/s/8xqjs53m2gwg1th/StationSamples1990-2000.txt.gz?dl=1",
+            "https://www.dropbox.com/s/hf9y7kgf4ijsu1u/StationSamples1990-2000BOT.txt.gz?dl=1",
+            "https://www.dropbox.com/s/5mjwp9jw6tlms1o/StationSamples1990-2000CTD.txt.gz?dl=1",
+            "https://www.dropbox.com/s/ubjlo32nk2kpfdn/StationSamples1990-2000PMP.txt.gz?dl=1",
             "https://www.dropbox.com/s/d07i8xzxh1qq8xd/Indicator_CPHL_EO_02_1990-2000.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1990-2000.xlsx")
-  stationSamplesFile <- file.path(inputPath, "StationSamples1990-2000.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples1990-2000BOT.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples1990-2000CTD.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples1990-2000PMP.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_1990-2000.csv")
 } else if (assessmentPeriod == "2001-2006") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/st7p60a8rr4yu8s/Configuration2001-2006.xlsx?dl=1",
-            "https://www.dropbox.com/s/nsybpem5rpk3l6a/StationSamples2001-2006.txt.gz?dl=1",
+            "https://www.dropbox.com/s/se7bdaaeu8alftl/StationSamples2001-2006BOT.txt.gz?dl=1",
+            "https://www.dropbox.com/s/tla1vislh2rk50d/StationSamples2001-2006CTD.txt.gz?dl=1",
+            "https://www.dropbox.com/s/vtl40rkoelzafav/StationSamples2001-2006PMP.txt.gz?dl=1",
             "https://www.dropbox.com/s/yrbqfmfnfk32rum/Indicator_CPHL_EO_02_2001-2006.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2001-2006.xlsx")
-  stationSamplesFile <- file.path(inputPath, "StationSamples2001-2006.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2001-2006BOT.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2001-2006CTD.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2001-2006PMP.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2001-2006.csv")
 } else if (assessmentPeriod == "2006-2014") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/q5awsqulaj1z4jw/Configuration2006-2014.xlsx?dl=1",
-            "https://www.dropbox.com/s/8330oux4zp7og29/StationSamples2006-2014.txt.gz?dl=1",
+            "https://www.dropbox.com/s/iioqnq7j8c2h88k/StationSamples2006-2014BOT.txt.gz?dl=1",
+            "https://www.dropbox.com/s/8s5xo7s3tpkx2qj/StationSamples2006-2014CTD.txt.gz?dl=1",
+            "https://www.dropbox.com/s/urs21lncfy5b28p/StationSamples2006-2014PMP.txt.gz?dl=1",
             "https://www.dropbox.com/s/kpbugtd4rwdxr9s/Indicator_CPHL_EO_02_2006-2014.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2006-2014.xlsx")
-  stationSamplesFile <- file.path(inputPath, "StationSamples2006-2014.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2006-2014BOT.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2006-2014CTD.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2006-2014PMP.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2006-2014.csv")
 } else if (assessmentPeriod == "2015-2020") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/pt7g4b7q9gh18yf/Configuration2015-2020.xlsx?dl=1",
-            "https://www.dropbox.com/s/btcrjn7jzfmndl3/StationSamples2015-2020.txt.gz?dl=1",
+            "https://www.dropbox.com/s/580h30a839pxpn5/StationSamples2015-2020BOT.txt.gz?dl=1",
+            "https://www.dropbox.com/s/eanvbzf957iq3f7/StationSamples2015-2020CTD.txt.gz?dl=1",
+            "https://www.dropbox.com/s/2c6jho2pk64i7tl/StationSamples2015-2020PMP.txt.gz?dl=1",
             "https://www.dropbox.com/s/d5gpsbcqsbtz09l/Indicator_CPHL_EO_02_2015-2020.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
-  #configurationFile <- file.path(inputPath, "Configuration2015-2020_20acdev.xlsx")
-  stationSamplesFile <- file.path(inputPath, "StationSamples2015-2020.txt.gz")
+
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2015-2020BOT.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2015-2020CTD.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2015-2020PMP.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2015-2020.csv")
 }
 
@@ -237,11 +255,39 @@ ggsave(file.path(outputPath, "Assessment_GridUnits60.png"), width = 12, height =
 ggplot() + geom_sf(data = st_cast(gridunits)) + coord_sf()
 ggsave(file.path(outputPath, "Assessment_GridUnits.png"), width = 12, height = 9, dpi = 300)
 
-# Read stationSamples ----------------------------------------------------------
-stationSamples <- fread(input = stationSamplesFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
+# Read station samples ---------------------------------------------------------
+
+# Ocean hydro chemistry - Bottle and low resolution CTD data
+stationSamplesBOT <- fread(input = stationSamplesBOTFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
+stationSamplesBOT[, Type := "B"]
+
+# Ocean hydro chemistry - High resolution CTD data
+stationSamplesCTD <- fread(input = stationSamplesCTDFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
+stationSamplesCTD[, Type := "C"]
+
+# Ocean hydro chemistry - Pump data
+stationSamplesPMP <- fread(input = stationSamplesPMPFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
+stationSamplesPMP[, Type := "P"]
+
+# Combine station samples
+stationSamples <- rbindlist(list(stationSamplesBOT, stationSamplesCTD, stationSamplesPMP), use.names = TRUE, fill = TRUE)
+
+# Remove original data tables
+rm(stationSamplesBOT, stationSamplesCTD, stationSamplesPMP)
+
+# Unique stations by natural key
+uniqueN(stationSamples, by = c("Cruise", "Station", "Type", "Year", "Month", "Day", "Hour", "Minute", "Longitude..degrees_east.", "Latitude..degrees_north."))
+
+# Assign station ID by natural key
+stationSamples[, StationID := .GRP, by = .(Cruise, Station, Type, Year, Month, Day, Hour, Minute, Longitude..degrees_east., Latitude..degrees_north.)]
+
+# Classify station samples into grid units -------------------------------------
+
+# Extract unique stations i.e. longitude/latitude pairs
+stations <- unique(stationSamples[, .( Longitude..degrees_east., Latitude..degrees_north.)])
 
 # Make stations spatial keeping original latitude/longitude
-stationSamples <- st_as_sf(stationSamples, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
+stations <- st_as_sf(stations, coords = c("Longitude..degrees_east.", "Latitude..degrees_north."), remove = FALSE, crs = 4326)
 
 #Read in bathymetry - this is the emodnet bathymetry downloaded on 14/10/21, the 2020 version.
 
@@ -264,15 +310,59 @@ stationSamples$SampleHeight <- (stationSamples$Bot..Depth..m. - stationSamples$D
 
 
 # Transform projection into ETRS_1989_LAEA
-stationSamples <- st_transform(stationSamples, crs = 3035)
+stations <- st_transform(stations, crs = 3035)
 
 
 # Classify stations into grid units
 
-stationSamples <- st_join(stationSamples, st_cast(gridunits), join = st_intersects)
+stations <- st_join(stations, st_cast(gridunits), join = st_intersects)
 
-# Remove spatial column
-stationSamples <- st_set_geometry(stationSamples, NULL)
+# Delete stations not classified
+stations <- na.omit(stations)
+
+# Remove spatial column and nake into data table
+stations <- st_set_geometry(stations, NULL) %>% as.data.table()
+
+# Merge stations back into station samples - getting rid of station samples not classified into assessment units
+stationSamples <- stations[stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.), nomatch = 0]
+
+# Get bathymetric depth for the oxygen indicator -----------------------------
+
+# Function to get bathymetric depth from EMODnet bathymetry REST web service
+get.bathymetric <- function(x, y, host = "https://rest.emodnet-bathymetry.eu") {
+  query = paste0("/depth_sample?geom=POINT(", x, " ", y,")")
+  path = httr::modify_url(paste0(host, query))
+  r = GET(path)
+  # to catch empty responses in a proper way
+  if(is.numeric(content(r)$avg)){
+    return(paste(content(r)$min, content(r)$max, content(r)$avg, content(r)$stdev, sep = "_"))
+  } else {
+    return(NA_real_)
+  }
+}
+
+# Extract station samples with oxygen and missing bottom depth
+stationSamplesWithOxygen <- stationSamples[!is.na(Dissolved.Oxygen..ml.l.) & is.na(Bot..Depth..m.)]
+
+# Extract stations with oxygen
+stationsWithOxygen <- unique(stationSamplesWithOxygen[, .(Longitude..degrees_east., Latitude..degrees_north.)])
+
+# Get bathymetrics for stations with oxygen
+bathymetrics <- map2(stationsWithOxygen$Longitude..degrees_east., stationsWithOxygen$Latitude..degrees_north., get.bathymetric) %>% unlist
+
+stationsWithOxygen$Bathymetric <- bathymetrics
+
+stationsWithOxygen <- stationsWithOxygen %>%
+  separate(Bathymetric, c("BathymetricMin", "BathymetricMax", "BathymetricAvg", "BathymetricStDev"), sep = "_") %>%
+  mutate(
+    BathymetricMin = -as.numeric(BathymetricMin),
+    BathymetricMax = -as.numeric(BathymetricMax),
+    BathymetricAvg = -as.numeric(BathymetricAvg),
+    BathymetricStDev = -as.numeric(BathymetricStDev),
+  )
+
+# Merge bathymetric back into station samples
+stationSamples <- as.data.table(stationsWithOxygen)[, .(Longitude..degrees_east., Latitude..degrees_north., Bathymetric..m. = BathymetricAvg)][stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.)]
 
 
 
@@ -284,6 +374,7 @@ indicators[4, Metric := metricoxy]
 indicators[4, DepthMax := 500]
 
 indicatorUnits <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnits")) %>% setkey(IndicatorID, UnitID)
+indicatorUnitResults <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnitResults")) %>% setkey(IndicatorID, UnitID)
 
 
 wk2list = list()
@@ -310,7 +401,7 @@ for(i in 1:nrow(indicators)){
   
   # Create Indicator
   if (name == 'Dissolved Inorganic Nitrogen') {
-    wk$ES <- apply(wk[, list(Nitrate..umol.l., Nitrite..umol.l., Ammonium..umol.l.)], 1, function(x){
+    wk$ES <- apply(wk[, list(Nitrate.Nitrogen..NO3.N...umol.l., Nitrite.Nitrogen..NO2.N...umol.l., Ammonium.Nitrogen..NH4.N...umol.l.)], 1, function(x){
       if (all(is.na(x)) | is.na(x[1])) {
         NA
       }
@@ -318,27 +409,29 @@ for(i in 1:nrow(indicators)){
         sum(x, na.rm = TRUE)
       }
     })
-  }
-  else if (name == 'Dissolved Inorganic Phosphorus') {
-    wk[, ES := Phosphate..umol.l.]
-  }
-  else if (name == 'Chlorophyll a (in-situ)') {
+    wk$ESQ <- apply(wk[, .(QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l., QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l., QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l.)], 1, function(x){
+     max(x, na.rm = TRUE)
+    })
+  } else if (name == 'Dissolved Inorganic Phosphorus') {
+    wk[, ES := Phosphate.Phosphorus..PO4.P...umol.l.]
+    wk[, ESQ := QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l.]
+  } else if (name == 'Chlorophyll a (in-situ)') {
     wk[, ES := Chlorophyll.a..ug.l.]
-  }
-  else if (name == 'Oxygen Deficiency') {
-    wk[, ES := Oxygen..ml.l. / 0.7] # Convert ml/l to mg/l by factor of 0.7
-  }
-  else if (name == 'Total Nitrogen') {
-    wk[, ES := Total.Nitrogen..umol.l.]
-  }
-  else if (name == 'Total Phosphorus') {
-    wk[, ES := Total.Phosphorus..umol.l.]
-  }
-  else if (name == 'Secchi Depth') {
-    wk[, ES := Secchi.Depth..m..METAVAR.DOUBLE]
-  }
-  else if (name == 'Dissolved Inorganic Nitrogen/Dissolved Inorganic Phosphorus') {
-    wk$ES <- apply(wk[, list(Nitrate..umol.l., Nitrite..umol.l., Ammonium..umol.l.)], 1, function(x){
+    wk[, ESQ := QV.ODV.Chlorophyll.a..ug.l.]
+  } else if (name == 'Oxygen Deficiency') {
+    wk[, ES := Dissolved.Oxygen..ml.l. / 0.7] # Convert ml/l to mg/l by factor of 0.7
+    wk[, ESQ := QV.ODV.Dissolved.Oxygen..ml.l.]
+  } else if (name == 'Total Nitrogen') {
+    wk[, ES := Total.Nitrogen..N...umol.l.]
+    wk[, ESQ := QV.ODV.Total.Nitrogen..N...umol.l.]
+  } else if (name == 'Total Phosphorus') {
+    wk[, ES := Total.Phosphorus..P...umol.l.]
+    wk[, ESQ := QV.ODV.Total.Phosphorus..P...umol.l.]
+  } else if (name == 'Secchi Depth') {
+    wk[, ES := Secchi.Depth..m..METAVAR.FLOAT]
+    wk[, ESQ := QV.ODV.Secchi.Depth..m.]
+  } else if (name == 'Dissolved Inorganic Nitrogen/Dissolved Inorganic Phosphorus') {
+    wk$ES <- apply(wk[, list(Nitrate.Nitrogen..NO3.N...umol.l., Nitrite.Nitrogen..NO2.N...umol.l., Ammonium.Nitrogen..NH4.N...umol.l.)], 1, function(x){
       if (all(is.na(x)) | is.na(x[1])) {
         NA
       }
@@ -346,17 +439,18 @@ for(i in 1:nrow(indicators)){
         sum(x, na.rm = TRUE)
       }
     })
-    wk[, ES := ES/Phosphate..umol.l.]
-  }
-  else if (name == 'Total Nitrogen/Total Phosphorus') {
-    wk[, ES := Total.Nitrogen..umol.l./Total.Phosphorus..umol.l.]
-  }
-  else {
+    wk[, ES := ES/Phosphate.Phosphorus..PO4.P...umol.l.]
+    wk$ESQ <- apply(wk[, .(QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l., QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l., QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l., QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l.)], 1, function(x){
+      max(x, na.rm = TRUE)
+    })
+  } else if (name == 'Total Nitrogen/Total Phosphorus') {
+    wk[, ES := Total.Nitrogen..N...umol.l./Total.Phosphorus..P...umol.l.]
+    wk$ESQ <- apply(wk[, .(QV.ODV.Total.Nitrogen..N...umol.l., QV.ODV.Total.Phosphorus..P...umol.l.)], 1, function(x){
+      max(x, na.rm = TRUE)
+    })
+  } else {
     next
   }
-
-  # Add unit grid size
-  wk <- wk[unitGridSize, on="UnitID", nomatch=0]
 
   # Filter stations rows and columns --> UnitID, GridID, GridArea, Period, Month, StationID, Depth, Temperature, Salinity, ES
   #first filter oxygen only to select only samples within 10m of seabed
@@ -369,44 +463,49 @@ for(i in 1:nrow(indicators)){
     wk0 <- wk[
       (Period >= year.min & Period <= year.max) &
         (Month >= month.min | Month <= month.max) &
-        (Depth..m.db..PRIMARYVAR.DOUBLE >= depth.min & Depth..m.db..PRIMARYVAR.DOUBLE <= depth.max) &
-        !is.na(ES) & 
+        (Depth..m. >= depth.min & Depth..m. <= depth.max) &
+        !is.na(ES) &
+        ESQ <= 1 &
         !is.na(UnitID),
-      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
+      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID, Longitude = Longitude..degrees_east., Latitude = Latitude..degrees_north., DepthToBottom = ifelse(is.na(Bot..Depth..m.), Bathymetric..m., Bot..Depth..m.), Depth = Depth..m., Temperature = Temperature..degC., Salinity = Practical.Salinity..dmnless., ES)]
   } else {
     wk0 <- wk[
       (Period >= year.min & Period <= year.max) &
         (Month >= month.min & Month <= month.max) &
-        (Depth..m.db..PRIMARYVAR.DOUBLE >= depth.min & Depth..m.db..PRIMARYVAR.DOUBLE <= depth.max) &
-        !is.na(ES) & 
+        (Depth..m. >= depth.min & Depth..m. <= depth.max) &
+        !is.na(ES) &
+        ESQ <= 1 &
         !is.na(UnitID),
-      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID = StationID.METAVAR.INDEXED_TEXT, Depth = Depth..m.db..PRIMARYVAR.DOUBLE, Temperature = Temperature..degC., Salinity = Salinity..., ES)]
+      .(IndicatorID = indicatorID, UnitID, GridSize, GridID, GridArea, Period, Month, StationID, Longitude = Longitude..degrees_east., Latitude = Latitude..degrees_north., DepthToBottom = ifelse(is.na(Bot..Depth..m.), Bathymetric..m., Bot..Depth..m.), Depth = Depth..m., Temperature = Temperature..degC., Salinity = Practical.Salinity..dmnless., ES)]
   }
 
-  # Salinity Normalisation for Nutrients
-  if (name == 'Dissolved Inorganic Nitrogen' || name == 'Dissolved Inorganic Phosphorus') {
-    # Get linear regression coefficients on ES~Salinity and Mean Salinity
-    wk00 <- wk0[!is.na(Salinity),
-                .(N = .N,
-                  MeanSalinity = mean(Salinity, na.rm = TRUE),
-                  B = coef(lm(ES~Salinity))[1],
-                  A = coef(lm(ES~Salinity))[2],
-                  P = ifelse(.N >= 2, summary(lm(ES~Salinity))$coef[2, 4], NA_real_),
-                  R2 = summary(lm(ES~Salinity))$adj.r.squared),
-                keyby = .(IndicatorID, UnitID)]
+  # Dissolved inorganic nutrients salinity normalisation
+  if (dissolved_inorganic_nutrients_are_salinity_normalised == TRUE) {
+    if (name == 'Dissolved Inorganic Nitrogen' || name == 'Dissolved Inorganic Phosphorus') {
+      # Get linear regression coefficients on ES~Salinity and Mean Salinity
+      wk00 <- wk0[!is.na(Practical.Salinity..dmnless.),
+                  .(N = .N,
+                    S = mean(Practical.Salinity..dmnless., na.rm = TRUE),
+                    B = coef(lm(ES~Practical.Salinity..dmnless.))[1],
+                    A = coef(lm(ES~Practical.Salinity..dmnless.))[2],
+                    P = ifelse(.N >= 2, summary(lm(ES~Practical.Salinity..dmnless.))$coef[2, 4], NA_real_),
+                    R2 = summary(lm(ES~Practical.Salinity..dmnless.))$adj.r.squared),
+                  keyby = .(IndicatorID, UnitID)]
+    }
+    
+    # Merge data tables
+    wk0 <- wk00[wk0]
+    
+    # Normalise indicator concentration if the indicator has a significant relation to salinity e.g. above the 95% confidence level (p<0.05)
+    # ES_normalised = ES_observed + A * (S_reference - S_observed)
+    # https://www.ospar.org/site/assets/files/37302/national_common_procedure_report_2016_sweden.pdf
+    wk0[, ES := ifelse(P < 0.05 & !is.na(P) & !is.na(Practical.Salinity..dmnless.), ES + A * (S - Practical.Salinity..dmnless.), ES)]
   }
-  
-  # Merge data tables
-  wk0 <- wk00[wk0]
 
-  # Normalise indicator concentration if the indicator has a significant relation to salinity e.g. above the 95% confidence level (p<0.05)
-  # ES_normalised = ES_observed + A * (S_reference - S_observed)
-  # https://www.ospar.org/site/assets/files/37302/national_common_procedure_report_2016_sweden.pdf
-  wk0[, ESS := ifelse(P < 0.05 & !is.na(P) & !is.na(Salinity), ES + A * (MeanSalinity - Salinity), ES)]
-  
-  # NB! Salinity Normalisation above currently only implemented as test and not taken forward yet!  
-  
   if (metric == 'Mean'){
+    # Calculate station depth mean
+    wk0 <- wk0[, .(ES = mean(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID, Depth)]
+    
     # Calculate station mean --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
     wk1 <- wk0[, .(ES = mean(ES), SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     
@@ -421,6 +520,13 @@ for(i in 1:nrow(indicators)){
     wk1 <- wk01[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
     # Calculate annual minimum --> UnitID, Period, ES, SD, N, NM
     wk2 <- wk1[, .(ES = min(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+  } else if (metric == '5th percentile of deepest sample within 10 meters from bottom') {
+    # Select deepest sample at each station within 10 meters from bottom
+    wk1 <- wk0[wk0[, .I[Depth == max(Depth) & DepthToBottom - Depth <= 10], by = StationID]$V1]
+    wk1 <- wk1[, .(ES = ES, SD = sd(ES), N = .N), keyby = .(IndicatorID, UnitID, GridID, GridArea, Period, Month, StationID)]
+
+    # Calculate annual 5th percentile --> UnitID, Period, ES, SD, N, NM
+    wk2 <- wk1[, .(ES = quantile(ES, 0.05, na.rm = TRUE), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
   }
   else if (metric == 'MeanQ25') {
     # Select deepest sample per station --> UnitID, GridID, GridArea, Period, Month, ES, SD, N
@@ -462,6 +568,9 @@ for(i in 1:nrow(indicators)){
 # Combine station and annual indicator results
 wk2 <- rbindlist(wk2list)
 
+# Combine with indicator results reported
+wk2 <- rbindlist(list(wk2, indicatorUnitResults), fill = TRUE)
+
 # Add Chlorophyll a EO indicator if it exists
 if (file.exists(indicator_CPHL_EO_02)) {
   wk2_CPHL_EO <- fread(indicator_CPHL_EO_02)
@@ -497,11 +606,13 @@ if (combined_Chlorophylla_IsWeighted) {
   wk3[, C := (GTC + STC + GSC + SSC) / 4]
   wk3[IndicatorID == 301, W := ifelse(C >= 75, 50/50, ifelse(C >= 50, 30/70, 10/90))]
   wk3[IndicatorID == 302, W := 1]
-  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = weighted.mean(ES, W), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = weighted.mean(GTC, W), NMP = max(NMP), STC = weighted.mean(STC, W), GSC = weighted.mean(GSC, W), SSC = weighted.mean(SSC, W)), by = .(UnitID, Period)]
+  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = weighted.mean(ES, W), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = weighted.mean(GTC, W), NMP = max(NMP), STC = weighted.mean(STC, W), GSC = weighted.mean(GSC, W), SSC = weighted.mean(SSC, W)), by = .(UnitID, Period)] %>% setkey(IndicatorID, UnitID)
+  wk3_CPHL <- indicators[indicatorUnits[wk3_CPHL]]
   wk3 <- rbindlist(list(wk3, wk3_CPHL), fill = TRUE)
 } else {
   # Calculate combined chlorophyll a indicator as a simple average
-  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = mean(GTC), NMP = max(NMP), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), by = .(UnitID, Period)]
+  wk3_CPHL <- wk3[IndicatorID %in% c(301, 302), .(IndicatorID = 3, ES = mean(ES), SD = NA, N = sum(N), NM = max(NM), GridArea = max(GridArea), GTC = mean(GTC), NMP = max(NMP), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), by = .(UnitID, Period)] %>% setkey(IndicatorID, UnitID)
+  wk3_CPHL <- indicators[indicatorUnits[wk3_CPHL]]
   wk3 <- rbindlist(list(wk3, wk3_CPHL), fill = TRUE)
 }
 
@@ -535,8 +646,13 @@ wk3[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
                                   ifelse(EQRS >= 0.4, "Moderate",
                                          ifelse(EQRS >= 0.2, "Poor","Bad"))))]
 
-# Calculate assessment ES --> UnitID, Period, ES, SD, N, GTC, STC, GSC, SSC
-wk4 <- wk3[, .(Period = min(Period) * 10000 + max(Period), ES = mean(ES), SD = sd(ES), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
+# Calculate assessment ES --> UnitID, Period, ES, SD, N, N_OBS, EQR, EQRS, GTC, STC, GSC, SSC
+wk4 <- wk3[, .(Period = ifelse(min(Period) > 9999, min(Period), min(Period) * 10000 + max(Period)), ES = mean(ES), SD = sd(ES), EQR = mean(EQR), EQRS = mean(EQRS), N = .N, N_OBS = sum(N), GTC = mean(GTC), STC = mean(STC), GSC = mean(GSC), SSC = mean(SSC)), .(IndicatorID, UnitID)]
+
+wk4[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
+                           ifelse(EQRS >= 0.6, "Good",
+                                  ifelse(EQRS >= 0.4, "Moderate",
+                                         ifelse(EQRS >= 0.2, "Poor","Bad"))))]
 
 # Add Year Count where STC = 100 --> NSTC100
 wk4 <- wk3[STC == 100, .(NSTC100 = .N), .(IndicatorID, UnitID)][wk4, on = .(IndicatorID, UnitID)]
@@ -547,9 +663,7 @@ wk4[, STC := ifelse(!is.na(NSTC100) & NSTC100 >= N/2, 100, STC)]
 # Combine with indicator and indicator unit configuration tables
 wk5 <- indicators[indicatorUnits[wk4]]
 
-#-------------------------------------------------------------------------------
-# Confidence Assessment
-# ------------------------------------------------------------------------------
+# Confidence Assessment --------------------------------------------------------
 
 # Calculate Temporal Confidence averaging General and Specific Temporal Confidence 
 wk5 <- wk5[, TC := (GTC + STC) / 2]
@@ -592,32 +706,6 @@ wk5 <- wk5[, C := (TC + SC + ACC) / 3]
 
 wk5[, C_Class := ifelse(C >= 75, "High", ifelse(C >= 50, "Moderate", "Low"))]
 
-# ------------------------------------------------------------------------------
-
-# Calculate (BEST)
-wk5[, BEST := ifelse(Response == 1, ET / (1 + ACDEV / 100), ET / (1 - ACDEV / 100))]
-
-# Calculate Ecological Quality Ratio (ERQ)
-wk5[, EQR := ifelse(Response == 1, ifelse(BEST > ES, 1, BEST / ES), ifelse(ES > BEST, 1, ES / BEST))]
-
-# Calculate Ecological Quality Ratio Boundaries (ERQ_HG/GM/MP/PB)
-wk5[, EQR_GM := ifelse(Response == 1, 1 / (1 + ACDEV / 100), 1 - ACDEV / 100)]
-wk5[, EQR_HG := 0.5 * 0.95 + 0.5 * EQR_GM]
-wk5[, EQR_PB := 2 * EQR_GM - 0.95]
-wk5[, EQR_MP := 0.5 * EQR_GM + 0.5 * EQR_PB]
-
-# Calculate Ecological Quality Ratio Scaled (EQRS)
-wk5[, EQRS := ifelse(EQR <= EQR_PB, (EQR - 0) * (0.2 - 0) / (EQR_PB - 0) + 0,
-                     ifelse(EQR <= EQR_MP, (EQR - EQR_PB) * (0.4 - 0.2) / (EQR_MP - EQR_PB) + 0.2,
-                            ifelse(EQR <= EQR_GM, (EQR - EQR_MP) * (0.6 - 0.4) / (EQR_GM - EQR_MP) + 0.4,
-                                   ifelse(EQR <= EQR_HG, (EQR - EQR_GM) * (0.8 - 0.6) / (EQR_HG - EQR_GM) + 0.6,
-                                          (EQR - EQR_HG) * (1 - 0.8) / (1 - EQR_HG) + 0.8))))]
-
-wk5[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
-                           ifelse(EQRS >= 0.6, "Good",
-                                  ifelse(EQRS >= 0.4, "Moderate",
-                                         ifelse(EQRS >= 0.2, "Poor","Bad"))))]
-
 # Category ---------------------------------------------------------------------
 
 # Category result as a weighted average of the indicators in each category per unit - CategoryID, UnitID, N, EQR, EQRS, C
@@ -634,6 +722,7 @@ wk8 <- wk81[wk82]
 
 wk9 <- wk7[wk8, on = .(UnitID = UnitID), nomatch=0]
 
+# Assign Status and Confidence Classes
 wk9[, EQRS_Class := ifelse(EQRS >= 0.8, "High",
                            ifelse(EQRS >= 0.6, "Good",
                                   ifelse(EQRS >= 0.4, "Moderate",
@@ -667,8 +756,11 @@ wk9[, C_3_Class := ifelse(C_3 >= 75, "High",
                           ifelse(C_3 >= 50, "Moderate", "Low"))]
 
 # Write results
+wk3 <- merge(st_drop_geometry(units[1:4]), wk3, by = "UnitID")
 fwrite(wk3, file = file.path(outputPath, "Annual_Indicator.csv"))
+wk5 <- merge(st_drop_geometry(units[1:4]), wk5, by = "UnitID")
 fwrite(wk5, file = file.path(outputPath, "Assessment_Indicator.csv"))
+wk9 <- merge(st_drop_geometry(units[1:4]), wk9, by = "UnitID")
 fwrite(wk9, file = file.path(outputPath, "Assessment.csv"))
 
 # Create plots
@@ -863,7 +955,8 @@ for (i in 1:nrow(indicators)) {
 
     wk <- wk3[IndicatorID == indicatorID & UnitID == unitID]
 
-    if (nrow(wk) > 0 & indicatorMetric %in% c("Mean", "MeanQ25")) {
+
+    if (nrow(wk) > 0 & indicatorMetric %in% c("Mean")) {
       ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
         labs(title = title , subtitle = subtitle) +
         geom_col() +
@@ -876,6 +969,18 @@ for (i in 1:nrow(indicators)) {
       ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
     }
     if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "10th percentile")) {
+      ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
+        labs(title = title , subtitle = subtitle) +
+        geom_col() +
+        geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+        #geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
+        geom_hline(aes(yintercept = ET)) +
+        scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
+        scale_y_continuous(NULL)
+      
+      ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
+    }
+    if (nrow(wk) > 0 & indicatorMetric %in% c("Minimum", "5th percentile", "5th percentile of deepest sample within 10 meters from bottom", "10th percentile", "90th percentile")) {
       ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
         labs(title = title , subtitle = subtitle) +
         geom_col() +
