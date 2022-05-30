@@ -9,10 +9,10 @@ packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "ma
 ipak(packages)
 
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
-assessmentPeriod <- "1990-2000" # COMP1
+#assessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
-#assessmentPeriod <- "2015-2020" # COMP4
+assessmentPeriod <- "2015-2020" # COMP4
 
 # Set flag to determined if dissolved inorganic nutrients are being salinity nomalised 
 dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
@@ -255,6 +255,8 @@ stations <- st_set_geometry(stations, NULL) %>% as.data.table()
 # Merge stations back into station samples - getting rid of station samples not classified into assessment units
 stationSamples <- stations[stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.), nomatch = 0]
 
+
+
 # Get bathymetric depth for the oxygen indicator -----------------------------
 
 # Function to get bathymetric depth from EMODnet bathymetry REST web service
@@ -293,12 +295,46 @@ stationsWithOxygen <- stationsWithOxygen %>%
 # Merge bathymetric back into station samples
 stationSamples <- as.data.table(stationsWithOxygen)[, .(Longitude..degrees_east., Latitude..degrees_north., Bathymetric..m. = BathymetricAvg)][stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.)]
 
+#defining function for calculating 02 conc at set saturation (this is in uMol/L)
+Csat <- function(temp, salinity){
+  # Coefficents
+  A0 = 2.00907
+  A1 = 3.22014
+  A2 = 4.05010
+  A3 = 4.94457
+  A4 = -0.256847
+  A5 = 3.88767
+  B0 = -0.00624523
+  B1 = -0.00737614
+  B2 = -0.0103410
+  B3 = -0.00817083
+  C0 = -4.88682E-07
+  
+  Ts = log((298.15-temp)/(273.15+temp))
+  
+  O2.sat = A0+(A1*Ts)+(A2*Ts^2)+
+    (A3*Ts^3)+(A4*Ts^4)+(A5*Ts^5)+
+    salinity*(B0+(B1*Ts)+(B2*Ts^2)+(B3*Ts^3))+
+    (C0*salinity^2)
+  
+  return((exp(O2.sat))* 44.6608)     # output in uMol/L
+}
+#Calculating Oxygen concentration and saturation
+stationSamples$O2CONC100..umol.l. <- Csat(stationSamples$Temperature..degC., stationSamples$Practical.Salinity..dmnless.) # this is the theoretical concentration at 100% saturation
+stationSamples$O2CONC100..mg.l. <- stationSamples$O2CONC100..umol.l.*(31.998/1000) # just in different units
+stationSamples$Dissolved.Oxygen..mg.l. <- stationSamples$Dissolved.Oxygen..ml.l. / 0.7 # Convert ml/l to mg/l by factor of 0.7
+stationSamples$O2SAT <- (stationSamples$Dissolved.Oxygen..mg.l./stationSamples$O2CONC100..mg.l.)*100 #the saturation is calculated by calculating the actual concentration as a percentage of the theoretical concentration at 100% saturation
+#calculating oxygen debt, will be negative when supersaturated
+stationSamples <- stationSamples[,c(1:66,70)]
+
 # Read indicator configuration files -------------------------------------------
 indicators <- as.data.table(read_excel(configurationFile, sheet = "Indicators")) %>% setkey(IndicatorID)
 indicatorUnits <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnits")) %>% setkey(IndicatorID, UnitID)
 indicatorUnitResults <- as.data.table(read_excel(configurationFile, sheet = "IndicatorUnitResults")) %>% setkey(IndicatorID, UnitID)
 
 wk2list = list()
+
+## For O2SAT plots go to O2SAT.R at this point.
 
 # Loop indicators --------------------------------------------------------------
 for(i in 1:nrow(indicators)){

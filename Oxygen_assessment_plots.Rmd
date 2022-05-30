@@ -9,19 +9,19 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(plotly)
-outputPath = file.path("Output_oxy_q05")
+library(plyr)
+outputPath = file.path("Output_chl_weighted/oxy_plots")
 
 ```
 
 This R markdown takes the outputs from the COMPEAT tool for dissolved oxygen and creates further plots to summarise the results
 
 ```{r read data}
-wk3_COMP1 <- read.csv("Output_oxy_q05/1990-2000/Annual_Indicator.csv")
-wk3_COMP2 <- read.csv("Output_oxy_q05/2001-2006/Annual_Indicator.csv")
-wk3_COMP3 <- read.csv("Output_oxy_q05/2006-2014/Annual_Indicator.csv")
-wk3_COMP3 <- wk3_COMP3[wk3_COMP3$Period != "2006",] #removing 2006 prior to combining to avoid duplicates
-wk3_COMP4 <- read.csv("Output_oxy_q05/2015-2020/Annual_Indicator.csv")
-wk3 <- rbind(wk3_COMP1, wk3_COMP2, wk3_COMP3, wk3_COMP4)
+wk3_COMP1 <- read.csv("Output_chl_weighted/1990-2000-HS1/Annual_Indicator.csv")
+wk3_COMP2 <- read.csv("Output_chl_weighted/2001-2006-HS1/Annual_Indicator.csv")
+wk3_COMP3 <- read.csv("Output_chl_weighted/2006-2014-HS1/Annual_Indicator.csv")
+wk3_COMP4 <- read.csv("Output_chl_weighted/2015-2020-HS1/Annual_Indicator.csv")
+wk3 <- rbind.fill(wk3_COMP1, wk3_COMP2, wk3_COMP3, wk3_COMP4)
 wk3 <- merge(wk3, st_drop_geometry(units) %>% dplyr::select(UnitID, UnitCode = Code, UnitName = Description), by = c("UnitID"), all.x = TRUE)
 
 indicatorID <- indicators[4, IndicatorID]
@@ -81,17 +81,5 @@ for (u in unique(wk3$UnitCode)) {
   
 }
 
-ggplotly(p)  
-
-ggsave(file.path(outputPath, fileName), width = 15, height = 9, dpi = 300)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

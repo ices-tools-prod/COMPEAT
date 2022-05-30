@@ -24,7 +24,8 @@ shinyUI(fluidPage(
 
         # Show a plot of the generated distribution
         mainPanel(
-            plotlyOutput("ts")
+            plotlyOutput("ts"),
+            plotOutput("sat")
             
         )
     )

@@ -48,6 +48,46 @@ output$ts <- renderPlotly({
     scale_y_continuous(limits = c(0,9), breaks = c(0,2,4,6,8))
   ggplotly(p) 
 })
+output$sat <- renderPlot({
+  indicatorID == 4
+  # indicatorID <- indicators[i, IndicatorID]
+  # indicatorCode <- indicators[i, Code]
+  # indicatorName <- indicators[i, Name]
+  # indicatorUnit <- indicators[i, Units]
+  # indicatorYearMin <- indicators[i, YearMin]
+  # indicatorYearMax <- indicators[i, YearMax]
+  # indicatorMonthMin <- indicators[i, MonthMin]
+  # indicatorMonthMax <- indicators[i, MonthMax]
+  # indicatorDepthMin <- indicators[i, DepthMin]
+  # indicatorDepthMax <- indicators[i, DepthMax]
+  # indicatorYearMin <- indicators[i, YearMin]
+  # indicatorMetric <- indicators[i, Metric]
+  # unitID <- as.data.table(units)[j, UnitID]
+  # unitCode <- as.data.table(units)[j, Code]
+  # unitName <- as.data.table(units)[j, Description]
+  # 
+  title <- paste0("Eutrophication State  ", indicatorYearMin, "-", indicatorYearMax)
+  subtitle <- paste0("Oxygen Saturation", " (", "O2SAT", ")", " in ", " (", input$area[1], ")", "\n")
+  subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
+  subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")
+  subtitle <- paste0(subtitle, "Metric: ", "Deepest samples within 10m of seabed", ", ")
+  subtitle <- paste0(subtitle, "Unit: ", "% saturation")
+  
+
+  wk <- wk1[wk1$IndicatorID == indicatorID & wk1$Code == input$area[1],]
+  
+  
+  
+  ggplot(wk, aes(x = factor(Period, levels = indicatorYearMin:indicatorYearMax), y = ES)) +
+    labs(title = title , subtitle = subtitle) +
+    geom_boxplot() +
+    geom_jitter() +
+    #geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
+    #geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2) +
+    scale_x_discrete(NULL, factor(indicatorYearMin:indicatorYearMax), drop=FALSE) +
+    scale_y_continuous(NULL)
+      
+})
 output$eqrs_map <- renderPlot({
   # Status map (EQRS)
   EQRS_Class_colors <- c("#3BB300", "#99FF66", "#FFCABF", "#FF8066", "#FF0000")
