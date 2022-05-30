@@ -60,10 +60,10 @@ i = 4
 
 
 
-ggplot(wk1, aes(x=as.factor(Period), y=ES)) + 
+#ggplot(wk1, aes(x=as.factor(Period), y=ES)) + 
   geom_boxplot()
 
-ggplot(wk1, aes(x=as.factor(UnitID), y=ES)) + 
+#ggplot(wk1, aes(x=as.factor(UnitID), y=ES)) + 
   geom_boxplot()
 
 
@@ -86,7 +86,7 @@ ggplot(wk1, aes(x=as.factor(UnitID), y=ES)) +
     unitCode <- as.data.table(units)[j, Code]
     unitName <- as.data.table(units)[j, Description]
     
-    title <- paste0("Eutrophication State [ES, CI, N] and Threshold [ET] ", indicatorYearMin, "-", indicatorYearMax)
+    title <- paste0("Eutrophication State ", indicatorYearMin, "-", indicatorYearMax)
     subtitle <- paste0("Oxygen Saturation", " (", "O2SAT", ")", " in ", unitName, " (", unitCode, ")", "\n")
     subtitle <- paste0(subtitle, "Months: ", indicatorMonthMin, "-", indicatorMonthMax, ", ")
     subtitle <- paste0(subtitle, "Depths: ", indicatorDepthMin, "-", indicatorDepthMax, ", ")

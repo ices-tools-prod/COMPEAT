@@ -49,7 +49,12 @@ wk3 <- rbind.fill(wk3_COMP1, wk3_COMP2, wk3_COMP3, wk3_COMP4)
 wk3 <- merge(wk3, st_drop_geometry(units) %>% dplyr::select(UnitID, UnitCode = Code, UnitName = Description), by = c("UnitID"), all.x = TRUE)
 
 #Read in indicator results for COMP4
-wk5 <- read.csv("../Output_oxy_q05/2015-2020/Assessment_Indicator.csv")
+wk5 <- read.csv("../Output_chl_weighted/2015-2020-HS1/Assessment_Indicator.csv")
+
+#Read in O2Sat results
+
+wk1 <- read.csv("../Output_chl_weighted/oxy_plots/O2SAT/O2SAT.csv")
+
 
 
 
