@@ -28,7 +28,6 @@ if (combined_Chlorophylla_IsWeighted == "TRUE") {
   outputPath <- file.path("Output", assessmentPeriod)
 }
 
-
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
 dir.create(outputPath, showWarnings = FALSE, recursive = TRUE)
@@ -254,6 +253,11 @@ stations <- st_set_geometry(stations, NULL) %>% as.data.table()
 
 # Merge stations back into station samples - getting rid of station samples not classified into assessment units
 stationSamples <- stations[stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.), nomatch = 0]
+
+# Output station samples mapped to assessment units for contracting parties to check i.e. acceptance level 1
+fwrite(stationSamples[Type == 'B'], file.path(outputPath, "StationSamplesBOT.csv"))
+fwrite(stationSamples[Type == 'C'], file.path(outputPath, "StationSamplesCTD.csv"))
+fwrite(stationSamples[Type == 'P'], file.path(outputPath, "StationSamplesPMP.csv"))
 
 # Get bathymetric depth for the oxygen indicator -----------------------------
 
