@@ -83,6 +83,64 @@ for (u in unique(wk3$UnitCode)) {
 
 ```
 
+```{r mann kendall}
+#this requires that you run the main compeat script up to the point of generating wk3 first.
+wk <- wk3[wk3$IndicatorID == 4,]
+trends <- wk[order(wk$UnitID,wk$Period),]
+trends <- wk[order(wk$UnitID),]
+str(trends)
+trends <- subset(trends,!is.na(trends$ES))
+polygon <- trends$UnitID
+polygon_nonnull <- !is.na(polygon)
+polygon <- polygon[polygon_nonnull]
+year <- as.integer(paste(trends$Period))
+year <- year[polygon_nonnull]
+str(year)
+year
+level <- trends$ES
+level <- level[polygon_nonnull]
+#install.packages("emon")
+library(emon)
+poly.names <- as.character(as.data.frame(table(polygon))$polygon)
+table(poly.names)
+#poly.names <- poly.names[-7]         # Not using "Undefined"
+mkstat <- rep(-9999, length(poly.names))
+mkp <- mkstat
+
+
+par(mfrow=c(4,2),mar=c(2,2,2,2))
+count = 0
+for (j in poly.names) {
+  #j=poly.names[2]
+  count <- count + 1
+  index <- polygon == j
+  year1 <- year[index]
+  level1 <- level[index]
+  temp <- mannkendall(year1, level1, nsims.mk=9999)
+  mkstat[count] <- temp$mann
+  mkp[count] <- temp$pvalue
+  plot(year1, level1, main=j)
+  tt <- lm(level1 ~ year1)
+  lines(year1, tt$fitted.values)
+}
+
+
+mkstat                               # Mann-Kendall statistic
+mkp                                  # p-values
+
+table(polygon)                       # Number of years used
+
+
+mk_results_oxy <- as.data.frame(table(polygon))
+colnames(mk_results_oxy) <- c("UnitID","No_Years")
+mk_results_oxy$mkstat <- mkstat
+mk_results_oxy$mkp <- mkp
+mk_results_oxy$UnitID <- as.integer(mk_results_oxy$UnitID)
+
+mk_results_oxy <- merge(st_drop_geometry(units[1:4]), mk_results_oxy, by = "UnitID")
+
+```
+
 ```{r dataplot}
 COMP4_areas <- sf::st_read("https://raw.githubusercontent.com/ices-tools-dev/COMPEAT/master/assessment_areas/COMP4_assessment_areas.csv") %>%
   st_set_crs(4326)
