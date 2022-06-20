@@ -83,3 +83,16 @@ for (u in unique(wk3$UnitCode)) {
 
 ```
 
+```{r dataplot}
+COMP4_areas <- sf::st_read("https://raw.githubusercontent.com/ices-tools-dev/COMPEAT/master/assessment_areas/COMP4_assessment_areas.csv") %>%
+  st_set_crs(4326)
+
+leaflet(COMP4_areas) %>%
+  addTiles() %>%
+  addPolygons(color = "black", fillOpacity = 0, weight = 1) %>%
+  addCircles(data = wk1, ~Longitude, ~Latitude,) %>%
+  #addCircles(data = filteredDataLIMS(), ~longitude, ~latitude, color = "green") %>%
+  #addCircles(data = filteredDataEA(), ~Longitude, ~Latitude, color = "green") %>%
+  addLegend(colors=c("blue"), labels=c("ICES COMPEAT data"))
+
+```
