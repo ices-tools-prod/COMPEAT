@@ -20,7 +20,7 @@ if (length(list.files(file.path(pathARGANS, "csv"))) == 0) {
     month <- substring(datestring,5,6) %>% as.numeric()
     day <- substring(datestring,7,8) %>% as.numeric()
     
-    if(year >= 2009 && year <= 2020 && month >= 3 && month <= 10) {
+    if(year >= 2009 && year <= 2020 && month >= 3 && month <= 9) {
       # Open netcdf file
       nc <- nc_open(gunzip(filename, skip = TRUE, remove = FALSE))
       
@@ -66,7 +66,7 @@ if (length(list.files(file.path(pathRBINS, "csv"))) == 0) {
     month <- substring(datestring,5,6) %>% as.numeric()
     day <- substring(datestring,7,8) %>% as.numeric()
     
-    if(year >= 1998 && year <= 2020 && month >= 3 && month <= 10) {
+    if(year >= 1998 && year <= 2020 && month >= 3 && month <= 9) {
       # Open netcdf file
       nc <- nc_open(filename)
       
@@ -97,7 +97,7 @@ if (length(list.files(file.path(pathRBINS, "csv"))) == 0) {
 }
 
 # Read Grid Units
-gridunits <- st_read(file.path("Output", "gridunits.shp"))
+gridunits <- st_read(file.path(outputPath, "gridunits.shp"))
 
 # Define years
 years <- c("2015", "2016", "2017", "2018", "2019", "2020")
@@ -115,9 +115,9 @@ dt6 <- lapply(years, function(year) {
   dt1RBINS <- lapply(filenamesRBINS, function(filename) { fread(filename) })
   # Combine list of data tables into one
   dt2 <- rbindlist(c(dt1ARGANS, dt1RBINS))
-  
+
   rm(filenamesARGANS, filenamesRBINS , dt1ARGANS, dt1RBINS)
-  
+
   # Extract Longitude/Latitude pairs    
   dt3 <- dt2[, .N, keyby = .(Longitude, Latitude)] %>% setkey(Longitude, Latitude)
   # Make positions spatial keeping original latitude/longitude
