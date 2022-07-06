@@ -1,3 +1,6 @@
+~#This script requires the main COMPEAT script to be run up to wk2list = list() first (approx line 337)
+
+
 i = 4
 
 
@@ -112,4 +115,5 @@ i = 4
   }
   
 wk1 <- merge(st_drop_geometry(units[1:4]), wk1, by = "UnitID")
-fwrite(wk1, file = file.path(outputPath, "O2SAT.csv"))
+fwrite(wk1, file = file.path(outputPath, "O2SAT_COMP1.csv"))
+

@@ -53,7 +53,11 @@ wk5 <- read.csv("../Output_chl_weighted/2015-2020-HS1/Assessment_Indicator.csv")
 
 #Read in O2Sat results
 
-wk1 <- read.csv("../Output_chl_weighted/oxy_plots/O2SAT/O2SAT.csv")
+wk1 <- read.csv("../Output_chl_weighted/oxy_plots/O2SAT/O2SAT_COMP4.csv")
+
+
+#Read in MK trend results
+mk <- read.csv("../Output_chl_weighted/oxy_plots/mk_results_oxy.csv")
 
 
 
