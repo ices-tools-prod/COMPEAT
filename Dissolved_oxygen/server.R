@@ -110,4 +110,8 @@ output$eqrs_map <- renderPlot({
   #ggsave(file.path(outputPath, fileName), width = 12, height = 9, dpi = 300)
 })
 
+output$mk <- renderTable({
+  mk[mk$UnitID== input$area,]
+})
+
 })

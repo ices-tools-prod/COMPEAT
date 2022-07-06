@@ -83,3 +83,107 @@ for (u in unique(wk3$UnitCode)) {
 
 ```
 
+```{r mann kendall}
+trends <- wk3[wk3$IndicatorID == 4,]
+str(trends)
+trends <- subset(trends,!is.na(trends$ES))
+polygon <- trends$Code.x
+polygon_nonnull <- !is.na(polygon)
+polygon <- polygon[polygon_nonnull]
+poly.names <- unique(trends$Code.x)
+
+mkstat <- rep(-9999, length(poly.names))
+mkp <- mkstat
+
+for (j in poly.names) {
+  #j=poly.names[2]
+  trends_j <- trends[trends$Code.x==j,]
+  trends_j <- trends_j[order(trends_j$UnitID,trends_j$Period),]
+  trends_j <- trends_j[order(trends_j$UnitID),]
+  temp <- mannkendall(trends_j$Period, trends_j$ES, nsims.mk=9999)
+  mkstat[j] <- temp$mann
+  mkp[j] <- temp$pvalue
+  plot(trends_j$Period, trends_j$ES, main=j)
+  tt <- lm(trends_j$ES ~ trends_j$Period)
+  lines(trends_j$Period, tt$fitted.values)
+}
+
+
+mkstat[53:104]                               # Mann-Kendall statistic
+mkp[53:104]                                 # p-values
+
+table(polygon)                       # Number of years used
+
+
+mk_results_oxy <- as.data.frame(table(polygon))
+colnames(mk_results_oxy) <- c("Code","No_Years")
+mk_results_oxy$mkstat <- mkstat[53:104]  
+mk_results_oxy$mkp <- mkp[53:104]  
+
+mk_results_oxy <- merge(st_drop_geometry(units[1:4]), mk_results_oxy, by = "Code")
+fwrite(mk_results_oxy, file = file.path(outputPath, "mk_results_oxy.csv"))
+
+
+
+#mann kendall for o2sat
+
+wk1 <- read.csv("C:/Users/KC05/OneDrive - CEFAS/COMPEAT/Dissolved_oxygen/Output_chl_weighted/2015-2020/O2sat.csv")
+wk1 <- as.data.table(wk1)
+wk2 <- wk1[, .(ES = mean(ES), SD = sd(ES), N = .N, NM = uniqueN(Month)), keyby = .(IndicatorID, UnitID, Period)]
+wk2 <- merge(st_drop_geometry(units[1:4]), wk2, by = "UnitID")
+
+trends <- wk2[wk2$IndicatorID == 4,]
+str(trends)
+trends <- subset(trends,!is.na(trends$ES))
+polygon <- trends$Code
+polygon_nonnull <- !is.na(polygon)
+polygon <- polygon[polygon_nonnull]
+poly.names <- unique(trends$Code)
+
+mkstat <- rep(-9999, length(poly.names))
+mkp <- mkstat
+
+for (j in poly.names) {
+  #j=poly.names[2]
+  trends_j <- trends[trends$Code==j,]
+  trends_j <- trends_j[order(trends_j$UnitID,trends_j$Period),]
+  trends_j <- trends_j[order(trends_j$UnitID),]
+  temp <- mannkendall(trends_j$Period, trends_j$ES, nsims.mk=9999)
+  mkstat[j] <- temp$mann
+  mkp[j] <- temp$pvalue
+  plot(trends_j$Period, trends_j$ES, main=j)
+  tt <- lm(trends_j$ES ~ trends_j$Period)
+  lines(trends_j$Period, tt$fitted.values)
+}
+
+
+mkstat[51:100]                               # Mann-Kendall statistic
+mkp[51:100]                                 # p-values
+
+table(polygon)                       # Number of years used
+
+
+mk_results_oxy <- as.data.frame(table(polygon))
+colnames(mk_results_oxy) <- c("Code","No_Years")
+mk_results_oxy$mkstat <- mkstat[51:100]  
+mk_results_oxy$mkp <- mkp[51:100]  
+
+mk_results_oxy <- merge(st_drop_geometry(units[1:4]), mk_results_oxy, by = "Code")
+fwrite(mk_results_oxy, file = file.path(outputPath, "mk_results_oxy_sat_mean.csv"))
+
+
+```
+
+```{r dataplot}
+COMP4_areas <- sf::st_read("https://raw.githubusercontent.com/ices-tools-dev/COMPEAT/master/assessment_areas/COMP4_assessment_areas.csv") %>%
+  st_set_crs(4326)
+
+leaflet(COMP4_areas) %>%
+  addTiles() %>%
+  addPolygons(color = "black", fillOpacity = 0, weight = 1) %>%
+  addCircles(data = wk1, ~Longitude, ~Latitude,) %>%
+  #addCircles(data = filteredDataLIMS(), ~longitude, ~latitude, color = "green") %>%
+  #addCircles(data = filteredDataEA(), ~Longitude, ~Latitude, color = "green") %>%
+  addLegend(colors=c("blue"), labels=c("ICES COMPEAT data"))
+
+```
