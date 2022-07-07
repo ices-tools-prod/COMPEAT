@@ -25,6 +25,7 @@ i = 4
   # Create Indicator
   
     wk[, ES := O2SAT] # 
+#    wk[, ES := wk$Dissolved.Oxygen..mg.l.] # 
     wk[, ESQ := QV.ODV.Dissolved.Oxygen..ml.l.] # probably should include temp and sal quality too
 
   
@@ -115,5 +116,6 @@ i = 4
   }
   
 wk1 <- merge(st_drop_geometry(units[1:4]), wk1, by = "UnitID")
-fwrite(wk1, file = file.path(outputPath, "O2SAT_COMP1.csv"))
+fwrite(wk1, file = file.path(outputPath, "O2SAT_COMP4.csv"))
+#fwrite(wk1, file = file.path(outputPath, "O2_COMP4.csv"))
 

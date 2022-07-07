@@ -27,6 +27,7 @@ shinyUI(fluidPage(
         mainPanel(
             plotlyOutput("ts"),
             tableOutput("mk"),
+            plotOutput("conc"),
             plotOutput("sat")
             
         )
