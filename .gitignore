@@ -33,7 +33,6 @@ Dissolved_oxygen/rsconnect
 Shapefiles/
 old_output/
 rsconnect/
-*.csv
 *.xlsx
 *.docx
 *.png

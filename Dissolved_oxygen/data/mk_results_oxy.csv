@@ -1,0 +1,53 @@
+UnitID,Code,Description,No_Years,Mkstatistic,pvalue
+ADPM,Adour plume,1,1,0,1
+ASS,Atlantic Seasonally Stratified,2,18,-63,0.0168
+ATL,Atlantic,3,22,-115,8.00E-04
+CCTI,Channel coastal shelf tidal influenced,4,8,14,0.104
+CFR,Coastal FR channel,5,7,9,0.2471
+CIRL,Coastal IRL 3,6,2,-1,1
+CNOR1,Coastal NOR 1,7,1,0,1
+CNOR2,Coastal NOR 2,8,3,-1,1
+CNOR3,Coastal NOR 3,9,6,7,0.2772
+CODEDK,Coastal DEDK,10,31,-52,0.3858
+CUK1,Coastal UK 1,11,6,1,1
+CUKC,Coastal UK channel,12,6,-5,0.4713
+CWBC,Coastal Waters BC (D5),14,2,1,1
+CWM,Channel well mixed,16,10,6,0.6577
+CWMTI,Channel well mixed tidal influenced,17,8,16,0.0587
+DB,Dogger Bank,18,27,-70,0.1408
+ECPM2,East Coast (permanently mixed) 2,20,1,0,1
+ELPM,Elbe plume,21,32,69,0.2641
+EMPM,Ems plume,22,25,35,0.4072
+ENS,Eastern North Sea,23,30,-30,0.5955
+GBC,German Bight (deep),24,29,6,0.9093
+GBCW,Gulf of Biscay coastal waters,25,3,3,0.3417
+GBSW,Gulf of Biscay shelf waters,26,5,0,1
+GDPM,Gironde plume,27,2,1,1
+HPM,Humber plume,28,2,-1,1
+IRS,Irish Sea,29,10,3,0.8584
+IS1,Intermittently Stratified 1,30,16,-15,0.5136
+IS2,Intermittently Stratified 2,31,18,-5,0.854
+KC,Kattegat Coastal,32,32,125,0.0412
+KD,Kattegat Deep,33,32,113,0.0651
+LBPM,Liverpool Bay plume,34,3,2,0.3279
+MPM,Meuse plume,36,22,-116,9.00E-04
+NAAC2,Noratlantic Area NOR-NorC2(D5),41,7,13,0.0659
+NAAC3,Noratlantic Area NOR-NorC3(D5),42,7,7,0.3813
+NAAO1,Noratlantic Area NOR-NorO1(D5),43,1,0,1
+NAAP2,Noratlantic Area NOR-NorP2(D5),44,4,-4,0.3267
+NAAPF,Noratlantic Area NOR-Plataforma,45,5,-2,0.8156
+NNS,Northern North Sea,46,32,-18,0.7673
+NT,Norwegian Trench,47,32,-131,0.0313
+OWAO,Ocean Waters AO (D5),48,2,-1,1
+OWCO,Ocean Waters CO (D5),50,2,-1,1
+RHPM,Rhine plume,51,20,-39,0.2057
+SAAC1,Sudatlantic Area SUD-C1(D5),52,1,0,1
+SAAOC,Sudatlantic Area SUD-OCEAN(D5),54,1,0,1
+SAAP2,Sudatlantic Area SUD-P2(D5),56,1,0,1
+SCHPM1,Scheldt plume 1,57,22,-81,0.0267
+SCHPM2,Scheldt plume 2,58,4,-2,0.747
+SK,Skagerak,60,32,-11,0.8595
+SNS,Southern North Sea,61,29,-79,0.1407
+SPM,Seine plume,62,11,-2,0.8783
+SS,Scottish Sea,63,23,-15,0.6937
+THPM,Thames plume,64,11,-24,0.0674
