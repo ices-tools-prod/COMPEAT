@@ -4,6 +4,7 @@ library(sf)
 library(data.table)
 library(readxl)
 library(plyr)
+library(leaflet)
 
 # Read indicator configuration files -------------------------------------------
 assessmentPeriod <- "2015-2020" # COMP4
