@@ -4,6 +4,7 @@ library(sf)
 library(data.table)
 library(readxl)
 library(plyr)
+library(leaflet)
 
 # Read indicator configuration files -------------------------------------------
 assessmentPeriod <- "2015-2020" # COMP4
@@ -54,10 +55,9 @@ wk5 <- read.csv("data/2015-2020-HS1/Assessment_Indicator.csv")
 
 #Read in O2Sat results
 
-wk1 <- read.csv("data/O2SAT_COMP4.csv")
+sat <- read.csv("data/O2SAT_COMP4.csv")
 
-
-
+conc <- read.csv("data/O2_COMP4.csv")
 
 #Read in MK trend results
 mk <- read.csv("data/mk_results_oxy.csv")

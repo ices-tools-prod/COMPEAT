@@ -19,13 +19,15 @@ shinyUI(fluidPage(
     sidebarLayout(
         sidebarPanel(
           selectInput("area", label= "Select an assessment unit", choices = unique(units$Code), selected = "SNS", multiple = T),
-          plotOutput("eqrs_map")
+          leafletOutput("eqrs_map", height = 800),
+          actionButton("zoom", label = "Zoom to assessment area")
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
             plotlyOutput("ts"),
             tableOutput("mk"),
+            plotOutput("conc"),
             plotOutput("sat")
             
         )

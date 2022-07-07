@@ -9,10 +9,10 @@ packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "ma
 ipak(packages)
 
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
-assessmentPeriod <- "1990-2000" # COMP1
+#assessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
-#assessmentPeriod <- "2015-2020" # COMP4
+assessmentPeriod <- "2015-2020" # COMP4
 
 # Set flag to determined if dissolved inorganic nutrients are being salinity nomalised 
 dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
@@ -325,7 +325,6 @@ stationSamples$O2CONC100..mg.l. <- stationSamples$O2CONC100..umol.l.*(31.998/100
 stationSamples$Dissolved.Oxygen..mg.l. <- stationSamples$Dissolved.Oxygen..ml.l. / 0.7 # Convert ml/l to mg/l by factor of 0.7
 stationSamples$O2SAT <- (stationSamples$Dissolved.Oxygen..mg.l./stationSamples$O2CONC100..mg.l.)*100 #the saturation is calculated by calculating the actual concentration as a percentage of the theoretical concentration at 100% saturation
 #calculating oxygen debt, will be negative when supersaturated
-stationSamples <- stationSamples[,c(1:66,70)]
 
 # Read indicator configuration files -------------------------------------------
 indicators <- as.data.table(read_excel(configurationFile, sheet = "Indicators")) %>% setkey(IndicatorID)
