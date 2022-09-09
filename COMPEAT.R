@@ -99,9 +99,9 @@ if (assessmentPeriod == "1990-2000") {
             "https://www.dropbox.com/s/d5gpsbcqsbtz09l/Indicator_CPHL_EO_02_2015-2020.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2015-2020BOT.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2015-2020CTD.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2015-2020PMP.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2015-2020BOT_2022-08-09.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2015-2020CTD_2022-08-09.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2015-2020PMP_2022-08-09.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2015-2020.csv")
 }
 
@@ -645,10 +645,18 @@ wk9[, C_3_Class := ifelse(C_3 >= 75, "High",
                           ifelse(C_3 >= 50, "Moderate", "Low"))]
 
 # Write results
+wk3_shp <- merge(select(units, UnitID, UnitCode = Code, UnitDescription = Description), wk3, by = "UnitID")
+st_write(wk3_shp, file.path(outputPath, "Annual_Indicator.shp"), delete_layer = TRUE)
 wk3 <- merge(st_drop_geometry(units[1:4]), wk3, by = "UnitID")
 fwrite(wk3, file = file.path(outputPath, "Annual_Indicator.csv"))
+
+wk5_shp <- merge(select(units, UnitID, UnitCode = Code, UnitDescription = Description), wk5, by = "UnitID")
+st_write(wk5_shp, file.path(outputPath, "Assessment_Indicator.shp"), delete_layer = TRUE)
 wk5 <- merge(st_drop_geometry(units[1:4]), wk5, by = "UnitID")
 fwrite(wk5, file = file.path(outputPath, "Assessment_Indicator.csv"))
+
+wk9_shp <- merge(select(units, UnitID, UnitCode = Code, UnitDescription = Description), wk9, by = "UnitID")
+st_write(wk9_shp, file.path(outputPath, "Assessment.shp"), delete_layer = TRUE)
 wk9 <- merge(st_drop_geometry(units[1:4]), wk9, by = "UnitID")
 fwrite(wk9, file = file.path(outputPath, "Assessment.csv"))
 
@@ -662,7 +670,7 @@ C_Class_limits <- c("High", "Moderate", "Low")
 C_Class_labels <- c(">= 75 % (High)", "50 - 74 % (Moderate)", "< 50 % (Low)")
 
 # Assessment map Status + Confidence
-wk <- merge(units, wk9, all.x = TRUE)
+wk <- merge(select(units, UnitID), wk9, all.x = TRUE)
 
 # Status maps
 ggplot(wk) +
