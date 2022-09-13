@@ -11,7 +11,7 @@ ipak(packages)
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
-#assessmentPeriod <- "2006-2014" # COMP3
+#ssessmentPeriod <- "2006-2014" # COMP3
 assessmentPeriod <- "2015-2020" # COMP4
 
 # Set flag to determined if dissolved inorganic nutrients are being salinity nomalised 
@@ -60,9 +60,9 @@ if (assessmentPeriod == "1990-2000") {
             "https://www.dropbox.com/s/d07i8xzxh1qq8xd/Indicator_CPHL_EO_02_1990-2000.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1990-2000.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples1990-2000BOT.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples1990-2000CTD.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples1990-2000PMP.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples1990-2000BOT_2022-05-11.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples1990-2000CTD_2022-05-11.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples1990-2000PMP_2022-05-11.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_1990-2000.csv")
 } else if (assessmentPeriod == "2001-2006") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
@@ -73,9 +73,9 @@ if (assessmentPeriod == "1990-2000") {
             "https://www.dropbox.com/s/yrbqfmfnfk32rum/Indicator_CPHL_EO_02_2001-2006.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2001-2006.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2001-2006BOT.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2001-2006CTD.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2001-2006PMP.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2001-2006BOT_2022-05-11.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2001-2006CTD_2022-05-11.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2001-2006PMP_2022-05-11.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2001-2006.csv")
 } else if (assessmentPeriod == "2006-2014") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
@@ -86,9 +86,9 @@ if (assessmentPeriod == "1990-2000") {
             "https://www.dropbox.com/s/kpbugtd4rwdxr9s/Indicator_CPHL_EO_02_2006-2014.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2006-2014.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2006-2014BOT.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2006-2014CTD.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2006-2014PMP.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2006-2014BOT_2022-09-13.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2006-2014CTD_2022-09-13.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2006-2014PMP_2022-09-13.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2006-2014.csv")
 } else if (assessmentPeriod == "2015-2020") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
