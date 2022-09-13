@@ -54,9 +54,9 @@ indicator_CPHL_EO_02 <- file.path(inputPath, "")
 if (assessmentPeriod == "1990-2000") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/eouhsa10p8ri5qs/Configuration1990-2000.xlsx?dl=1",
-            "https://www.dropbox.com/s/hf9y7kgf4ijsu1u/StationSamples1990-2000BOT.txt.gz?dl=1",
-            "https://www.dropbox.com/s/5mjwp9jw6tlms1o/StationSamples1990-2000CTD.txt.gz?dl=1",
-            "https://www.dropbox.com/s/ubjlo32nk2kpfdn/StationSamples1990-2000PMP.txt.gz?dl=1",
+            "https://www.dropbox.com/s/hf9y7kgf4ijsu1u/StationSamples1990-2000BOT_2022-05-11.txt.gz?dl=1",
+            "https://www.dropbox.com/s/5mjwp9jw6tlms1o/StationSamples1990-2000CTD_2022-05-11.txt.gz?dl=1",
+            "https://www.dropbox.com/s/ubjlo32nk2kpfdn/StationSamples1990-2000PMP_2022-05-11.txt.gz?dl=1",
             "https://www.dropbox.com/s/d07i8xzxh1qq8xd/Indicator_CPHL_EO_02_1990-2000.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1990-2000.xlsx")
@@ -67,9 +67,9 @@ if (assessmentPeriod == "1990-2000") {
 } else if (assessmentPeriod == "2001-2006") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/st7p60a8rr4yu8s/Configuration2001-2006.xlsx?dl=1",
-            "https://www.dropbox.com/s/se7bdaaeu8alftl/StationSamples2001-2006BOT.txt.gz?dl=1",
-            "https://www.dropbox.com/s/tla1vislh2rk50d/StationSamples2001-2006CTD.txt.gz?dl=1",
-            "https://www.dropbox.com/s/vtl40rkoelzafav/StationSamples2001-2006PMP.txt.gz?dl=1",
+            "https://www.dropbox.com/s/se7bdaaeu8alftl/StationSamples2001-2006BOT_2022-05-11.txt.gz?dl=1",
+            "https://www.dropbox.com/s/tla1vislh2rk50d/StationSamples2001-2006CTD_2022-05-11.txt.gz?dl=1",
+            "https://www.dropbox.com/s/vtl40rkoelzafav/StationSamples2001-2006PMP_2022-05-11.txt.gz?dl=1",
             "https://www.dropbox.com/s/yrbqfmfnfk32rum/Indicator_CPHL_EO_02_2001-2006.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2001-2006.xlsx")
@@ -80,9 +80,9 @@ if (assessmentPeriod == "1990-2000") {
 } else if (assessmentPeriod == "2006-2014") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/q5awsqulaj1z4jw/Configuration2006-2014.xlsx?dl=1",
-            "https://www.dropbox.com/s/iioqnq7j8c2h88k/StationSamples2006-2014BOT.txt.gz?dl=1",
-            "https://www.dropbox.com/s/8s5xo7s3tpkx2qj/StationSamples2006-2014CTD.txt.gz?dl=1",
-            "https://www.dropbox.com/s/urs21lncfy5b28p/StationSamples2006-2014PMP.txt.gz?dl=1",
+            "https://www.dropbox.com/s/k95mxp4u51nb2hs/StationSamples2006-2014BOT_2022-09-13.txt.gz?dl=1",
+            "https://www.dropbox.com/s/0gsloj4zxdw9ksl/StationSamples2006-2014CTD_2022-09-13.txt.gz?dl=1",
+            "https://www.dropbox.com/s/hign507j227xomx/StationSamples2006-2014PMP_2022-09-13.txt.gz?dl=1",
             "https://www.dropbox.com/s/kpbugtd4rwdxr9s/Indicator_CPHL_EO_02_2006-2014.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2006-2014.xlsx")
