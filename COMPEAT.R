@@ -355,7 +355,7 @@ for(i in 1:nrow(indicators)){
   } else if (name == 'Secchi Depth') {
     wk[, ES := Secchi.Depth..m..METAVAR.FLOAT]
     wk[, ESQ := QV.ODV.Secchi.Depth..m.]
-  } else if (name == 'Dissolved Inorganic Nitrogen/Dissolved Inorganic Phosphorus') {
+  } else if (name == 'Dissolved Inorganic Nitrogen:Dissolved Inorganic Phosphorus') {
     wk$ES <- apply(wk[, list(Nitrate.Nitrogen..NO3.N...umol.l., Nitrite.Nitrogen..NO2.N...umol.l., Ammonium.Nitrogen..NH4.N...umol.l.)], 1, function(x){
       if (all(is.na(x)) | is.na(x[1])) {
         NA
@@ -368,7 +368,7 @@ for(i in 1:nrow(indicators)){
     wk$ESQ <- apply(wk[, .(QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l., QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l., QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l., QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l.)], 1, function(x){
       max(x, na.rm = TRUE)
     })
-  } else if (name == 'Total Nitrogen/Total Phosphorus') {
+  } else if (name == 'Total Nitrogen:Total Phosphorus') {
     wk[, ES := Total.Nitrogen..N...umol.l./Total.Phosphorus..P...umol.l.]
     wk$ESQ <- apply(wk[, .(QV.ODV.Total.Nitrogen..N...umol.l., QV.ODV.Total.Phosphorus..P...umol.l.)], 1, function(x){
       max(x, na.rm = TRUE)
