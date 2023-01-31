@@ -9,6 +9,7 @@ packages <- c("sf", "data.table", "tidyverse", "readxl", "ggplot2", "ggmap", "ma
 ipak(packages)
 
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
+#assessmentPeriod <- "1877-9999"
 #assessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
@@ -51,7 +52,18 @@ stationSamplesCTDFile <- file.path(inputPath, "")
 stationSamplesPMPFile <- file.path(inputPath, "")
 indicator_CPHL_EO_02 <- file.path(inputPath, "")
 
-if (assessmentPeriod == "1990-2000") {
+if (assessmentPeriod == "1877-9999"){
+  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
+            "https://www.dropbox.com/s/727ac3e17out2n5/Configuration1877-9999.xlsx?dl=1",
+            "https://www.dropbox.com/s/yoh3jby0ee6x510/StationSamples1877-9999BOT_2023-01-31.txt.gz?dl=1",
+            "https://www.dropbox.com/s/tnu9q08fizzk1pi/StationSamples1877-9999CTD_2023-01-31.txt.gz?dl=1",
+            "https://www.dropbox.com/s/239wa4e9epzfmh4/StationSamples1877-9999PMP_2023-01-31.txt.gz?dl=1")
+  unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
+  configurationFile <- file.path(inputPath, "Configuration1877-9999.xlsx")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples1877-9999BOT_2023-01-31.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples1877-9999CTD_2023-01-31.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples1877-9999PMP_2023-01-31.txt.gz")
+} else if (assessmentPeriod == "1990-2000") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/eouhsa10p8ri5qs/Configuration1990-2000.xlsx?dl=1",
             "https://www.dropbox.com/s/hf9y7kgf4ijsu1u/StationSamples1990-2000BOT_2022-05-11.txt.gz?dl=1",
