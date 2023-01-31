@@ -57,12 +57,14 @@ if (assessmentPeriod == "1877-9999"){
             "https://www.dropbox.com/s/727ac3e17out2n5/Configuration1877-9999.xlsx?dl=1",
             "https://www.dropbox.com/s/yoh3jby0ee6x510/StationSamples1877-9999BOT_2023-01-31.txt.gz?dl=1",
             "https://www.dropbox.com/s/tnu9q08fizzk1pi/StationSamples1877-9999CTD_2023-01-31.txt.gz?dl=1",
-            "https://www.dropbox.com/s/239wa4e9epzfmh4/StationSamples1877-9999PMP_2023-01-31.txt.gz?dl=1")
+            "https://www.dropbox.com/s/239wa4e9epzfmh4/StationSamples1877-9999PMP_2023-01-31.txt.gz?dl=1",
+            "https://www.dropbox.com/s/2whuh77h6mbalbn/Indicator_CPHL_EO_02_1877-9999.csv?dl=1")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1877-9999.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples1877-9999BOT_2023-01-31.txt.gz")
   stationSamplesCTDFile <- file.path(inputPath, "StationSamples1877-9999CTD_2023-01-31.txt.gz")
   stationSamplesPMPFile <- file.path(inputPath, "StationSamples1877-9999PMP_2023-01-31.txt.gz")
+  indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_1877-9999.csv")
 } else if (assessmentPeriod == "1990-2000") {
   urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
             "https://www.dropbox.com/s/eouhsa10p8ri5qs/Configuration1990-2000.xlsx?dl=1",
