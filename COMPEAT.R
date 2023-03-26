@@ -137,6 +137,9 @@ units <- units[order(ID), .(Code = ID, Description = LongName, GEOM = geometry)]
 # Assign IDs
 units$UnitID = 1:nrow(units)
 
+# Write to file
+#st_write(units, file.path(outputPath, "units.shp"), delete_layer = TRUE)
+
 # Write to database
 # st_write(
 #   units,
@@ -264,6 +267,10 @@ stations <- na.omit(stations)
 
 # Remove spatial column and nake into data table
 stations <- st_set_geometry(stations, NULL) %>% as.data.table()
+
+# Create station units table 
+#stationUnits <- merge(as.data.table(units)[, .(UnitID, UnitCode = Code, UnitDescription = Description)], stations[, .(Longitude..degrees_east., Latitude..degrees_north., UnitID)])
+#fwrite(stationUnits, file.path(outputPath, "StationUnits.csv"))
 
 # Merge stations back into station samples - getting rid of station samples not classified into assessment units
 stationSamples <- stations[stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.), nomatch = 0]

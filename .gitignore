@@ -26,4 +26,6 @@ vignettes/*.pdf
 Input*/*
 Output*/*
 
+App/Data/*
+
 .Rproj.user

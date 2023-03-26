@@ -1,0 +1,13 @@
+name: COMPEAT
+title:
+username:
+account: hparner
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8528700
+bundleId: 6997012
+url: https://hparner.shinyapps.io/COMPEAT/
+when: 1679564000.03254
+lastSyncTime: 1679564000.03255
+asMultiple: FALSE
+asStatic: FALSE
