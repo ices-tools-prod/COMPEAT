@@ -7,8 +7,27 @@ library(tidyverse)
 library(leaflet)
 library(DT)
 
-ui <- fluidPage(
-  titlePanel("Commom Procedure Eutrophication Assessment Tool (COMPEAT)"),
+source("./Helpers.R")
+source("./moduleStations.R")
+
+ui <- tagList(
+  navbarPage(
+    position = "static-top",
+    collapsible = TRUE,
+    # tab title
+    windowTitle = "COMPEAT",
+    id = "tabset",
+    fluid = TRUE,
+    # navbar title
+    title = span(tags$img(src ="www/ospar_logo.png",
+                          style = "padding-right:10px;padding-bottom:10px; padding-top:0px; margin-top: -10px",
+                          height = "50px"), "Commom Procedure Eutrophication Assessment Tool (COMPEAT)"),
+    tabPanel("Explore Data",
+             moduleStationsUI("Stations")
+    ),
+    tabPanel("Assessment",
+    fluidPage(
+  
   sidebarLayout(
     sidebarPanel(
       selectInput(inputId = "period", "Period", c("COMP 1 (1990-2000)" = 1, "COMP 2 (2001-2006)" = 2, "COMP 3 (2006-2014)" = 3, "COMP 4 (2015-2020)" = 4), 4),
@@ -22,38 +41,28 @@ ui <- fluidPage(
     )
   )
 )
+)
+)
+)
 
 server <- function(input, output, session) {
-  dataPath <- file.path("Data")
+
+  dataPath <- file.path("../Data")
   assessmentPaths <- list.dirs(dataPath, recursive = FALSE)
   assessmentPath <- file.path(dataPath, "COMP 4 (2015-2020)")
   
-  units <- st_read(file.path(dataPath, "units.shp"))
+  units <- st_read(file.path(assessmentPath, "gridunits.shp"))
   assessment <- fread(file.path(assessmentPath, "Assessment.csv"))
   assessment_indicator <- fread(file.path(assessmentPath, "Assessment_Indicator.csv"))
   annual_indicator <- fread(file.path(assessmentPath, "Annual_Indicator.csv"))
   
+  moduleStationsServer("Stations")
+  
   wk <- merge(select(units, UnitID), assessment, all.x = TRUE)
   
-  # Create a color palette with handmade bins.
-  eqrs_palette <- c("#3BB300", "#99FF66", "#FFCABF", "#FF8066", "#FF0000")
-  eqrs_bins <- c(1.0,0.8,0.6,0.4,0.2,0.0)
-  eqrs_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0.6 (Moderate)", ">= 0.2 - 0.4 (Poor)", ">= 0.0 - 0.2 (Bad)")
   eqrs_color_bin <- colorBin(palette = eqrs_palette, domain = wk$EQRS, bins = eqrs_bins, reverse = TRUE)
-  
-  # eqrs_color_bin <- reactive({
-  #   if (input$category == 0) {
-  #     colorBin(palette = eqrs_palette, domain = wk$EQRS, bins = eqrs_bins, reverse = TRUE)
-  #   }
-  #   if (input$category == 11) {
-  #     colorBin(palette = eqrs_palette, domain = wk$EQRS_11, bins = eqrs_bins, reverse = TRUE)
-  #   }
-  # })
-  
-  c_palette <- c("#3BB300", "#FFCABF", "#FF0000")
-  c_bins <- c(100, 75, 50, 0)
   c_color_bin <- colorBin(palette = c_palette, domain = wk$C, bins = c_bins, reverse = TRUE)
-  c_labels <- c(">= 75 % (High)", "50 - 74 % (Moderate)", "< 50 % (Low)")
+  
   
   label <- paste(
     "<b>", wk$Description, " (", wk$Code, ")</b><br />",
