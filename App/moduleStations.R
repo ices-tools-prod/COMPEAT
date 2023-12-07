@@ -24,12 +24,17 @@ moduleStationsServer <- function(id) {
 
     type_names <- c("BOT", "CTD", "PMP")
     file_paths <- paste0("../Data/COMP 4 (2015-2020)/", rep("StationSamples",3), type_names, ".csv") 
-    station_data <- purrr::map(.x = file_paths, ~ read.csv(.x))
-    names(station_data) <- type_names
+    lookup <- data.frame(input = type_names, id = 1:3)
     
+    
+      req_file <- shiny::reactive({
+        val <- lookup[lookup$input == input$stationType, "id"]
+        file_name <- file_paths[val]
+        
+      })
     
     stat_dat <- reactive({
-      dat <- station_data[[input$stationType]]
+      dat <- fread(req_file(), nrows = 20000)
     })
     
     
@@ -44,22 +49,19 @@ moduleStationsServer <- function(id) {
                            clusterOptions = markerClusterOptions())
         
       map
-    }) #%>% bindCache(input$stationType)
+    }) 
     
-    download_names <- reactive({
-
-      lookup <- data.frame(input = type_names, id = 1:3)
-      val <- lookup[lookup$input == input$stationType, "id"]
-      download_file <- file_paths[val]
-  
-    })
     
     output$downloadStations <- shiny::downloadHandler(
       
-      filename = stringr::str_remove(download_names(), pattern = "../"),
+      
+      filename = function () {
+        stringr::str_remove(req_file(), pattern = "../")
+      },
       content = function(file) {
-        file.copy(download_names(), file)
-    })
+        file.copy(req_file(), file)
+      }
+    )
     
   })
 }
