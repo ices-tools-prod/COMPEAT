@@ -7,8 +7,13 @@ library(tidyverse)
 library(leaflet)
 library(DT)
 
+
+library(shinipsum)
+
+
 source("./Helpers.R")
 source("./moduleStations.R")
+source("./moduleIndicators.R")
 
 ui <- tagList(
   navbarPage(
@@ -22,8 +27,11 @@ ui <- tagList(
     title = span(tags$img(src ="www/ospar_logo.png",
                           style = "padding-right:10px;padding-bottom:10px; padding-top:0px; margin-top: -10px",
                           height = "50px"), "Commom Procedure Eutrophication Assessment Tool (COMPEAT)"),
-    tabPanel("Explore Data",
+    tabPanel("Data",
              moduleStationsUI("Stations")
+    ),
+    tabPanel("Indicators",
+             moduleIndicatorsUI("Indicators")
     ),
     tabPanel("Assessment",
     fluidPage(
@@ -57,6 +65,7 @@ server <- function(input, output, session) {
   annual_indicator <- fread(file.path(assessmentPath, "Annual_Indicator.csv"))
   
   moduleStationsServer("Stations")
+  moduleIndicatorsServer("Indicators")
   
   wk <- merge(select(units, UnitID), assessment, all.x = TRUE)
   
