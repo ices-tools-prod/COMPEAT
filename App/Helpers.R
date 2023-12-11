@@ -1,7 +1,9 @@
 # Create a color palette with handmade bins.
-eqrs_palette <- c("#3BB300", "#99FF66", "#FFCABF", "#FF8066", "#FF0000")
+
 eqrs_bins <- c(1.0,0.8,0.6,0.4,0.2,0.0)
-eqrs_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0.6 (Moderate)", ">= 0.2 - 0.4 (Poor)", ">= 0.0 - 0.2 (Bad)")
+eqrs_labels <- c("High" = ">= 0.8 - 1.0 (High)", "Good" = ">= 0.6 - 0.8 (Good)", "Moderate" = ">= 0.4 - 0.6 (Moderate)", "Poor" = ">= 0.2 - 0.4 (Poor)", "Bad" = ">= 0.0 - 0.2 (Bad)")
+eqrs_palette <- c("High" = "#3BB300", "Good" = "#99FF66", "Moderate" = "#FFCABF", "Poor" = "#FF8066", "Bad" = "#FF0000")
+eqrs_levels <- c("High", "Good", "Moderate", "Poor", "Bad")
 
 # eqrs_color_bin <- reactive({
 #   if (input$category == 0) {
@@ -12,9 +14,10 @@ eqrs_labels <- c(">= 0.8 - 1.0 (High)", ">= 0.6 - 0.8 (Good)", ">= 0.4 - 0.6 (Mo
 #   }
 # })
 
-c_palette <- c("#3BB300", "#FFCABF", "#FF0000")
+c_palette <- c("High" = "#3BB300", "Moderate" = "#FFCABF", "Low" = "#FF0000")
+c_levels <- c("High", "Moderate", "Low")
 c_bins <- c(100, 75, 50, 0)
-c_labels <- c(">= 75 % (High)", "50 - 74 % (Moderate)", "< 50 % (Low)")
+c_labels <- c("High" = ">= 75 % (High)", "Moderate" = "50 - 74 % (Moderate)", "Low" = "< 50 % (Low)")
 
 
 get_centroid <- function(sf_object) {

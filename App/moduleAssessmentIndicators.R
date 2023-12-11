@@ -1,21 +1,24 @@
 # Define UI for the module
 moduleAssessmentIndicatorsUI <- function(id) {
   ns <- NS(id)
-  tabPanel("Charts",
+  tabPanel("Map",
     tagList(
       sidebarLayout(
         sidebarPanel = sidebarPanel(
           uiOutput(ns("indicatorSelector")),
           uiOutput(ns("unitSelector")),
           uiOutput(ns("assessmentRadioButtons")),
-          shiny::radioButtons(inputId = ns("status"),
-                              "Toggle status / confidence",
-                              choices = c("Status" = "stat", "Confidence" = "conf")),
+          shiny::radioButtons(inputId = ns("display"),
+                              "Select Assessmentoutcomes",
+                              choices = c("Status" = "EQRS_Cl", 
+                                          "Confidence" = "C_Class",
+                                          "Temporal Confidence" = "TC_Clss",
+                                          "Spatial Confidence" = "SC_Clss")),
           shiny::downloadButton(ns("downloadIndicators"), "Download")
         ), 
         mainPanel = mainPanel(
           shiny::fluidRow("Map",
-                       shiny::plotOutput(ns("map")),
+                       plotOutput(ns("map")),
               
           ),
           shiny::fluidRow("Data",
@@ -45,50 +48,42 @@ moduleAssessmentIndicatorsServer <- function(id) {
     output$indicatorSelector <- renderUI({ 
       req(indicator_data())
       indicators <- unique(indicator_data()$Name)
-      shiny::selectInput(session$ns("indicator"), "Choose an Indicator:", choices = indicators)
+      shiny::selectInput(session$ns("indicator"), "Select Indicator:", choices = indicators)
     })
     
-    output$unitSelector <- renderUI({ 
-      req(indicator_data())
-      units <- unique(indicator_data()$Description)
-      shiny::selectInput(session$ns("unit"), "Choose an Indicator:", choices = units)
-    })
-    
-    plot_data <- reactive({
-      
-      if(!is.null(input$indicator)){
-        dplyr::filter(indicator_data(), Name == input$indicator)
-      }
-    })
-    
+   
     output$data <- renderDT({
       indicator_data()
     })
     
-    indicators_shape <- sf::read_sf("../Data/COMP 4 (2015-2020)/Assessment_Indicator.shp")
+    indicator_shape <- sf::read_sf("../Data/COMP 4 (2015-2020)/Assessment_Indicator.shp", stringsAsFactors = T)
     
-    output$chart <- renderPlot({
-      req(plot_data())
+    plot_data_sf <- reactive({
       
-      if (nrow(plot_data()) > 0){
-        unit_data <- filter(plot_data(), Description == input$unit)
+      if(!is.null(input$indicator)){
+        dplyr::filter(indicator_shape, Name == input$indicator)
       }
-      if (nrow(unit_data) > 0){
-        x_breaks <- seq(plot_data()[1,]$YearMin, plot_data()[1,]$YearMax)
-        indicatorMetric <- unit_data[1,]$Metric
-        plot <- ggplot(unit_data, aes(x = factor(Period, levels = YearMin:YearMax), y = ES)) +
-          # labs(title = title , subtitle = subtitle) +
-          geom_col() +
-          geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
-          geom_hline(aes(yintercept = ET)) +
-          scale_x_discrete(NULL, breaks = x_breaks, drop=FALSE) +
-          scale_y_continuous(NULL)
-        
-        if (indicatorMetric == "Mean") {
-          plot <- plot +
-            geom_errorbar(aes(ymin = ES - CI, ymax = ES + CI), width = .2)
+    })
+    
+    output$map <- renderPlot({
+      req(plot_data_sf())
+      plot_dat <- plot_data_sf()
+      if (nrow(plot_dat) > 0){
+
+        if (input$display == "EQRS_Cl") {
+          plot_dat["EQRS_Cl"] <- st_drop_geometry(plot_dat) %>% dplyr::pull(input$display) %>% factor(levels = eqrs_levels, ordered = T)
+          ggplot(plot_dat) +
+            ggtitle(label = paste0("Eutrophication Status ", input$assessment)) +
+            geom_sf(aes(fill = EQRS_Cl)) +
+            scale_fill_manual(name = "EQRS", values = eqrs_palette, labels = eqrs_labels)
+
+        } else {
+          plot_dat[input$display] <- st_drop_geometry(plot_dat) %>% dplyr::pull(input$display) %>% factor(levels = c_levels, ordered = T)
+          ggplot(plot_dat) +
+            ggtitle(label = paste0("Eutrophication Status ", input$assessment)) +
+            geom_sf(aes_string(fill = input$display)) +
+            scale_fill_manual(name = input$display, values = c_palette, labels = c_labels)
         }
-        plot
       }
     })
     
