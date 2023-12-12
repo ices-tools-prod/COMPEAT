@@ -17,13 +17,8 @@ moduleAssessmentIndicatorsUI <- function(id) {
           shiny::downloadButton(ns("downloadIndicators"), "Download")
         ), 
         mainPanel = mainPanel(
-          shiny::fluidRow("Map",
-                       plotOutput(ns("map")),
-              
-          ),
-          shiny::fluidRow("Data",
-            DT::DTOutput(ns("data"))
-          )
+          shiny::fluidRow(leafletOutput(ns("map"))),
+          shiny::fluidRow(DT::DTOutput(ns("data")))
         )
       )
   )
@@ -56,34 +51,53 @@ moduleAssessmentIndicatorsServer <- function(id) {
       indicator_data()
     })
     
-    indicator_shape <- sf::read_sf("../Data/COMP 4 (2015-2020)/Assessment_Indicator.shp", stringsAsFactors = T)
-    
+    indicator_shape <- reactive({
+      sf::read_sf(paste0("../Data/", input$assessment, "/Assessment_Indicator.shp"), stringsAsFactors = T)
+    })
+      
     plot_data_sf <- reactive({
       
       if(!is.null(input$indicator)){
-        dplyr::filter(indicator_shape, Name == input$indicator)
+        dplyr::filter(indicator_shape(), Name == input$indicator)
       }
     })
     
-    output$map <- renderPlot({
+    output$map <- renderLeaflet({
       req(plot_data_sf())
       plot_dat <- plot_data_sf()
-      if (nrow(plot_dat) > 0){
-
+      
+      # Transform the spatial data to WGS84
+      plot_dat <- st_transform(plot_dat, crs = 4326)
+      
+      if (nrow(plot_dat) > 0) {
         if (input$display == "EQRS_Cl") {
-          plot_dat["EQRS_Cl"] <- st_drop_geometry(plot_dat) %>% dplyr::pull(input$display) %>% factor(levels = eqrs_levels, ordered = T)
-          ggplot(plot_dat) +
-            ggtitle(label = paste0("Eutrophication Status ", input$assessment)) +
-            geom_sf(aes(fill = EQRS_Cl)) +
-            scale_fill_manual(name = "EQRS", values = eqrs_palette, labels = eqrs_labels)
-
+          plot_dat$EQRS_Cl <- factor(st_drop_geometry(plot_dat)[[input$display]], 
+                                     levels = eqrs_levels, ordered = TRUE)
+          
+          pal <- colorFactor(eqrs_palette, plot_dat$EQRS_Cl)
+          
         } else {
-          plot_dat[input$display] <- st_drop_geometry(plot_dat) %>% dplyr::pull(input$display) %>% factor(levels = c_levels, ordered = T)
-          ggplot(plot_dat) +
-            ggtitle(label = paste0("Eutrophication Status ", input$assessment)) +
-            geom_sf(aes_string(fill = input$display)) +
-            scale_fill_manual(name = input$display, values = c_palette, labels = c_labels)
+          plot_dat[[input$display]] <- factor(st_drop_geometry(plot_dat)[[input$display]], 
+                                              levels = c_levels, ordered = TRUE)
+          
+          pal <- colorFactor(c_palette, plot_dat[[input$display]])
         }
+        
+        leaflet(plot_dat) %>%
+          addProviderTiles(providers$Esri.WorldImagery) %>%
+          addPolygons(
+            fillColor = ~pal(plot_dat[[input$display]]),
+            stroke = TRUE, 
+            fillOpacity = 0.9, 
+            color = "black", 
+            weight = 0.3,
+            label = ~paste0("Eutrophication Status ", input$assessment, plot_dat[[input$display]]),
+            labelOptions = labelOptions(
+              style = list("font-weight" = "normal", padding = "3px 8px"),
+              textsize = "13px",
+              direction = "auto"
+            )
+          )
       }
     })
     
