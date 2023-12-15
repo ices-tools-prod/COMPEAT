@@ -20,8 +20,8 @@ moduleAnnualIndicatorsServer <- function(id, assessment) {
     ns <- session$ns
     
    indicator_data <- reactive({
-      if(!is.null(input$assessment)){
-        indicators <- fread(paste0("../Data/", input$assessment, "/Annual_Indicator.csv"))
+      if(!is.null(assessment())){
+        indicators <- fread(paste0("../Data/", assessment(), "/Annual_Indicator.csv"))
       }
     })
 

@@ -2,8 +2,6 @@
 moduleAssessmentUI <- function(id) {
   ns <- NS(id)
            tagList(
-             fluidPage(
-               
                sidebarLayout(
                  sidebarPanel(
                    shiny::radioButtons(inputId = ns("display"),
@@ -22,7 +20,7 @@ moduleAssessmentUI <- function(id) {
                  )
                )
              )
-           )
+           
 }
 
 
@@ -32,22 +30,22 @@ moduleAssessmentServer <- function(id, assessment) {
     ns <- session$ns
 
     assessment_data <- reactive({
-      if(!is.null(input$assessment)){
-        assessment <- fread(paste0("../Data/", input$assessment, "/Assessment.csv"))
+      if(!is.null(assessment())){
+        assessment <- fread(paste0("../Data/", assessment(), "/Assessment.csv"))
       }
     })
 
     
     units <- reactive({
-      if(!is.null(input$assessment)){
-      sf::read_sf(paste0("../Data/", input$assessment, "/gridunits.shp"), stringsAsFactors = T)
+      if(!is.null(assessment())){
+      sf::read_sf(paste0("../Data/", assessment(), "/gridunits.shp"), stringsAsFactors = T)
       }
     })
     
     
     merged_data <- reactive({
       shiny::validate(
-        need(!is.null(input$assessment), "No assessment selected"),
+        need(!is.null(assessment()), "No assessment selected"),
         need(!is.null(units()), "Units not available")
       )
       req(units(), assessment_data())
@@ -87,7 +85,7 @@ moduleAssessmentServer <- function(id, assessment) {
             fillOpacity = 0.9, 
             color = "black", 
             weight = 0.3,
-            label = ~paste0("Eutrophication Status ", input$assessment, plot_dat[[input$display]]),
+            label = ~paste0("Eutrophication Status ", assessment(), plot_dat[[input$display]]),
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
               textsize = "13px",
@@ -108,10 +106,10 @@ moduleAssessmentServer <- function(id, assessment) {
         fixedColumns = list(leftColumns = 2)))
     })
     
-    # observeEvent(input$assessmentMap_groups, {
+    # observeEvent(assessment()Map_groups, {
     #   my_map <- leafletProxy("assessmentMap") %>% clearControls()
     #   
-    #   if (input$assessmentMap_groups == 'EQRS'){
+    #   if (assessment()Map_groups == 'EQRS'){
     #     my_map <- my_map %>%
     #       addLegend(
     #         position = "bottomleft",

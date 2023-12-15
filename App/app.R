@@ -21,7 +21,8 @@ ui <- tagList(
     id = "tabset",
     fluid = TRUE,
     title = span("Commom Procedure Eutrophication Assessment Tool (COMPEAT)"), 
-    header = uiOutput("assessmentSelect"),
+    header = div(style = "padding: 15px;", uiOutput("assessmentSelect")),
+    
     tabPanel("Stations",
              moduleStationsUI("Stations")
     ),

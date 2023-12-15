@@ -30,8 +30,8 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
     ns <- session$ns
     
     indicator_data <- reactive({
-      if(!is.null(input$assessment)){
-        indicators <- fread(paste0("../Data/", input$assessment, "/Annual_Indicator.csv"))
+      if(!is.null(assessment())){
+        indicators <- fread(paste0("../Data/", assessment(), "/Annual_Indicator.csv"))
       }
     })
     
@@ -54,7 +54,7 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
     
     
     indicator_shape <- reactive({
-      sf::read_sf(paste0("../Data/", input$assessment, "/Assessment_Indicator.shp"), stringsAsFactors = T)
+      sf::read_sf(paste0("../Data/", assessment(), "/Assessment_Indicator.shp"), stringsAsFactors = T)
     })
     
       
@@ -94,7 +94,7 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
             fillOpacity = 0.9, 
             color = "black", 
             weight = 0.3,
-            label = ~paste0("Eutrophication Status ", input$assessment, plot_dat[[input$display]]),
+            label = ~paste0("Eutrophication Status ", assessment(), plot_dat[[input$display]]),
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
               textsize = "13px",
