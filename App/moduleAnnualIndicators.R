@@ -5,9 +5,8 @@ moduleAnnualIndicatorsUI <- function(id) {
     tagList(
       sidebarLayout(
         sidebarPanel = sidebarPanel(
-          uiOutput(ns("indicatorSelector")),
           uiOutput(ns("unitSelector")),
-          uiOutput(ns("assessmentSelect")),
+          uiOutput(ns("indicatorSelector")),
           shiny::downloadButton(ns("downloadIndicators"), "Download")), 
         mainPanel = mainPanel(shiny::plotOutput(ns("chart")))
       )
@@ -16,34 +15,32 @@ moduleAnnualIndicatorsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleAnnualIndicatorsServer <- function(id) {
+moduleAnnualIndicatorsServer <- function(id, assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    # Dropdown selector that adjusts to assessments being added / removed from ./Data
-    shinyselect_from_directory(dir = "../Data", selector = "select", id = "assessment", outputid = "assessmentSelect", module = T, output, session)
-    
-    indicator_data <- reactive({
-      
+   indicator_data <- reactive({
       if(!is.null(input$assessment)){
         indicators <- fread(paste0("../Data/", input$assessment, "/Annual_Indicator.csv"))
       }
     })
-    
+
+       
     output$indicatorSelector <- renderUI({ 
       req(indicator_data())
       indicators <- unique(indicator_data()$Name)
       shiny::selectInput(session$ns("indicator"), "Select Indicator:", choices = indicators)
     })
-    
+   
+     
     output$unitSelector <- renderUI({ 
       req(indicator_data())
       units <- unique(indicator_data()$Description)
       shiny::selectInput(session$ns("unit"), "Select Unit:", choices = units)
     })
     
+    
     plot_data <- reactive({
-      
       if(!is.null(input$indicator)){
         dplyr::filter(indicator_data(), Name == input$indicator)
       }
@@ -60,7 +57,6 @@ moduleAnnualIndicatorsServer <- function(id) {
         x_breaks <- seq(plot_data()[1,]$YearMin, plot_data()[1,]$YearMax)
         indicatorMetric <- unit_data[1,]$Metric
         plot <- ggplot(unit_data, aes(x = factor(Period, levels = YearMin:YearMax), y = ES)) +
-          # labs(title = title , subtitle = subtitle) +
           geom_col() +
           geom_text(aes(label = N), vjust = -0.25, hjust = -0.25) +
           geom_hline(aes(yintercept = ET)) +

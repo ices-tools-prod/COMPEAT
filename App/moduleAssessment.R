@@ -6,7 +6,6 @@ moduleAssessmentUI <- function(id) {
                
                sidebarLayout(
                  sidebarPanel(
-                   uiOutput(ns("assessmentSelect")),
                    shiny::radioButtons(inputId = ns("display"),
                                        "Select Assessment outcome",
                                        choices = c("Status" = "EQRS_Class", 
@@ -28,22 +27,18 @@ moduleAssessmentUI <- function(id) {
 
 
 # Define server logic for the module
-moduleAssessmentServer <- function(id) {
+moduleAssessmentServer <- function(id, assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    
-    # Dropdown selector that adjusts to assessments being added / removed from ./Data
-    shinyselect_from_directory(dir = "../Data", selector = "select", id = "assessment", outputid = "assessmentSelect", module = T, output, session)
 
     assessment_data <- reactive({
-  
       if(!is.null(input$assessment)){
         assessment <- fread(paste0("../Data/", input$assessment, "/Assessment.csv"))
       }
     })
 
+    
     units <- reactive({
-
       if(!is.null(input$assessment)){
       sf::read_sf(paste0("../Data/", input$assessment, "/gridunits.shp"), stringsAsFactors = T)
       }

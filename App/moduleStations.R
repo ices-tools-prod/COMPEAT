@@ -18,37 +18,46 @@ moduleStationsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleStationsServer <- function(id) {
+moduleStationsServer <- function(id, assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
     type_names <- c("BOT", "CTD", "PMP")
-    file_paths <- paste0("../Data/COMP 4 (2015-2020)/", rep("StationSamples",3), type_names, ".csv") 
     lookup <- data.frame(input = type_names, id = 1:3)
     
-    
-      req_file <- shiny::reactive({
-        val <- lookup[lookup$input == input$stationType, "id"]
-        file_name <- file_paths[val]
-        
+    file_paths <- reactive({
+      if(!is.null(assessment())){
+        paste0("../Data/",assessment(), rep("/StationSamples",3), type_names, ".csv")
+        }
       })
     
-    stat_dat <- reactive({
+    
+    req_file <- shiny::reactive({
+        val <- lookup[lookup$input == input$stationType, "id"]
+        file_name <- file_paths()[val]
+    })
+    
+    
+    station_data <- reactive({
+      if(!is.null(assessment())){
       dat <- fread(req_file(), nrows = 20000)
+      }
     })
     
     
     output$map <- renderLeaflet({
-        station_samples_sf <- sf::st_as_sf(stat_dat(), coords = c("Longitude..degrees_east.", "Latitude..degrees_north."))
+      if(!is.null(assessment())){
+        station_samples_sf <- sf::st_as_sf(station_data(), coords = c("Longitude..degrees_east.", "Latitude..degrees_north."))
 
         view_centre <- get_centroid(station_samples_sf)
         map <- leaflet() %>% 
           addProviderTiles(providers$Esri.WorldImagery) %>%
           setView(lng = view_centre$long, lat = view_centre$lat, zoom = 3) %>% 
-          addCircleMarkers(lng = ~ Longitude..degrees_east., lat = ~ Latitude..degrees_north., data = stat_dat(),
+          addCircleMarkers(lng = ~ Longitude..degrees_east., lat = ~ Latitude..degrees_north., data = station_data(),
                            clusterOptions = markerClusterOptions())
         
       map
+      }
     }) 
     
     

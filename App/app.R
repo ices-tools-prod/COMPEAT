@@ -17,14 +17,11 @@ ui <- tagList(
   navbarPage(
     position = "static-top",
     collapsible = TRUE,
-    # tab title
     windowTitle = "COMPEAT",
     id = "tabset",
     fluid = TRUE,
-    # navbar title
-    title = span(tags$img(src ="www/ospar_logo.png",
-                          style = "padding-right:10px;padding-bottom:10px; padding-top:0px; margin-top: -10px",
-                          height = "50px"), "Commom Procedure Eutrophication Assessment Tool (COMPEAT)"),
+    title = span("Commom Procedure Eutrophication Assessment Tool (COMPEAT)"), 
+    header = uiOutput("assessmentSelect"),
     tabPanel("Stations",
              moduleStationsUI("Stations")
     ),
@@ -43,11 +40,14 @@ ui <- tagList(
 
 server <- function(input, output, session) {
 
+  # Dropdown selector that adjusts to assessments being added / removed from ./Data
+  shinyselect_from_directory(dir = "../Data", selector = "select", id = "assessment", outputid = "assessmentSelect", module = T, output, session)
+  reactiveAssessment <- reactive({input$assessment})
   
-  moduleStationsServer("Stations")
-  moduleAssessmentIndicatorsServer("AssessInd")
-  moduleAnnualIndicatorsServer("AnnualInd")
-  moduleAssessmentServer("Assessment")
+  moduleStationsServer("Stations", assessment = reactiveAssessment)
+  moduleAssessmentIndicatorsServer("AssessInd", assessment = reactiveAssessment)
+  moduleAnnualIndicatorsServer("AnnualInd", assessment = reactiveAssessment)
+  moduleAssessmentServer("Assessment", assessment = reactiveAssessment)
   
 
 }
