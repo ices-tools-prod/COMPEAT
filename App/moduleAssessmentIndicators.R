@@ -7,9 +7,9 @@ moduleAssessmentIndicatorsUI <- function(id) {
         sidebarPanel = sidebarPanel(
           uiOutput(ns("indicatorSelector")),
           uiOutput(ns("unitSelector")),
-          uiOutput(ns("assessmentRadioButtons")),
+          uiOutput(ns("assessmentSelect")),
           shiny::radioButtons(inputId = ns("display"),
-                              "Select Assessmentoutcomes",
+                              "Select Assessment outcomes",
                               choices = c("Status" = "EQRS_Cl", 
                                           "Confidence" = "C_Class",
                                           "Temporal Confidence" = "TC_Clss",
@@ -30,8 +30,8 @@ moduleAssessmentIndicatorsServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    # Radio buttons can adjust to assessments being added / removed from ./Data
-    radio_buttons_from_directory(dir = "../Data", id = "assessment", output, session)
+    # Dropdown selector that adjusts to assessments being added / removed from ./Data
+    shinyselect_from_directory(dir = "../Data", selector = "select", id = "assessment", outputid = "assessmentSelect", module = T, output, session)
     
     indicator_data <- reactive({
       
@@ -48,7 +48,12 @@ moduleAssessmentIndicatorsServer <- function(id) {
     
    
     output$data <- renderDT({
-      indicator_data()
+      datatable(indicator_data(), 
+                filter = 'top', 
+                extensions = 'FixedColumns', 
+                options = list(
+                  scrollX = TRUE,
+                  fixedColumns = list(leftColumns = 3)))
     })
     
     indicator_shape <- reactive({

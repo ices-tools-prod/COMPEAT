@@ -31,21 +31,32 @@ get_centroid <- function(sf_object) {
   
 }
 
-#' Creates radio buttons for r shiny ui module based on directory contents
+#' Creates radio buttons for r shiny ui based on directory contents
 #'
 #' @param dir 
 #' @param id 
 #' @param output 
 #' @param session 
+#' @param selector 
+#' @param module 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-radio_buttons_from_directory <- function(dir, id, output, session) {
+shinyselect_from_directory <- function(dir, id, outputid, selector = c("radio", "select"), module = F, output, session) {
   
+  if(module ==T){
+    Inputid <- session$ns(id) 
+  } else {
+    Inputid <- session$id 
+  }
+      
   assessment_names <- list.dirs(dir, full.names = F, recursive = F)
-  output$assessmentRadioButtons <- renderUI({
-  radioButtons(session$ns(id), "Choose an assessment:", choices = assessment_names)
+  output[[outputid]] <- renderUI({
+    if(selector == "radio") {
+      shiny::radioButtons(Inputid, "Choose an assessment:", choices = assessment_names)
+    } else if(selector == "select")
+      shiny::selectInput(Inputid, "Choose an assessment:", choices = assessment_names)
   })
 }

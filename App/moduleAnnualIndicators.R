@@ -7,7 +7,7 @@ moduleAnnualIndicatorsUI <- function(id) {
         sidebarPanel = sidebarPanel(
           uiOutput(ns("indicatorSelector")),
           uiOutput(ns("unitSelector")),
-          uiOutput(ns("assessmentRadioButtons")),
+          uiOutput(ns("assessmentSelect")),
           shiny::downloadButton(ns("downloadIndicators"), "Download")), 
         mainPanel = mainPanel(shiny::plotOutput(ns("chart")))
       )
@@ -20,8 +20,8 @@ moduleAnnualIndicatorsServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    # Radio buttons can adjust to assessments being added / removed from ./Data
-    radio_buttons_from_directory(dir = "../Data", id = "assessment", output, session)
+    # Dropdown selector that adjusts to assessments being added / removed from ./Data
+    shinyselect_from_directory(dir = "../Data", selector = "select", id = "assessment", outputid = "assessmentSelect", module = T, output, session)
     
     indicator_data <- reactive({
       
@@ -33,13 +33,13 @@ moduleAnnualIndicatorsServer <- function(id) {
     output$indicatorSelector <- renderUI({ 
       req(indicator_data())
       indicators <- unique(indicator_data()$Name)
-      shiny::selectInput(session$ns("indicator"), "Choose an Indicator:", choices = indicators)
+      shiny::selectInput(session$ns("indicator"), "Select Indicator:", choices = indicators)
     })
     
     output$unitSelector <- renderUI({ 
       req(indicator_data())
       units <- unique(indicator_data()$Description)
-      shiny::selectInput(session$ns("unit"), "Choose an Indicator:", choices = units)
+      shiny::selectInput(session$ns("unit"), "Select Unit:", choices = units)
     })
     
     plot_data <- reactive({
