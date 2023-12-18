@@ -7,7 +7,7 @@ moduleAssessmentUI <- function(id) {
                    selectInput(inputId = ns("category"), "Assessment Category", c("Overall Assessment" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All"),
                    shiny::radioButtons(inputId = ns("display"),
                                        "Select Assessment outcome",
-                                       choices = c("Status" = "EQRS", 
+                                       choices = c("Quality Status" = "EQRS", 
                                                    "Confidence" = "C"))
                  ),
                  mainPanel(

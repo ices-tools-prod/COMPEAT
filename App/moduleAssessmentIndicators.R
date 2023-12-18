@@ -9,7 +9,7 @@ moduleAssessmentIndicatorsUI <- function(id) {
           uiOutput(ns("indicatorSelector")),
           shiny::radioButtons(inputId = ns("display"),
                               "Select Assessment outcomes",
-                              choices = c("Status" = "EQRS_Cl", 
+                              choices = c("Quality Status" = "EQRS_Cl", 
                                           "Confidence" = "C_Class",
                                           "Temporal Confidence" = "TC_Clss",
                                           "Spatial Confidence" = "SC_Clss")),
