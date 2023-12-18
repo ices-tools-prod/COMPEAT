@@ -42,7 +42,7 @@ ui <- tagList(
 server <- function(input, output, session) {
 
   # Dropdown selector that adjusts to assessments being added / removed from ./Data
-  shinyselect_from_directory(dir = "../Data", selector = "select", id = "assessment", outputid = "assessmentSelect", module = T, output, session)
+  shinyselect_from_directory(dir = "../Data", selector = "select", id = "assessment", uiOutput = "Select Assessment:", outputid = "assessmentSelect", module = T, output, session)
   reactiveAssessment <- reactive({input$assessment})
   
   moduleStationsServer("Stations", assessment = reactiveAssessment)

@@ -4,7 +4,7 @@ moduleAssessmentIndicatorsUI <- function(id) {
   tabPanel("Map",
     tagList(
       sidebarLayout(
-        sidebarPanel = sidebarPanel(
+        sidebarPanel = sidebarPanel(width = 2,
           uiOutput(ns("unitSelector")),
           uiOutput(ns("indicatorSelector")),
           shiny::radioButtons(inputId = ns("display"),

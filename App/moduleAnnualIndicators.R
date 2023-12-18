@@ -4,7 +4,7 @@ moduleAnnualIndicatorsUI <- function(id) {
   tabPanel("Charts",
     tagList(
       sidebarLayout(
-        sidebarPanel = sidebarPanel(
+        sidebarPanel = sidebarPanel(width = 2,
           uiOutput(ns("unitSelector")),
           uiOutput(ns("indicatorSelector")),
           shiny::downloadButton(ns("downloadIndicators"), "Download")), 

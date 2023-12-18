@@ -3,16 +3,14 @@ moduleAssessmentUI <- function(id) {
   ns <- NS(id)
            tagList(
                sidebarLayout(
-                 sidebarPanel(
+                 sidebarPanel(width = 2,
                    shiny::radioButtons(inputId = ns("display"),
                                        "Select Assessment outcome",
                                        choices = c("Status" = "EQRS_Class", 
                                                    "Confidence" = "C_Class",
                                                    "Temporal Confidence" = "TC_Clss",
                                                    "Spatial Confidence" = "SC_Clss")),
-                   selectInput(inputId = "category", "Category", c("All" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All"),
-                   selectInput(inputId = "indicator", "Indicator", c("All", "DIN", "DIP"), "All"),
-                   selectInput(inputId = "Unit", "Unit", c("All"), "All")
+                   selectInput(inputId = "category", "Assessment Category", c("Overall Assessment" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All")
                  ),
                  mainPanel(
                    leafletOutput(outputId = ns("assessmentMap")) %>% withSpinner(),

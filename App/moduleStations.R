@@ -3,7 +3,7 @@ moduleStationsUI <- function(id) {
   ns <- NS(id)
   tagList(
     sidebarLayout(
-      sidebarPanel = sidebarPanel(
+      sidebarPanel = sidebarPanel(width = 2,
         shiny::radioButtons(inputId = ns("stationType"),
                             "Select data type",
                             choices = c("Bottle" = "BOT", "CTD" ="CTD", "Pump" = "PMP")),

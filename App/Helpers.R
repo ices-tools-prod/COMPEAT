@@ -44,7 +44,7 @@ get_centroid <- function(sf_object) {
 #' @export
 #'
 #' @examples
-shinyselect_from_directory <- function(dir, id, outputid, selector = c("radio", "select"), module = F, output, session) {
+shinyselect_from_directory <- function(dir, id, outputid, uiOutput, selector = c("radio", "select"), module = F, output, session) {
   
   if(module ==T){
     Inputid <- session$ns(id) 
@@ -52,11 +52,11 @@ shinyselect_from_directory <- function(dir, id, outputid, selector = c("radio", 
     Inputid <- session$id 
   }
       
-  assessment_names <- list.dirs(dir, full.names = F, recursive = F)
+  directory_names <- list.dirs(dir, full.names = F, recursive = F)
   output[[outputid]] <- renderUI({
     if(selector == "radio") {
-      shiny::radioButtons(Inputid, "Choose an assessment:", choices = assessment_names)
+      shiny::radioButtons(Inputid, uiOutput, choices = directory_names)
     } else if(selector == "select")
-      shiny::selectInput(Inputid, "Choose an assessment:", choices = assessment_names)
+      shiny::selectInput(Inputid, uiOutput, choices = directory_names)
   })
 }
