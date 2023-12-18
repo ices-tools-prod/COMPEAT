@@ -4,13 +4,11 @@ moduleAssessmentUI <- function(id) {
            tagList(
                sidebarLayout(
                  sidebarPanel(width = 2,
+                   selectInput(inputId = ns("category"), "Assessment Category", c("Overall Assessment" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All"),
                    shiny::radioButtons(inputId = ns("display"),
                                        "Select Assessment outcome",
-                                       choices = c("Status" = "EQRS_Class", 
-                                                   "Confidence" = "C_Class",
-                                                   "Temporal Confidence" = "TC_Clss",
-                                                   "Spatial Confidence" = "SC_Clss")),
-                   selectInput(inputId = "category", "Assessment Category", c("Overall Assessment" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All")
+                                       choices = c("Status" = "EQRS", 
+                                                   "Confidence" = "C"))
                  ),
                  mainPanel(
                    leafletOutput(outputId = ns("assessmentMap")) %>% withSpinner(),
@@ -36,7 +34,7 @@ moduleAssessmentServer <- function(id, assessment) {
     
     units <- reactive({
       if(!is.null(assessment())){
-      sf::read_sf(paste0("../Data/", assessment(), "/gridunits.shp"), stringsAsFactors = T)
+      sf::read_sf(paste0("../Data/", assessment(), "/units.shp"), stringsAsFactors = T)
       }
     })
     
@@ -54,36 +52,43 @@ moduleAssessmentServer <- function(id, assessment) {
     output$assessmentMap = renderLeaflet({
       req(merged_data())
       plot_dat <- merged_data()
-      validate(
-        need(c("EQRS_Class", "C_Class") %in% colnames(plot_dat), message = "Check that columns 'EQRS_Class', 'C_Class' are present within the data")
-      )
-      
-      # Transform the spatial data to WGS84
-      plot_dat <- st_transform(plot_dat, crs = 4326)
       
       if (nrow(plot_dat) > 0) {
-        if (input$display == "EQRS_Class") {
-          plot_dat[[input$display]] <- factor(st_drop_geometry(plot_dat)[[input$display]], 
-                                     levels = eqrs_levels, ordered = TRUE)
-          
-          pal <- colorFactor(eqrs_palette, plot_dat$EQRS_Cl)
+        validate(
+          need(c("EQRS_Class", "EQRS_11_Class", "EQRS_12_Class", "EQRS_2_Class", "EQRS_3_Class", "C_Class", "C_11_Class", "C_12_Class", "C_2_Class", "C_3_Class") %in% colnames(plot_dat), message = 'Check that columns "EQRS_Class", "EQRS_11_Class", "EQRS_12_Class", "EQRS_2_Class", "EQRS_3_Class", "C_Class", "C_11_Class", "C_12_Class", "C_2_Class", "C_3_Class" are present within the data')
+        )
+        
+        type <- tolower(input$display)
+        category <- input$category
+        
+        if(category == 0) {
+          display_col <- paste(input$display, "Class", sep = "_")
           
         } else {
-          plot_dat[[input$display]] <- factor(st_drop_geometry(plot_dat)[[input$display]], 
-                                              levels = c_levels, ordered = TRUE)
           
-          pal <- colorFactor(c_palette, plot_dat[[input$display]])
+          display_col <- paste(input$display, toupper(category), "Class", sep = "_")
         }
+        
+        # Transform the spatial data to WGS84
+        plot_dat <- st_transform(plot_dat, crs = 4326)
+        
+
+          plot_dat[[display_col]] <- factor(st_drop_geometry(plot_dat)[[display_col]], 
+                                     levels = get(paste0(type, "_levels")), ordered = TRUE)
+          
+          pal <- colorFactor(get(paste0(type, "_palette")), plot_dat[[display_col]])
+          
+          
         
         leaflet(plot_dat) %>%
           addProviderTiles(providers$Esri.WorldImagery) %>%
           addPolygons(
-            fillColor = ~pal(plot_dat[[input$display]]),
+            fillColor = ~pal(plot_dat[[display_col]]),
             stroke = TRUE, 
             fillOpacity = 0.9, 
             color = "black", 
             weight = 0.3,
-            label = ~paste0("Eutrophication Status ", assessment(), plot_dat[[input$display]]),
+            label = ~paste0("Eutrophication Status ", assessment(), plot_dat[[display_col]]),
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
               textsize = "13px",
@@ -103,29 +108,6 @@ moduleAssessmentServer <- function(id, assessment) {
         scrollX = TRUE,
         fixedColumns = list(leftColumns = 2)))
     })
-    
-    # observeEvent(assessment()Map_groups, {
-    #   my_map <- leafletProxy("assessmentMap") %>% clearControls()
-    #   
-    #   if (assessment()Map_groups == 'EQRS'){
-    #     my_map <- my_map %>%
-    #       addLegend(
-    #         position = "bottomleft",
-    #         colors = eqrs_palette,
-    #         opacity = 1,
-    #         labels = eqrs_labels,
-    #         title = "Status (EQRS)")
-    #   } else {
-    #     my_map <- my_map %>%
-    #       addLegend(
-    #         position = "bottomleft",
-    #         colors = c_palette,
-    #         opacity = 1,
-    #         labels = c_labels,
-    #         title = "Confidence (C)")
-    #   }
-    # })
-    
     
   }
   )}
