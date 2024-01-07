@@ -31,7 +31,7 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
     
     indicator_data <- reactive({
       if(!is.null(assessment())){
-        indicators <- fread(paste0("../Data/", assessment(), "/Annual_Indicator.csv"))
+        indicators <- fread(paste0("./Data/", assessment(), "/Annual_Indicator.csv"))
       }
     })
     
@@ -54,7 +54,7 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
     
     
     indicator_shape <- reactive({
-      sf::read_sf(paste0("../Data/", assessment(), "/Assessment_Indicator.shp"), stringsAsFactors = T)
+      sf::read_sf(paste0("./Data/", assessment(), "/Assessment_Indicator.shp"), stringsAsFactors = T)
     })
     
       

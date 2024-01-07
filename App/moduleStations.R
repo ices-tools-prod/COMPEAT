@@ -27,7 +27,7 @@ moduleStationsServer <- function(id, assessment) {
     
     file_paths <- reactive({
       if(!is.null(assessment())){
-        paste0("../Data/",assessment(), rep("/StationSamples",3), type_names, ".csv")
+        paste0("./Data/",assessment(), rep("/StationSamples",3), type_names, ".csv")
         }
       })
     

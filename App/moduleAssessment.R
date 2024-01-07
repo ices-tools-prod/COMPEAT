@@ -27,14 +27,14 @@ moduleAssessmentServer <- function(id, assessment) {
 
     assessment_data <- reactive({
       if(!is.null(assessment())){
-        assessment <- fread(paste0("../Data/", assessment(), "/Assessment.csv"))
+        assessment <- fread(paste0("./Data/", assessment(), "/Assessment.csv"))
       }
     })
 
     
     units <- reactive({
       if(!is.null(assessment())){
-      sf::read_sf(paste0("../Data/", assessment(), "/units.shp"), stringsAsFactors = T)
+      sf::read_sf(paste0("./Data/", assessment(), "/units.shp"), stringsAsFactors = T)
       }
     })
     
