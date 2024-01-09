@@ -4,11 +4,11 @@ moduleAssessmentUI <- function(id) {
            tagList(
                sidebarLayout(
                  sidebarPanel(width = 2,
-                   selectInput(inputId = ns("category"), "Assessment Category", c("Overall Assessment" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All"),
+                   selectInput(inputId = ns("category"), "Assessment", c("Overall" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All"),
                    shiny::radioButtons(inputId = ns("display"),
                                        "Select Assessment outcome",
-                                       choices = c("Quality Status" = "EQRS", 
-                                                   "Confidence" = "C"))
+                                       choices = c("Status (EQRS)" = "EQRS", 
+                                                   "Confidence (C)" = "C"))
                  ),
                  mainPanel(
                    leafletOutput(outputId = ns("assessmentMap")) %>% withSpinner(),

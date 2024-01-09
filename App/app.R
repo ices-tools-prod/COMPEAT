@@ -7,7 +7,7 @@ library(tidyverse)
 library(leaflet)
 library(DT)
 
-source("./Helpers.R")
+source("./helpers.R")
 source("./moduleStations.R")
 source("./moduleAnnualIndicators.R")
 source("./moduleAssessmentIndicators.R")
@@ -42,7 +42,7 @@ ui <- tagList(
 server <- function(input, output, session) {
 
   # Dropdown selector that adjusts to assessments being added / removed from ./Data
-  shinyselect_from_directory(dir = "./Data", selector = "select", id = "assessment", uiOutput = "Select Assessment:", outputid = "assessmentSelect", module = T, output, session)
+  shinyselect_from_directory(dir = "./Data", selector = "select", id = "assessment", uiOutput = "Select Assessment Period:", outputid = "assessmentSelect", module = T, output, session)
   reactiveAssessment <- reactive({input$assessment})
   
   moduleStationsServer("Stations", assessment = reactiveAssessment)
