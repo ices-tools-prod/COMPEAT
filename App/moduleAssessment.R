@@ -4,7 +4,7 @@ moduleAssessmentUI <- function(id) {
            tagList(
                sidebarLayout(
                  sidebarPanel(width = 2,
-                   selectInput(inputId = ns("category"), "Assessment", c("Overall" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All"),
+                   selectInput(inputId = ns("category"), "Select Assessment", c("Overall" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All"),
                    shiny::radioButtons(inputId = ns("display"),
                                        "Select Assessment outcome",
                                        choices = c("Status (EQRS)" = "EQRS", 

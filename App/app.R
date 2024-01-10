@@ -22,19 +22,17 @@ ui <- tagList(
     fluid = TRUE,
     title = span("Commom Procedure Eutrophication Assessment Tool (COMPEAT)"), 
     header = div(style = "padding: 15px;", uiOutput("assessmentSelect")),
-    
-    tabPanel("Stations",
-             moduleStationsUI("Stations")
+    tabPanel("Assessment",
+             moduleAssessmentUI("Assessment")
     ),
     tabPanel("Indicators",
              tabsetPanel(
-                  moduleAssessmentIndicatorsUI("AssessInd"),
-                  moduleAnnualIndicatorsUI("AnnualInd"))
-                
+               moduleAssessmentIndicatorsUI("AssessInd"),
+               moduleAnnualIndicatorsUI("AnnualInd"))
     ),
-    tabPanel("Assessment",
-            moduleAssessmentUI("Assessment")
-    )
+    tabPanel("Stations",
+             moduleStationsUI("Stations")
+    ),
   )
 )
  
