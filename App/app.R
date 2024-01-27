@@ -28,7 +28,7 @@ server <- function(input, output, session) {
   assessmentPaths <- list.dirs(dataPath, recursive = FALSE)
   assessmentPath <- file.path(dataPath, "COMP 4 (2015-2020)")
   
-  units <- st_read(file.path(dataPath, "units.shp"))
+  units <- st_read(file.path(assessmentPath, "Units.shp"))
   assessment <- fread(file.path(assessmentPath, "Assessment.csv"))
   assessment_indicator <- fread(file.path(assessmentPath, "Assessment_Indicator.csv"))
   annual_indicator <- fread(file.path(assessmentPath, "Annual_Indicator.csv"))
