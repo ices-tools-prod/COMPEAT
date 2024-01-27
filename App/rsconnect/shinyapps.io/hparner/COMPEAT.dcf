@@ -5,7 +5,7 @@ account: hparner
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 8528700
-bundleId: 8124887
+bundleId: 8133427
 url: https://hparner.shinyapps.io/COMPEAT/
 asMultiple: FALSE
 asStatic: FALSE

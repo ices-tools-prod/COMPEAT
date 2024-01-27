@@ -1,4 +1,7 @@
 library(shiny)
+library(R.methodsS3)
+library(R.oo)
+library(R.utils, pos = grep("shiny", search()) + 1)
 library(shinycssloaders)
 library(shinyjs)
 library(sf)

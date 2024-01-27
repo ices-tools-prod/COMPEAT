@@ -1,0 +1,12 @@
+name: compeat
+title: compeat
+username: ices-taf
+account: ices-taf
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10907069
+bundleId: 8133544
+url: https://ices-taf.shinyapps.io/compeat/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
