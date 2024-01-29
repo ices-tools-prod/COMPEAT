@@ -1,13 +1,14 @@
 # Define UI for the module
 moduleAssessmentIndicatorsUI <- function(id) {
   ns <- NS(id)
+  
   tabPanel("Map",
     tagList(
       sidebarLayout(
         sidebarPanel = sidebarPanel(width = 2,
           uiOutput(ns("unitSelector")),
           uiOutput(ns("indicatorSelector")),
-          shiny::radioButtons(inputId = ns("display"),
+          radioButtons(inputId = ns("display"),
                               "Select Assessment outcomes",
                               choices = c("Status (EQRS)" = "EQRS_Cl", 
                                           "Confidence (C)" = "C_Class",
@@ -38,7 +39,7 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
     
     output$indicatorSelector <- renderUI({ 
       req(indicator_data())
-      indicators <- unique(indicator_data()$Name)
+      indicators <- unique(indicator_data()$Name) %>% sort()
       shiny::selectInput(session$ns("indicator"), "Select Indicator:", choices = indicators)
     })
     
