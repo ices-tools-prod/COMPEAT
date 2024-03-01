@@ -138,7 +138,7 @@ units <- units[order(ID), .(Code = ID, Description = LongName, GEOM = geometry)]
 units$UnitID = 1:nrow(units)
 
 # Write to file
-#st_write(units, file.path(outputPath, "units.shp"), delete_layer = TRUE)
+st_write(units, file.path(outputPath, "Units.shp"), delete_layer = TRUE)
 
 # Write to database
 # st_write(
@@ -208,7 +208,7 @@ rm(a,b,c)
 
 gridunits <- st_cast(gridunits)
 
-st_write(gridunits, file.path(outputPath, "gridunits.shp"), delete_layer = TRUE)
+st_write(gridunits, file.path(outputPath, "GridUnits.shp"), delete_layer = TRUE)
 
 # Plot
 ggplot() + geom_sf(data = units) + coord_sf()

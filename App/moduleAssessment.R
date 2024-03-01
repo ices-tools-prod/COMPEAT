@@ -1,22 +1,35 @@
 # Define UI for the module
 moduleAssessmentUI <- function(id) {
   ns <- NS(id)
-           tagList(
-               sidebarLayout(
-                 sidebarPanel(width = 2,
-                   selectInput(inputId = ns("category"), "Select Assessment", c("Overall" = 0, "Nutrient levels - Nitrogen" = 11, "Nutrient levels - Phosphorus" = 12, "Direct effects" = 2, "Indirect effects" = 3), "All"),
-                   shiny::radioButtons(inputId = ns("display"),
-                                       "Select Assessment outcome",
-                                       choices = c("Status (EQRS)" = "EQRS", 
-                                                   "Confidence (C)" = "C"))
-                 ),
-                 mainPanel(
-                   leafletOutput(outputId = ns("assessmentMap")) %>% withSpinner(),
-                   DTOutput(outputId = ns("assessmentTable"))
-                 )
-               )
-             )
-           
+  
+  tagList(
+    sidebarLayout(
+      sidebarPanel(
+        width = 2,
+        selectInput(
+          inputId = ns("category"),
+          label = "Select Assessment",
+          choices = c(
+            "All" = 0,
+            "Nutrient levels - Nitrogen" = 11,
+            "Nutrient levels - Phosphorus" = 12,
+            "Direct effects" = 2,
+            "Indirect effects" = 3)),
+        radioButtons(
+          inputId = ns("display"),
+          label = "Select Assessment outcome",
+          choices = c(
+            "Status (EQRS)" = "EQRS",
+            "Confidence (C)" = "C"))
+        ),
+      mainPanel(
+        leafletOutput(
+          outputId = ns("assessmentMap")) %>% withSpinner(),
+        DTOutput(
+          outputId = ns("assessmentTable"))
+        )
+      )
+    )
 }
 
 
@@ -34,7 +47,7 @@ moduleAssessmentServer <- function(id, assessment) {
     
     units <- reactive({
       if(!is.null(assessment())){
-      sf::read_sf(paste0("./Data/", assessment(), "/units.shp"), stringsAsFactors = T)
+      sf::read_sf(paste0("./Data/", assessment(), "/Units.shp"), stringsAsFactors = T)
       }
     })
     
@@ -99,15 +112,18 @@ moduleAssessmentServer <- function(id, assessment) {
     })
     
     output$assessmentTable <- renderDT({
+      req(!is.null(assessment_data()))
       
-      req(!is.null(assessment_data())) 
-      datatable(assessment_data()[, .(Code, Description, EQRS, C)], 
-                filter = 'top', 
-                extensions = 'FixedColumns', 
-                options = list(
-        scrollX = TRUE,
-        fixedColumns = list(leftColumns = 2)))
-    })
+      datatable(
+        data = assessment_data(), #[, .(Code, Description, EQRS, EQRS_Class, EQRS_N = NE, C, C_Class, C_N = NC)],
+        filter = 'top',
+        extensions = 'FixedColumns',
+        options = list(
+          scrollX = TRUE,
+          fixedColumns = list(leftColumns = 2)
+          )
+        )
+      })
     
   }
   )}
