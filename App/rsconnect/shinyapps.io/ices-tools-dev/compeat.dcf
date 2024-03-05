@@ -5,7 +5,7 @@ account: ices-tools-dev
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 11374693
-bundleId: 8316348
+bundleId: 8316507
 url: https://ices-tools-dev.shinyapps.io/compeat/
 version: 1
 asMultiple: FALSE

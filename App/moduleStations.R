@@ -27,7 +27,7 @@ moduleStationsServer <- function(id, assessment) {
     
     file_paths <- reactive({
       if(!is.null(assessment())){
-        paste0("./Data/",assessment(), rep("/StationSamples",3), type_names, ".csv.gz")
+        paste0("./Data/",assessment(), rep("/Stations",3), type_names, ".csv.gz")
         }
       })
     
@@ -40,7 +40,7 @@ moduleStationsServer <- function(id, assessment) {
     
     station_data <- reactive({
       if(!is.null(assessment())){
-      dat <- fread(req_file(), nrows = 20000)
+      dat <- fread(req_file())
       }
     })
     

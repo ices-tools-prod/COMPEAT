@@ -10,7 +10,7 @@ ipak(packages)
 
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "1877-9999"
-#assessmentPeriod <- "1990-2000" # COMP1
+#ssessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
 assessmentPeriod <- "2015-2020" # COMP4
@@ -279,6 +279,10 @@ stationSamples <- stations[stationSamples, on = .(Longitude..degrees_east., Lati
 fwrite(stationSamples[Type == 'B'], file.path(outputPath, "StationSamplesBOT.csv"))
 fwrite(stationSamples[Type == 'C'], file.path(outputPath, "StationSamplesCTD.csv"))
 fwrite(stationSamples[Type == 'P'], file.path(outputPath, "StationSamplesPMP.csv"))
+
+fwrite(unique(stationSamples[Type == 'B', .(StationID, Cruise, Station, Type, Year, Month, Day, Hour, Minute, Longitude..degrees_east., Latitude..degrees_north.)]), file.path(outputPath, "StationsBOT.csv"))
+fwrite(unique(stationSamples[Type == 'C', .(StationID, Cruise, Station, Type, Year, Month, Day, Hour, Minute, Longitude..degrees_east., Latitude..degrees_north.)]), file.path(outputPath, "StationsCTD.csv"))
+fwrite(unique(stationSamples[Type == 'P', .(StationID, Cruise, Station, Type, Year, Month, Day, Hour, Minute, Longitude..degrees_east., Latitude..degrees_north.)]), file.path(outputPath, "StationsPMP.csv"))
 
 # Get bathymetric depth for the oxygen indicator -----------------------------
 
