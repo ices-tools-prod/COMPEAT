@@ -31,19 +31,16 @@ moduleStationsServer <- function(id, assessment) {
         }
       })
     
-    
-    req_file <- shiny::reactive({
+    req_file <- reactive({
         val <- lookup[lookup$input == input$stationType, "id"]
         file_name <- file_paths()[val]
     })
-    
     
     station_data <- reactive({
       if(!is.null(assessment())){
       dat <- fread(req_file())
       }
     })
-    
     
     output$map <- renderLeaflet({
       if(!is.null(assessment())){
@@ -58,12 +55,9 @@ moduleStationsServer <- function(id, assessment) {
         
       map
       }
-    }) 
-    
+    })
     
     output$downloadStations <- shiny::downloadHandler(
-      
-      
       filename = function () {
         stringr::str_remove(req_file(), pattern = "../")
       },
@@ -71,6 +65,5 @@ moduleStationsServer <- function(id, assessment) {
         file.copy(req_file(), file)
       }
     )
-    
   })
 }

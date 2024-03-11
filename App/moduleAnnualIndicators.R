@@ -7,7 +7,7 @@ moduleAnnualIndicatorsUI <- function(id) {
         sidebarPanel = sidebarPanel(width = 2,
           uiOutput(ns("unitSelector")),
           uiOutput(ns("indicatorSelector")),
-          shiny::downloadButton(ns("downloadIndicators"), "Download")), 
+          shiny::downloadButton(ns("downloadAnnualIndicators"), "Download")), 
         mainPanel = mainPanel(shiny::plotOutput(ns("chart")))
       )
     )
@@ -19,13 +19,18 @@ moduleAnnualIndicatorsServer <- function(id, assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-   indicator_data <- reactive({
+    file_paths_annual_indicators <- reactive({
+      if(!is.null(assessment())){
+        paste0("./Data/", assessment(), "/Annual_Indicator.csv")
+      }
+    })
+    
+    indicator_data <- reactive({
       if(!is.null(assessment())){
         indicators <- fread(paste0("./Data/", assessment(), "/Annual_Indicator.csv"))
       }
     })
 
-       
     output$indicatorSelector <- renderUI({ 
       req(indicator_data())
       indicators <- unique(indicator_data()$Name)
@@ -71,8 +76,13 @@ moduleAnnualIndicatorsServer <- function(id, assessment) {
       }
     })
     
-    
-    
-    
+    output$downloadAnnualIndicators <- shiny::downloadHandler(
+      filename = function () {
+        stringr::str_remove(file_paths_annual_indicators(), pattern = "../")
+      },
+      content = function(file) {
+        file.copy(file_paths_annual_indicators(), file)
+      }
+    )
   }
-  )}
+)}

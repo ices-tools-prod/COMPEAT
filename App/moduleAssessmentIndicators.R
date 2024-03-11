@@ -14,7 +14,7 @@ moduleAssessmentIndicatorsUI <- function(id) {
                                           "Confidence (C)" = "C_Class",
                                           "Temporal Confidence (TC)" = "TC_Clss",
                                           "Spatial Confidence (SC)" = "SC_Clss")),
-          shiny::downloadButton(ns("downloadIndicators"), "Download")
+          shiny::downloadButton(ns("downloadAssessmentIndicators"), "Download")
         ), 
         mainPanel = mainPanel(
           shiny::fluidRow(leafletOutput(ns("map"))),
@@ -29,7 +29,13 @@ moduleAssessmentIndicatorsUI <- function(id) {
 moduleAssessmentIndicatorsServer <- function(id, assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    
+
+    file_paths_assessment_indicators <- reactive({
+      if(!is.null(assessment())){
+        paste0("./Data/", assessment(), "/Assessment_Indicator.csv")
+      }
+    })
+
     indicator_data <- reactive({
       if(!is.null(assessment())){
         indicators <- fread(paste0("./Data/", assessment(), "/Annual_Indicator.csv"))
@@ -105,5 +111,13 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
       }
     })
     
+    output$downloadAssessmentIndicators <- shiny::downloadHandler(
+      filename = function () {
+        stringr::str_remove(file_paths_assessment_indicators(), pattern = "../")
+      },
+      content = function(file) {
+        file.copy(file_paths_assessment_indicators(), file)
+      }
+    )
   }
 )}

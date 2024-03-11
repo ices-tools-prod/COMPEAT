@@ -20,7 +20,8 @@ moduleAssessmentUI <- function(id) {
           label = "Select Assessment outcome",
           choices = c(
             "Status (EQRS)" = "EQRS",
-            "Confidence (C)" = "C"))
+            "Confidence (C)" = "C")),
+        shiny::downloadButton(ns("downloadAssessmentFile"), "Download")
         ),
       mainPanel(
         leafletOutput(
@@ -30,27 +31,30 @@ moduleAssessmentUI <- function(id) {
         )
       )
     )
-}
-
+  }
 
 # Define server logic for the module
 moduleAssessmentServer <- function(id, assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+    
+    file_paths_assessment <- reactive({
+      if(!is.null(assessment())){
+        paste0("./Data/", assessment(), "/Assessment.csv")
+      }
+    })
 
     assessment_data <- reactive({
       if(!is.null(assessment())){
         assessment <- fread(paste0("./Data/", assessment(), "/Assessment.csv"))
       }
     })
-
     
     units <- reactive({
       if(!is.null(assessment())){
       sf::read_sf(paste0("./Data/", assessment(), "/Units.shp"), stringsAsFactors = T)
       }
     })
-    
     
     merged_data <- reactive({
       shiny::validate(
@@ -60,7 +64,6 @@ moduleAssessmentServer <- function(id, assessment) {
       req(units(), assessment_data())
       merge(select(units(), UnitID), assessment_data(), all.x = TRUE)
     })
-    
     
     output$assessmentMap = renderLeaflet({
       req(merged_data())
@@ -84,15 +87,12 @@ moduleAssessmentServer <- function(id, assessment) {
         
         # Transform the spatial data to WGS84
         plot_dat <- st_transform(plot_dat, crs = 4326)
-        
 
           plot_dat[[display_col]] <- factor(st_drop_geometry(plot_dat)[[display_col]], 
                                      levels = get(paste0(type, "_levels")), ordered = TRUE)
           
           pal <- colorFactor(get(paste0(type, "_palette")), plot_dat[[display_col]])
           
-          
-        
         leaflet(plot_dat) %>%
           addProviderTiles(providers$Esri.WorldImagery) %>%
           addPolygons(
@@ -124,6 +124,17 @@ moduleAssessmentServer <- function(id, assessment) {
           )
         )
       })
+    
+    output$downloadAssessmentFile <- shiny::downloadHandler(
+      filename = function () {
+        str_remove(file_paths_assessment(), pattern = "../")
+      },
+      content = function(file) {
+        file.copy(file_paths_assessment(), file)
+      }
+    )
+    
+    
     
   }
   )}
