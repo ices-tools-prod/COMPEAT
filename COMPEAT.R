@@ -53,12 +53,12 @@ stationSamplesPMPFile <- file.path(inputPath, "")
 indicator_CPHL_EO_02 <- file.path(inputPath, "")
 
 if (assessmentPeriod == "1877-9999"){
-  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
-            "https://www.dropbox.com/s/727ac3e17out2n5/Configuration1877-9999.xlsx?dl=1",
-            "https://www.dropbox.com/s/yoh3jby0ee6x510/StationSamples1877-9999BOT_2023-01-31.txt.gz?dl=1",
-            "https://www.dropbox.com/s/tnu9q08fizzk1pi/StationSamples1877-9999CTD_2023-01-31.txt.gz?dl=1",
-            "https://www.dropbox.com/s/239wa4e9epzfmh4/StationSamples1877-9999PMP_2023-01-31.txt.gz?dl=1",
-            "https://www.dropbox.com/s/2whuh77h6mbalbn/Indicator_CPHL_EO_02_1877-9999.csv?dl=1")
+  urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
+            "https://icesoceanography.blob.core.windows.net/compeat/Configuration1877-9999.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1877-9999BOT_2023-01-31.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1877-9999CTD_2023-01-31.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1877-9999PMP_2023-01-31.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_1877-9999.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1877-9999.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples1877-9999BOT_2023-01-31.txt.gz")
@@ -66,12 +66,12 @@ if (assessmentPeriod == "1877-9999"){
   stationSamplesPMPFile <- file.path(inputPath, "StationSamples1877-9999PMP_2023-01-31.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_1877-9999.csv")
 } else if (assessmentPeriod == "1990-2000") {
-  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
-            "https://www.dropbox.com/s/eouhsa10p8ri5qs/Configuration1990-2000.xlsx?dl=1",
-            "https://www.dropbox.com/s/hf9y7kgf4ijsu1u/StationSamples1990-2000BOT_2022-05-11.txt.gz?dl=1",
-            "https://www.dropbox.com/s/5mjwp9jw6tlms1o/StationSamples1990-2000CTD_2022-05-11.txt.gz?dl=1",
-            "https://www.dropbox.com/s/ubjlo32nk2kpfdn/StationSamples1990-2000PMP_2022-05-11.txt.gz?dl=1",
-            "https://www.dropbox.com/s/d07i8xzxh1qq8xd/Indicator_CPHL_EO_02_1990-2000.csv?dl=1")
+  urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
+            "https://icesoceanography.blob.core.windows.net/compeat/Configuration1990-2000.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1990-2000BOT_2022-05-11.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1990-2000CTD_2022-05-11.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1990-2000PMP_2022-05-11.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_1990-2000.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1990-2000.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples1990-2000BOT_2022-05-11.txt.gz")
@@ -79,12 +79,12 @@ if (assessmentPeriod == "1877-9999"){
   stationSamplesPMPFile <- file.path(inputPath, "StationSamples1990-2000PMP_2022-05-11.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_1990-2000.csv")
 } else if (assessmentPeriod == "2001-2006") {
-  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
-            "https://www.dropbox.com/s/st7p60a8rr4yu8s/Configuration2001-2006.xlsx?dl=1",
-            "https://www.dropbox.com/s/se7bdaaeu8alftl/StationSamples2001-2006BOT_2022-05-11.txt.gz?dl=1",
-            "https://www.dropbox.com/s/tla1vislh2rk50d/StationSamples2001-2006CTD_2022-05-11.txt.gz?dl=1",
-            "https://www.dropbox.com/s/vtl40rkoelzafav/StationSamples2001-2006PMP_2022-05-11.txt.gz?dl=1",
-            "https://www.dropbox.com/s/yrbqfmfnfk32rum/Indicator_CPHL_EO_02_2001-2006.csv?dl=1")
+  urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
+            "https://icesoceanography.blob.core.windows.net/compeat/Configuration2001-2006.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2001-2006BOT_2022-05-11.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2001-2006CTD_2022-05-11.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2001-2006PMP_2022-05-11.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_2001-2006.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2001-2006.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples2001-2006BOT_2022-05-11.txt.gz")
@@ -92,12 +92,12 @@ if (assessmentPeriod == "1877-9999"){
   stationSamplesPMPFile <- file.path(inputPath, "StationSamples2001-2006PMP_2022-05-11.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2001-2006.csv")
 } else if (assessmentPeriod == "2006-2014") {
-  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
-            "https://www.dropbox.com/s/q5awsqulaj1z4jw/Configuration2006-2014.xlsx?dl=1",
-            "https://www.dropbox.com/s/k95mxp4u51nb2hs/StationSamples2006-2014BOT_2022-09-13.txt.gz?dl=1",
-            "https://www.dropbox.com/s/0gsloj4zxdw9ksl/StationSamples2006-2014CTD_2022-09-13.txt.gz?dl=1",
-            "https://www.dropbox.com/s/hign507j227xomx/StationSamples2006-2014PMP_2022-09-13.txt.gz?dl=1",
-            "https://www.dropbox.com/s/kpbugtd4rwdxr9s/Indicator_CPHL_EO_02_2006-2014.csv?dl=1")
+  urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
+            "https://icesoceanography.blob.core.windows.net/compeat/Configuration2006-2014.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2006-2014BOT_2022-09-13.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2006-2014CTD_2022-09-13.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2006-2014PMP_2022-09-13.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_2006-2014.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2006-2014.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples2006-2014BOT_2022-09-13.txt.gz")
@@ -105,12 +105,12 @@ if (assessmentPeriod == "1877-9999"){
   stationSamplesPMPFile <- file.path(inputPath, "StationSamples2006-2014PMP_2022-09-13.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2006-2014.csv")
 } else if (assessmentPeriod == "2015-2020") {
-  urls <- c("https://www.dropbox.com/s/hm086ahtu1en4fl/AssessmentUnits.zip?dl=1",
-            "https://www.dropbox.com/s/pt7g4b7q9gh18yf/Configuration2015-2020.xlsx?dl=1",
-            "https://www.dropbox.com/s/reyn6idzyfgg57a/StationSamples2015-2020BOT_2022-08-09.txt.gz?dl=1",
-            "https://www.dropbox.com/s/annbg1l5yx7a99m/StationSamples2015-2020CTD_2022-08-09.txt.gz?dl=1",
-            "https://www.dropbox.com/s/13t1b0nfapns07w/StationSamples2015-2020PMP_2022-08-09.txt.gz?dl=1",
-            "https://www.dropbox.com/s/d5gpsbcqsbtz09l/Indicator_CPHL_EO_02_2015-2020.csv?dl=1")
+  urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
+            "https://icesoceanography.blob.core.windows.net/compeat/Configuration2015-2020.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2015-2020BOT_2022-08-09.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2015-2020CTD_2022-08-09.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2015-2020PMP_2022-08-09.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_2015-2020.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples2015-2020BOT_2022-08-09.txt.gz")
