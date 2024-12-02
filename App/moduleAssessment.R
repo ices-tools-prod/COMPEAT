@@ -6,6 +6,7 @@ moduleAssessmentUI <- function(id) {
     sidebarLayout(
       sidebarPanel(
         width = 2,
+        uiOutput(ns("assessmentSelect")),
         selectInput(
           inputId = ns("category"),
           label = "Select Assessment",
@@ -34,31 +35,41 @@ moduleAssessmentUI <- function(id) {
   }
 
 # Define server logic for the module
-moduleAssessmentServer <- function(id, assessment) {
+moduleAssessmentServer <- function(id, shared_state) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
+    shinyselect_from_directory(dir = "./Data", selector = "dropdown", id = "assessment", uiOutput = "Select Assessment Period:", outputid = "assessmentSelect", module = T, output, session)
+    
+    observeEvent(input$assessment, {
+      shared_state$assessment <- input$assessment
+    })
+    
     file_paths_assessment <- reactive({
-      if(!is.null(assessment())){
-        paste0("./Data/", assessment(), "/Assessment.csv")
+      browser()
+      if(!is.null(shared_state$assessment)){
+        browser()
+        paste0("./Data/", shared_state$assessment, "/Assessment.csv")
       }
     })
 
     assessment_data <- reactive({
-      if(!is.null(assessment())){
-        assessment <- fread(paste0("./Data/", assessment(), "/Assessment.csv"))
+      
+      if(!is.null(shared_state$assessment)){
+        assessment <- fread(paste0("./Data/", shared_state$assessment, "/Assessment.csv"))
       }
     })
     
     units <- reactive({
-      if(!is.null(assessment())){
-      sf::read_sf(paste0("./Data/", assessment(), "/Units.shp"), stringsAsFactors = T)
+      if(!is.null(shared_state$assessment)){
+      sf::read_sf(paste0("./Data/", shared_state$assessment, "/Units.shp"), stringsAsFactors = T)
       }
     })
     
     merged_data <- reactive({
+
       shiny::validate(
-        need(!is.null(assessment()), "No assessment selected"),
+        need(!is.null(shared_state$assessment), "No assessment selected"),
         need(!is.null(units()), "Units not available")
       )
       req(units(), assessment_data())
@@ -101,7 +112,7 @@ moduleAssessmentServer <- function(id, assessment) {
             fillOpacity = 0.9, 
             color = "black", 
             weight = 0.3,
-            label = ~paste0("Eutrophication Status ", assessment(), plot_dat[[display_col]]),
+            label = ~paste0("Eutrophication Status ", shared_state$assessment, plot_dat[[display_col]]),
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
               textsize = "13px",
@@ -127,10 +138,10 @@ moduleAssessmentServer <- function(id, assessment) {
     
     output$downloadAssessmentFile <- shiny::downloadHandler(
       filename = function () {
-        str_remove(file_paths_assessment(), pattern = "../")
+        str_remove(file_paths_shared_state$assessment, pattern = "../")
       },
       content = function(file) {
-        file.copy(file_paths_assessment(), file)
+        file.copy(file_paths_shared_state$assessment, file)
       }
     )
     

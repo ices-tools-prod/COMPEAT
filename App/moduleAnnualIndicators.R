@@ -15,19 +15,25 @@ moduleAnnualIndicatorsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleAnnualIndicatorsServer <- function(id, assessment) {
+moduleAnnualIndicatorsServer <- function(id, shared_state) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
+    shinyselect_from_directory(dir = "./Data", selector = "dropdown", id = "assessment", uiOutput = "Select Assessment Period:", outputid = "assessmentSelect", module = T, output, session)
+    
+    observeEvent(input$assessment, {
+      shared_state$assessment <- input$assessment
+    })
+    
     file_paths_annual_indicators <- reactive({
-      if(!is.null(assessment())){
-        paste0("./Data/", assessment(), "/Annual_Indicator.csv")
+      if(!is.null(shared_state$assessment)){
+        paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv")
       }
     })
     
     indicator_data <- reactive({
-      if(!is.null(assessment())){
-        indicators <- fread(paste0("./Data/", assessment(), "/Annual_Indicator.csv"))
+      if(!is.null(shared_state$assessment)){
+        indicators <- fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
       }
     })
 

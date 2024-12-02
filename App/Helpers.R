@@ -51,12 +51,12 @@ shinyselect_from_directory <- function(dir, id, outputid, uiOutput, selector = c
   } else {
     Inputid <- session$id 
   }
-      
+  
   directory_names <- list.dirs(dir, full.names = F, recursive = F) %>% sort(decreasing = TRUE)
   output[[outputid]] <- renderUI({
     if(selector == "radio") {
       shiny::radioButtons(Inputid, uiOutput, choices = directory_names)
-    } else if(selector == "select")
+    } else if(selector == "dropdown")
       shiny::selectInput(Inputid, uiOutput, choices = directory_names)
   })
 }

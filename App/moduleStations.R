@@ -18,16 +18,22 @@ moduleStationsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleStationsServer <- function(id, assessment) {
+moduleStationsServer <- function(id, shared_state) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
+    shinyselect_from_directory(dir = "./Data", selector = "dropdown", id = "assessment", uiOutput = "Select Assessment Period:", outputid = "assessmentSelect", module = T, output, session)
+    
+    observeEvent(input$assessment, {
+      shared_state$assessment <- input$assessment
+    })
+    
     type_names <- c("BOT", "CTD", "PMP")
     lookup <- data.frame(input = type_names, id = 1:3)
     
     file_paths <- reactive({
-      if(!is.null(assessment())){
-        paste0("./Data/",assessment(), rep("/Stations",3), type_names, ".csv.gz")
+      if(!is.null(shared_state$assessment)){
+        paste0("./Data/",shared_state$assessment, rep("/Stations",3), type_names, ".csv.gz")
         }
       })
     
@@ -37,13 +43,13 @@ moduleStationsServer <- function(id, assessment) {
     })
     
     station_data <- reactive({
-      if(!is.null(assessment())){
+      if(!is.null(shared_state$assessment)){
       dat <- fread(req_file())
       }
     })
     
     output$map <- renderLeaflet({
-      if(!is.null(assessment())){
+      if(!is.null(shared_state$assessment)){
         station_samples_sf <- sf::st_as_sf(station_data(), coords = c("Longitude..degrees_east.", "Latitude..degrees_north."))
 
         view_centre <- get_centroid(station_samples_sf)

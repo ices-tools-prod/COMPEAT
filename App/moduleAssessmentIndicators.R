@@ -26,19 +26,25 @@ moduleAssessmentIndicatorsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleAssessmentIndicatorsServer <- function(id, assessment) {
+moduleAssessmentIndicatorsServer <- function(id, shared_state) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
+    shinyselect_from_directory(dir = "./Data", selector = "dropdown", id = "assessment", uiOutput = "Select Assessment Period:", outputid = "assessmentSelect", module = T, output, session)
+    
+    observeEvent(input$assessment, {
+      shared_state$assessment <- input$assessment
+    })
+    
     file_paths_assessment_indicators <- reactive({
-      if(!is.null(assessment())){
-        paste0("./Data/", assessment(), "/Assessment_Indicator.csv")
+      if(!is.null(shared_state$assessment)){
+        paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.csv")
       }
     })
 
     indicator_data <- reactive({
-      if(!is.null(assessment())){
-        indicators <- fread(paste0("./Data/", assessment(), "/Annual_Indicator.csv"))
+      if(!is.null(shared_state$assessment)){
+        indicators <- fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
       }
     })
     
@@ -61,7 +67,7 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
     
     
     indicator_shape <- reactive({
-      sf::read_sf(paste0("./Data/", assessment(), "/Assessment_Indicator.shp"), stringsAsFactors = T)
+      sf::read_sf(paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.shp"), stringsAsFactors = T)
     })
     
       
@@ -101,7 +107,7 @@ moduleAssessmentIndicatorsServer <- function(id, assessment) {
             fillOpacity = 0.9, 
             color = "black", 
             weight = 0.3,
-            label = ~paste0("Eutrophication Status ", assessment(), plot_dat[[input$display]]),
+            label = ~paste0("Eutrophication Status ", shared_state$assessment, plot_dat[[input$display]]),
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
               textsize = "13px",
