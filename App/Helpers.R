@@ -60,3 +60,49 @@ shinyselect_from_directory <- function(dir, id, outputid, uiOutput, selector = c
       shiny::selectInput(Inputid, uiOutput, choices = directory_names)
   })
 }
+
+make_hovertext_content <- function(plot_data, output, category, var){
+
+  stopifnot(output %in% c("EQRS", "C"))
+  stopifnot(category %in% c(0, 11, 12, 2, 3))
+  
+  if(output == "EQRS"){
+    if(category == 0){
+      
+      label_text <- with(plot_data, paste0(
+        "<b>", get("Description"), " (", get("Code"),")", ":</b><br>",
+        "EQRS Class: ", get("EQRS_Class"), "</b><br>",
+        "EQRS", ": ", get("EQRS"), "</b><br>",
+        "EQR", ": ", get("EQR"), "</b><br>",
+        "N E", ": ", get("NE")
+      ))
+      
+    } else {
+      
+      label_text <- with(plot_data, paste0(
+        "<b>", get("Description"), " (", get("Code"),")", ":</b><br>",
+        "EQRS_", var(), "_Class: ", get(paste0("EQRS_", var(), "_Class")), "</b><br>",
+        "EQRS_", var(), ": ", get(paste0("EQRS_", var())), "</b><br>",
+        "EQR_", var(), ": ", get(paste0("EQR_", var())), "</b><br>",
+        "N_", var(), ": ", get(paste0("N_", var()))
+      ))
+    }
+  } else {
+    if(category == 0){
+      label_text <- with(plot_data, paste0(
+        "<b>", get("Description"), " (", get("Code"),")", ":</b><br>",
+        "C_Class: ", get("C_Class"), "</b><br>",
+        "C", ": ", get("C"), "</b><br>",
+        "N_C", ": ", get("NC"), "</b><br>"
+      ))
+      
+    } else {
+      label_text <- with(plot_data, paste0(
+        "<b>", get("Description"), " (", get("Code"),")", ":</b><br>",
+        "C_", var(), "_Class: ", get(paste0("C_", var(), "_Class")), "</b><br>",
+        "C_", var(), ": ", get(paste0("C_", var())), "</b><br>",
+        "N_", var(), ": ", get(paste0("N_", var()))
+      ))
+    }
+  }
+}

@@ -26,6 +26,8 @@ ui <- tagList(
     windowTitle = "COMPEAT",
     id = "tabset",
     fluid = TRUE,
+    theme = bslib::bs_theme(bootswatch = "flatly"),
+      
     title = span("Commom Procedure Eutrophication Assessment Tool (COMPEAT)"), 
     
     tabPanel("Assessment",
