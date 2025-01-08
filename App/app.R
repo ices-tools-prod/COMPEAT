@@ -18,8 +18,15 @@ source("./moduleStations.R")
 source("./moduleAnnualIndicators.R")
 source("./moduleAssessmentIndicators.R")
 source("./moduleAssessment.R")
+glossary <- readRDS("./Data/glossary.rds")
 
 ui <- tagList(
+  tags$script(HTML("
+    $(document).ready(function() {
+      $('[data-toggle=\"tooltip\"]').tooltip();
+    });
+  ")),
+  
   navbarPage(
     position = "static-top",
     collapsible = TRUE,
@@ -54,7 +61,7 @@ server <- function(input, output, session) {
   moduleStationsServer("Stations", shared_state = shared_state)
   moduleAssessmentIndicatorsServer("AssessInd", shared_state = shared_state)
   moduleAnnualIndicatorsServer("AnnualInd", shared_state = shared_state)
-  moduleAssessmentServer("Assessment", shared_state = shared_state)
+  moduleAssessmentServer("Assessment", shared_state = shared_state, glossary)
   
 
 }
