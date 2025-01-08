@@ -11,34 +11,21 @@ moduleAssessmentUI <- function(id) {
           label = "Select Assessment",
           choices = c(
             "All" = 0,
-            "Nutrient levels - Nitrogen" = 11,
-            "Nutrient levels - Phosphorus" = 12,
+            "Nutrient levels: Nitrogen" = 11,
+            "Nutrient levels: Phosphorus" = 12,
             "Direct effects" = 2,
             "Indirect effects" = 3)),
+        checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
+        sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)",min = 0,max = 100,value = 50), 
         shiny::downloadButton(ns("downloadAssessmentFile"), "Download")
-        ),
-      fluidRow(column(width = 6,
-        card(height = "35vh", full_screen = T, 
-             card_header("Map1",class = "bg-primary"),
-          leafletOutput(
-            outputId = ns("map1")) %>% withSpinner()),
-                      ),
-        column(width = 6,
-        card(height = "35vh", full_screen = T,
-             card_header("Map2", class = "bg-primary"),
-             leafletOutput(outputId = ns("map2")) %>% withSpinner()),
-      )),
-      card(height = "50vh", full_screen = T,
-           card_header("Table", class = "bg-primary"),DTOutput(
-          outputId = ns("assessmentTable"))
-      )
-        
-      )
+      ),
+      uiOutput(ns("main_panel"))
     )
-  }
+  )
+}
 
 # Define server logic for the module
-moduleAssessmentServer <- function(id, shared_state) {
+moduleAssessmentServer <- function(id, shared_state, glossary) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
@@ -49,7 +36,7 @@ moduleAssessmentServer <- function(id, shared_state) {
     })
     
     file_paths_assessment <- reactive({
-      browser()
+      
       if(!is.null(shared_state$assessment)){
         browser()
         paste0("./Data/", shared_state$assessment, "/Assessment.csv")
@@ -74,13 +61,24 @@ moduleAssessmentServer <- function(id, shared_state) {
       }
     })
     
+    
+    var <- reactive({
+              switch(input$category,
+                  "0" = "All",
+                  "11" = "Nitrogen", 
+                  "12" = "Phosphorus", 
+                  "2" = "Direct Effects",
+                  "3" = "Indirect Effects")
+    })
+    
+    
     merged_data <- reactive({
-
       shiny::validate(
         need(!is.null(shared_state$assessment), "No assessment selected"),
         need(!is.null(units()), "Units not available")
       )
       req(units(), assessment_data())
+      
       dat <- merge(select(units(), UnitID), assessment_data(), all.x = TRUE)
       new_names <- str_replace_all(names(dat), name_schema)
       names(dat) <- new_names
@@ -97,7 +95,7 @@ moduleAssessmentServer <- function(id, shared_state) {
         dat <- dat %>% mutate(across(c(5:6,9), ~ round(.x, digits = 2)))
     })
     
-    output$map1 = renderLeaflet({
+    output$map1 <- renderLeaflet({
       req(merged_data())
       plot_dat <- merged_data()
       
@@ -125,7 +123,8 @@ moduleAssessmentServer <- function(id, shared_state) {
         label_text <- make_hovertext_content(plot_data = plot_dat, output = type, category = category, var = var)
           
         
-        leaflet(plot_dat) %>%
+        leaflet_map <- 
+          leaflet(plot_dat) %>%
           addProviderTiles(providers$Esri.WorldImagery) %>%
           addPolygons(
             fillColor = ~pal(get(display_col)),
@@ -139,15 +138,21 @@ moduleAssessmentServer <- function(id, shared_state) {
               textsize = "13px",
               direction = "auto"
             )
-          ) %>%
-          addLegend(
-            position = "bottomright",
-            pal = pal,
-            values = plot_dat[[display_col]],
-            title = case_when(type == "EQRS" ~ "Eutrophication Status",
-                              type == "C" ~ "Confidence Level"),
-            opacity = 1
           )
+        if(input$show_legend) {
+          
+          leaflet_map <- 
+            leaflet_map %>%
+            addLegend(
+              position = "bottomright",
+              pal = pal,
+              values = plot_dat[[display_col]],
+              title = case_when(type == "EQRS" ~ "Eutrophication Status",
+                                type == "C" ~ "Confidence Level"),
+              opacity = 1
+            )
+        }
+        leaflet_map
       }
     })
     
@@ -178,8 +183,8 @@ moduleAssessmentServer <- function(id, shared_state) {
         
         label_text <- make_hovertext_content(plot_data = plot_dat, output = type, category = category, var = var)
           
-          #browser()
-        leaflet(plot_dat) %>%
+        leaflet_map <- 
+          leaflet(plot_dat) %>%
           addProviderTiles(providers$Esri.WorldImagery) %>%
           addPolygons(
             fillColor = ~pal(get(display_col)),
@@ -193,7 +198,12 @@ moduleAssessmentServer <- function(id, shared_state) {
               textsize = "13px",
               direction = "auto"
             )
-          ) %>%
+          ) 
+        
+        if(input$show_legend) {
+          
+          leaflet_map <- 
+            leaflet_map %>%
           addLegend(
             position = "bottomright",
             pal = pal,
@@ -202,30 +212,37 @@ moduleAssessmentServer <- function(id, shared_state) {
                               type == "C" ~ "Confidence Level"),
             opacity = 1
           )
+        }
+        leaflet_map
       }
     })
     
-    
-    var <- reactive({
-              switch(input$category,
-                  "0" = "All",
-                  "11" = "Nitrogen", 
-                  "12" = "Phosphorus", 
-                  "2" = "Direct Effects",
-                  "3" = "Indirect Effects")
+    dt_data <- reactive({
+      req(!is.null(merged_data()))
+      dat <- st_drop_geometry(merged_data())
+      
     })
     
-    
     output$assessmentTable <- renderDT({
-      req(!is.null(merged_data()))
+      req(!is.null(dt_data()))
       
+      dat <- dt_data()
+      cols <- colnames(dat)
+      col_names <- mutate(glossary, 
+                          display_names = paste0('<span data-toggle="tooltip" title="', description, '">', abbreviation, '</span>'))
+    
       datatable(
-        data = st_drop_geometry(merged_data()), #[, .(Code, Description, EQRS, EQRS_Class, EQRS_N = NE, C, C_Class, C_N = NC)],
+        data = dt_data(), 
+        colnames = col_names$display_names[match(cols, col_names$abbreviation)],
+        escape = FALSE,
         filter = 'top',
         extensions = 'FixedColumns',
         options = list(
           scrollX = TRUE,
-          fixedColumns = list(leftColumns = 2)
+          fixedColumns = list(leftColumns = 2),
+          fnDrawCallback = htmlwidgets::JS(
+            "function() { $('[data-toggle=\"tooltip\"]').tooltip(); }"
+          )
           )
         )
       })
@@ -238,6 +255,36 @@ moduleAssessmentServer <- function(id, shared_state) {
         file.copy(file_paths_shared_state$assessment, file)
       }
     )
+    
+    output$main_panel <- renderUI({
+      tagList(
+        accordion(open = TRUE,
+          accordion_panel(title = "Maps",
+            fluidRow(
+              column(width = 6,
+                          card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
+                            full_screen = T, 
+                               card_header("Status",class = "bg-primary"),
+                               leafletOutput(
+                                 outputId = ns("map1"), height = "100%"))%>% withSpinner(),
+          ),
+              column(width = 6,
+                     card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
+                          full_screen = T,
+                          card_header("Confidence", class = "bg-primary"),
+                          leafletOutput(outputId = ns("map2"), height = "100%"))%>% withSpinner(),
+            ))
+          ), accordion_panel(title = "Table",
+              card(style = paste0("height: ", 600, "px;"),
+                   full_screen = T,
+                   #card_header("Table", class = "bg-primary"),
+                   DTOutput(outputId = ns("assessmentTable")) %>% withSpinner()
+              )
+          )
+        )
+      )
+    })
+    
     
     
     

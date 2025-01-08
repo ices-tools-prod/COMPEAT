@@ -61,48 +61,98 @@ shinyselect_from_directory <- function(dir, id, outputid, uiOutput, selector = c
   })
 }
 
-make_hovertext_content <- function(plot_data, output, category, var){
-
+make_hovertext_content <- function(plot_data, output, category, var) {
+  
   stopifnot(output %in% c("EQRS", "C"))
   stopifnot(category %in% c(0, 11, 12, 2, 3))
   
-  if(output == "EQRS"){
-    if(category == 0){
+  if (output == "EQRS") {
+    if (category == 0) {
       
       label_text <- with(plot_data, paste0(
-        "<b>", get("Description"), " (", get("Code"),")", ":</b><br>",
-        "EQRS Class: ", get("EQRS_Class"), "</b><br>",
-        "EQRS", ": ", get("EQRS"), "</b><br>",
-        "EQR", ": ", get("EQR"), "</b><br>",
-        "N E", ": ", get("NE")
+        # First line outside the table
+        "<div><strong>", get("Description"), " (", get("Code"),")</strong></div><br>",
+        
+        # Start of table with external border and collapsed style
+        "<table style='border: 1px solid black; border-collapse: collapse; width: auto;'>",
+        
+        # Each row has internal borders for each cell
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>EQRS Class</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get("EQRS_Class"), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>EQRS</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get("EQRS"), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>EQR</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get("EQR"), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>N E</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get("NE"), "</td></tr>",
+        
+        "</table>"
       ))
       
     } else {
       
       label_text <- with(plot_data, paste0(
-        "<b>", get("Description"), " (", get("Code"),")", ":</b><br>",
-        "EQRS_", var(), "_Class: ", get(paste0("EQRS_", var(), "_Class")), "</b><br>",
-        "EQRS_", var(), ": ", get(paste0("EQRS_", var())), "</b><br>",
-        "EQR_", var(), ": ", get(paste0("EQR_", var())), "</b><br>",
-        "N_", var(), ": ", get(paste0("N_", var()))
+        "<div><strong>", get("Description"), " (", get("Code"),")</strong></div><br>",
+        "<table style='border: 1px solid black; border-collapse: collapse; width: auto;'>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>EQRS_", var(), "_Class</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get(paste0("EQRS_", var(), "_Class")), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>EQRS_", var(), "</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get(paste0("EQRS_", var())), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>EQR_", var(), "</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get(paste0("EQR_", var())), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>N_", var(), "</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get(paste0("N_", var())), "</td></tr>",
+        
+        "</table>"
       ))
     }
+    
   } else {
-    if(category == 0){
+    if (category == 0) {
+      
       label_text <- with(plot_data, paste0(
-        "<b>", get("Description"), " (", get("Code"),")", ":</b><br>",
-        "C_Class: ", get("C_Class"), "</b><br>",
-        "C", ": ", get("C"), "</b><br>",
-        "N_C", ": ", get("NC"), "</b><br>"
+        "<div><strong>", get("Description"), " (", get("Code"),")</strong></div><br>",
+        "<table style='border: 1px solid black; border-collapse: collapse; width: auto;'>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>C Class</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get("C_Class"), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>C</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get("C"), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>N C</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get("NC"), "</td></tr>",
+        
+        "</table>"
       ))
       
     } else {
+      
       label_text <- with(plot_data, paste0(
-        "<b>", get("Description"), " (", get("Code"),")", ":</b><br>",
-        "C_", var(), "_Class: ", get(paste0("C_", var(), "_Class")), "</b><br>",
-        "C_", var(), ": ", get(paste0("C_", var())), "</b><br>",
-        "N_", var(), ": ", get(paste0("N_", var()))
+        "<div><strong>", get("Description"), " (", get("Code"),")</strong></div><br>",
+        "<table style='border: 1px solid black; border-collapse: collapse; width: auto;'>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>C_", var(), "_Class</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get(paste0("C_", var(), "_Class")), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>C_", var(), "</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get(paste0("C_", var())), "</td></tr>",
+        
+        "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>N_", var(), "</b></td>
+             <td style='border: 1px solid black; padding-inline: 5px'>", get(paste0("N_", var())), "</td></tr>",
+        
+        "</table>"
       ))
     }
   }
+  
+  label_text
 }
+
