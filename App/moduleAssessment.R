@@ -147,8 +147,8 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
               position = "bottomright",
               pal = pal,
               values = plot_dat[[display_col]],
-              title = case_when(type == "EQRS" ~ "Eutrophication Status",
-                                type == "C" ~ "Confidence Level"),
+              title = case_when(type == "EQRS" ~ "Status",
+                                type == "C" ~ "Confidence"),
               opacity = 1
             )
         }
@@ -275,7 +275,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
                           leafletOutput(outputId = ns("map2"), height = "100%"))%>% withSpinner(),
             ))
           ), accordion_panel(title = "Table",
-              card(style = paste0("height: ", 600, "px;"),
+              card(style = paste0("height: ", 85, "vh;"),
                    full_screen = T,
                    #card_header("Table", class = "bg-primary"),
                    DTOutput(outputId = ns("assessmentTable")) %>% withSpinner()
