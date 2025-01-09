@@ -6,21 +6,14 @@ moduleAssessmentIndicatorsUI <- function(id) {
     tagList(
       layout_sidebar(fg = "black", 
         sidebar = bslib::sidebar(width = "15vw", fg = "black", open = T,
-          uiOutput(ns("unitSelector")),
           uiOutput(ns("indicatorSelector")),
-          checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
-          sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)",min = 0,max = 100,value = 50), 
           radioButtons(inputId = ns("confidence"),
-                       "Select confidence measure",
+                       "Select confidence measure:",
                        choices = c("Confidence" = "C_Class",
                                    "Temporal Confidence" = "TC_Clss",
                                    "Spatial Confidence" = "SC_Clss")),
-          radioButtons(inputId = ns("display"),
-                              "Select Assessment outcomes",
-                              choices = c("Status (EQRS)" = "EQRS_Cl", 
-                                          "Confidence (C)" = "C_Class",
-                                          "Temporal Confidence (TC)" = "TC_Clss",
-                                          "Spatial Confidence (SC)" = "SC_Clss")),
+          sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)",min = 0,max = 100,value = 50), 
+          checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
           downloadButton(ns("downloadAssessmentIndicators"), "Download")
         ), 
         uiOutput(ns("main_panel"))
@@ -82,66 +75,63 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state) {
       
     plot_data_sf <- reactive({
       if(!is.null(input$indicator)){
-        dplyr::filter(indicator_shape(), Name == input$indicator)
+        dplyr::filter(indicator_shape(), Name == input$indicator) %>% 
+            mutate(across(where(is.double), ~ round(.x, 2)))
       }
     })
 
         
     output$map1 <- renderLeaflet({
       req(plot_data_sf())
+      req(nrow(plot_data_sf()) >0)
+      
       plot_dat <- plot_data_sf()
       
       # Transform the spatial data to WGS84
       plot_dat <- st_transform(plot_dat, crs = 4326)
       
-      if (nrow(plot_dat) > 0) {
-        if (input$display == "EQRS_Cl") {
-          plot_dat$EQRS_Cl <- factor(st_drop_geometry(plot_dat)[[input$display]], 
+      
+        plot_dat$EQRS_Cl <- factor(st_drop_geometry(plot_dat)[["EQRS_Cl"]], 
                                      levels = eqrs_levels, ordered = TRUE)
           
-          pal <- colorFactor(eqrs_palette, plot_dat$EQRS_Cl)
-          
-        } else {
-          plot_dat[[input$display]] <- factor(st_drop_geometry(plot_dat)[[input$display]], 
-                                              levels = c_levels, ordered = TRUE)
-          
-          pal <- colorFactor(c_palette, plot_dat[[input$display]])
-        }
+        pal <- colorFactor(eqrs_palette, plot_dat$EQRS_Cl)
+     
+        label_text <- make_indicator_hovertext_content(plot_data = plot_dat, output = "EQRS", confidence = NULL, var = input$indicator)
         
         leaflet_map <- 
           leaflet(plot_dat) %>%
           addProviderTiles(providers$Esri.WorldImagery) %>%
           addPolygons(
-            fillColor = ~pal(plot_dat[[input$display]]),
+            fillColor = ~pal(plot_dat[["EQRS_Cl"]]),
             stroke = TRUE, 
             fillOpacity = 0.9, 
             color = "black", 
             weight = 0.3,
-            label = ~paste0("Eutrophication Status ", shared_state$assessment, plot_dat[[input$display]]),
+            label = lapply(label_text, htmltools::HTML),
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
               textsize = "13px",
               direction = "auto"
             )
           ) 
-        
+
         if(input$show_legend) {
-          leaflet_map %>%
+          leaflet_map <- leaflet_map %>%
             addLegend(
             position = "bottomright",
             pal = pal,
-            values = plot_dat[[input$display]],
+            values = plot_dat[["EQRS_Cl"]],
             title = "Eutrophication Status",
             opacity = 1)
         }
       leaflet_map
-    }
 })
     
     
     
     output$map2 <- renderLeaflet({
       req(plot_data_sf())
+      req(input$confidence)
       plot_dat <- plot_data_sf()
       
       # Transform the spatial data to WGS84
@@ -153,8 +143,8 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state) {
                                               levels = c_levels, ordered = TRUE)
           
           pal <- colorFactor(c_palette, plot_dat[[input$confidence]])
-
-        
+          label_text <- make_indicator_hovertext_content(plot_data = plot_dat, output = "C", confidence = input$confidence, var = input$indicator)
+          
         leaflet_map <- 
           leaflet(plot_dat) %>%
           addProviderTiles(providers$Esri.WorldImagery) %>%
@@ -164,7 +154,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state) {
             fillOpacity = 0.9, 
             color = "black", 
             weight = 0.3,
-            label = ~paste0("Eutrophication Status ", shared_state$assessment, plot_dat[[input$confidence]]),
+            label = lapply(label_text, htmltools::HTML),
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
               textsize = "13px",

@@ -8,9 +8,9 @@ moduleAssessmentUI <- function(id) {
         uiOutput(ns("assessmentSelect")),
         selectInput(
           inputId = ns("category"),
-          label = "Select Assessment",
+          label = "Select Assessment Category:",
           choices = c(
-            "All" = 0,
+            "Overall Assessment" = 0,
             "Nutrient levels: Nitrogen" = 11,
             "Nutrient levels: Phosphorus" = 12,
             "Direct effects" = 2,
@@ -119,8 +119,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
                                    levels = get(paste0(type_lower, "_levels")), ordered = TRUE)
         
         pal <- colorFactor(get(paste0(type_lower, "_palette")), plot_dat[[display_col]])
-        
-        label_text <- make_hovertext_content(plot_data = plot_dat, output = type, category = category, var = var)
+        label_text <- make_assessment_hovertext_content(plot_data = plot_dat, output = type, category = category, var = var)
           
         
         leaflet_map <- 
@@ -181,7 +180,8 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         
         pal <- colorFactor(get(paste0(type_lower, "_palette")), plot_dat[[display_col]])
         
-        label_text <- make_hovertext_content(plot_data = plot_dat, output = type, category = category, var = var)
+        browser()
+        label_text <- make_assessment_hovertext_content(plot_data = plot_dat, output = type, category = category, var = var)
           
         leaflet_map <- 
           leaflet(plot_dat) %>%
