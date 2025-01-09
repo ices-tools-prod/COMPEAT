@@ -180,7 +180,6 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         
         pal <- colorFactor(get(paste0(type_lower, "_palette")), plot_dat[[display_col]])
         
-        browser()
         label_text <- make_assessment_hovertext_content(plot_data = plot_dat, output = type, category = category, var = var)
           
         leaflet_map <- 
@@ -274,14 +273,13 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
                           card_header("Confidence", class = "bg-primary"),
                           leafletOutput(outputId = ns("map2"), height = "100%"))%>% withSpinner(),
             ))
-          ), accordion_panel(title = "Table",
-              card(style = paste0("height: ", 85, "vh;"),
-                   full_screen = T,
-                   #card_header("Table", class = "bg-primary"),
-                   DTOutput(outputId = ns("assessmentTable")) %>% withSpinner()
-              )
-          )
-        )
+          )),card(style = paste0("height: ", 85, "vh;"),
+                 full_screen = T,
+                 #card_header("Table", class = "bg-primary"),
+                 DTOutput(outputId = ns("assessmentTable")) %>% withSpinner()
+            )
+          
+        
       )
     })
     
