@@ -58,10 +58,10 @@ server <- function(input, output, session) {
   
   shared_state <- reactiveValues(assessment = NULL)
   
-  moduleStationsServer("Stations", shared_state = shared_state)
-  moduleAssessmentIndicatorsServer("AssessInd", shared_state = shared_state)
-  moduleAnnualIndicatorsServer("AnnualInd", shared_state = shared_state)
   moduleAssessmentServer("Assessment", shared_state = shared_state, glossary)
+  moduleAssessmentIndicatorsServer("AssessInd", shared_state = shared_state, glossary)
+  moduleAnnualIndicatorsServer("AnnualInd", shared_state = shared_state)
+  moduleStationsServer("Stations", shared_state = shared_state)
   
 
 }

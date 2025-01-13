@@ -2,18 +2,18 @@
 moduleStationsUI <- function(id) {
   ns <- NS(id)
   tagList(
-    sidebarLayout(
-      sidebarPanel = sidebarPanel(width = 2,
+    layout_sidebar(fg = "black", 
+                   sidebar = bslib::sidebar(width = "15vw", fg = "black", open = T,
         shiny::radioButtons(inputId = ns("stationType"),
                             "Select data type",
                             choices = c("Bottle" = "BOT", "CTD" ="CTD", "Pump" = "PMP")),
         shiny::downloadButton(ns("downloadStations"), "Download")
     ), 
-    mainPanel = mainPanel(
-      shiny::fluidRow(
+      card(style = paste0("height: ", 85, "vh;"),
+        full_screen = T,
         leaflet::leafletOutput(ns("map"))
       )
-  ))
+  )
 )
 }
 

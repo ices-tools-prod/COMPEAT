@@ -14,7 +14,14 @@ moduleAssessmentIndicatorsUI <- function(id) {
                                    "Spatial Confidence" = "SC_Clss")),
           sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)",min = 0,max = 100,value = 50), 
           checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
-          downloadButton(ns("downloadAssessmentIndicators"), "Download")
+          downloadButton(ns("downloadAssessmentIndicators"), "Download"),
+          accordion(open=1,
+            accordion_panel(title = "Customise Table",
+                            uiOutput(ns("indicator_cols_ui"))
+              
+              ),
+            accordion_panel("Glossary", DTOutput(ns("glossary")))
+          )
         ), 
         uiOutput(ns("main_panel"))
         
@@ -24,7 +31,7 @@ moduleAssessmentIndicatorsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleAssessmentIndicatorsServer <- function(id, shared_state) {
+moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -54,18 +61,6 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state) {
     })
     
    
-    output$data <- renderDT({
-      req(indicator_data())
-      
-      dat <-  indicator_data() %>% 
-        filter(Name == input$indicator)
-      datatable(dat, 
-                filter = 'top', 
-                extensions = 'FixedColumns', 
-                options = list(
-                  scrollX = TRUE,
-                  fixedColumns = list(leftColumns = 3)))
-    })
     
     
     indicator_shape <- reactive({
@@ -186,6 +181,53 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state) {
         file.copy(file_paths_assessment_indicators(), file)
       }
     )
+    
+    output$indicator_cols_ui <- renderUI({
+      req(!is.null(indicator_data()))
+      initial_columns <- colnames(indicator_data())
+      unique_vals <- apply(indicator_data(), 2, function(x) length(unique(x)))
+      cols_with_variance <- names(unique_vals[unique_vals>1])
+      selectizeInput(ns("indicator_cols"), multiple = T, "Select Columns to display", choices = sort(initial_columns), selected = initial_columns[initial_columns %in% cols_with_variance])
+    })
+    
+    output$glossary <- renderDT({
+      names(glossary) <- stringr::str_to_title(names(glossary))
+      datatable(glossary[], 
+                options = list(dom = 'ftp', 
+                               paging = T,  
+                               ordering = T,
+                               info = FALSE 
+                ), rownames = F)
+    })
+    
+    output$data <- renderDT({
+      req(indicator_data())
+      req(input$indicator_cols)
+      
+      
+      dat <-  indicator_data() %>% 
+        filter(Name == input$indicator)
+      
+      original_order <- colnames(dat)
+      display_cols <- intersect(original_order, input$indicator_cols)
+      dat <- dat[, ..display_cols]
+      
+      col_names <- mutate(glossary, 
+                          display_names = paste0('<span data-toggle="tooltip" title="', description, '">', abbreviation, '</span>'))
+      
+      datatable(dat, 
+                colnames = col_names$display_names[match(display_cols, col_names$abbreviation)],
+                escape = FALSE,
+                filter = 'top', 
+                extensions = 'FixedColumns', 
+                options = list(
+                  scrollX = TRUE,
+                  fixedColumns = list(leftColumns = 3),
+                  fnDrawCallback = htmlwidgets::JS(
+                    "function() { $('[data-toggle=\"tooltip\"]').tooltip(); }"
+                  )))
+    })
+    
     
     output$main_panel <- renderUI({
       tagList(
