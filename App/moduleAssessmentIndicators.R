@@ -5,7 +5,7 @@ moduleAssessmentIndicatorsUI <- function(id) {
   tabPanel("Map",
     tagList(
       layout_sidebar(fg = "black", 
-        sidebar = bslib::sidebar(width = "15vw", fg = "black", open = TRUE,
+        sidebar = bslib::sidebar(width = 300, fg = "black", open = TRUE,
            selectInput(
              inputId = ns("assessmentSelect"),
              label = "Select Assessment Period:",
@@ -21,8 +21,8 @@ moduleAssessmentIndicatorsUI <- function(id) {
           sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)", min = 0, max = 100, value = 50), 
           checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
           downloadButton(ns("downloadAssessmentIndicators"), "Download"),
-          accordion(open=1,
-            accordion_panel(title = "Customise Table",
+          accordion(open="Glossary",
+            accordion_panel(title = "Customise Table ",
                             uiOutput(ns("indicator_cols_ui"))
               ),
             accordion_panel("Glossary", DTOutput(ns("glossary")))
@@ -207,7 +207,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       initial_columns <- colnames(indicator_data())
       unique_vals <- apply(indicator_data(), 2, function(x) length(unique(x)))
       cols_with_variance <- names(unique_vals[unique_vals>1])
-      selectizeInput(ns("indicator_cols"), multiple = T, "Select Columns to display", choices = sort(initial_columns), selected = initial_columns[initial_columns %in% cols_with_variance])
+      selectizeInput(ns("indicator_cols"), multiple = T, "Select columns to display", choices = sort(initial_columns), selected = initial_columns[initial_columns %in% cols_with_variance])
     })
     
     output$glossary <- renderDT({

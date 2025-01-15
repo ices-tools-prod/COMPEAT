@@ -4,7 +4,7 @@ moduleAssessmentUI <- function(id) {
   
   tagList(
     layout_sidebar(fg = "black", 
-      sidebar = bslib::sidebar(width = "15vw", fg = "black", open = TRUE,
+      sidebar = bslib::sidebar(width = 300, fg = "black", open = TRUE,
                                selectInput(
                                  inputId = ns("assessmentSelect"),
                                  label = "Select Assessment Period:",
