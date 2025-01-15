@@ -54,16 +54,37 @@ ui <- tagList(
 
 server <- function(input, output, session) {
 
-  # Dropdown selector that adjusts to assessments being added / removed from ./Data
-  
-  shared_state <- reactiveValues(assessment = NULL)
-  
+      shared_state <- reactiveValues(assessment = NULL)
+      
+       # Fetch available assessments
+       available_assessments <- list.dirs("./Data", recursive = FALSE, full.names = FALSE) %>% sort(decreasing = TRUE)
+       
+       # Initialize shared_state$assessment with the first available assessment
+       observe({
+         if (is.null(shared_state$assessment) && length(available_assessments) > 0) {
+           shared_state$assessment <- available_assessments[1]
+         }
+       })
+       
+       # Optional: If no assessments are available, handle accordingly
+       observe({
+         if (length(available_assessments) == 0) {
+           showModal(modalDialog(
+             title = "No Assessments Found",
+             "Please add assessments to the ./Data directory.",
+             easyClose = TRUE,
+             footer = NULL
+           ))
+         }
+      })
+    
+    
+  # Initialize Modules without their own assessment selectors
   moduleAssessmentServer("Assessment", shared_state = shared_state, glossary)
   moduleAssessmentIndicatorsServer("AssessInd", shared_state = shared_state, glossary)
   moduleAnnualIndicatorsServer("AnnualInd", shared_state = shared_state)
   moduleStationsServer("Stations", shared_state = shared_state)
   
-
 }
 
 shinyApp(ui = ui, server = server)

@@ -4,8 +4,13 @@ moduleAssessmentUI <- function(id) {
   
   tagList(
     layout_sidebar(fg = "black", 
-      sidebar = bslib::sidebar(width = "15vw", fg = "black", open = T,
-        uiOutput(ns("assessmentSelect")),
+      sidebar = bslib::sidebar(width = "15vw", fg = "black", open = TRUE,
+                               selectInput(
+                                 inputId = ns("assessmentSelect"),
+                                 label = "Select Assessment Period:",
+                                 choices = list.dirs("./Data", recursive = FALSE, full.names = FALSE) %>% sort(decreasing = TRUE),
+                                 selected = NULL  # Initially NULL; server will set the default
+                               ),
         selectInput(
           inputId = ns("category"),
           label = "Select Assessment Category:",
@@ -16,7 +21,7 @@ moduleAssessmentUI <- function(id) {
             "Direct effects" = 2,
             "Indirect effects" = 3)),
         checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
-        sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)",min = 0,max = 100,value = 50), 
+        sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)", min = 0, max = 100, value = 50), 
         shiny::downloadButton(ns("downloadAssessmentFile"), "Download")
       ),
       uiOutput(ns("main_panel"))
@@ -29,18 +34,32 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    shinyselect_from_directory(dir = "./Data", selector = "dropdown", id = "assessment", uiOutput = "Select Assessment Period:", outputid = "assessmentSelect", module = T, output, session)
-    
-    observeEvent(input$assessment, {
-      shared_state$assessment <- input$assessment
+    # Update the selected assessment from shared_state on module load
+    observe({
+      updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
     })
     
-    file_paths_assessment <- reactive({
-      
-      if(!is.null(shared_state$assessment)){
-        browser()
-        paste0("./Data/", shared_state$assessment, "/Assessment.csv")
+    # When user changes the assessmentSelect, update shared_state$assessment
+    observeEvent(input$assessmentSelect, {
+      req(input$assessmentSelect)
+      if (input$assessmentSelect != shared_state$assessment) {
+        shared_state$assessment <- input$assessmentSelect
       }
+    })
+    
+    # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
+    observeEvent(shared_state$assessment, {
+      req(shared_state$assessment)
+      req(input$assessmentSelect)
+      if (input$assessmentSelect != shared_state$assessment) {
+        updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
+      }
+    })
+    
+    
+    file_paths_assessment <- reactive({
+      req(!is.null(shared_state$assessment))
+      paste0("./Data/", shared_state$assessment, "/Assessment.csv")
     })
 
     name_schema <- c("11" = "Nitrogen", 
@@ -49,28 +68,23 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
                      "3" = "Indirect Effects")
     
     assessment_data <- reactive({
-      
-      if(!is.null(shared_state$assessment)){
-        assessment <- fread(paste0("./Data/", shared_state$assessment, "/Assessment.csv"))
-        }
-    })
+      req(!is.null(shared_state$assessment))
+      fread(paste0("./Data/", shared_state$assessment, "/Assessment.csv"))
+    }) 
     
     units <- reactive({
-      if(!is.null(shared_state$assessment)){
-      sf::read_sf(paste0("./Data/", shared_state$assessment, "/Units.shp"), stringsAsFactors = T)
-      }
-    })
-    
+      req(!is.null(shared_state$assessment))
+      sf::read_sf(paste0("./Data/", shared_state$assessment, "/Units.shp"), stringsAsFactors = TRUE)
+    }) 
     
     var <- reactive({
-              switch(input$category,
-                  "0" = "All",
-                  "11" = "Nitrogen", 
-                  "12" = "Phosphorus", 
-                  "2" = "Direct Effects",
-                  "3" = "Indirect Effects")
+      switch(input$category,
+             "0" = "All",
+             "11" = "Nitrogen", 
+             "12" = "Phosphorus", 
+             "2" = "Direct Effects",
+             "3" = "Indirect Effects")
     })
-    
     
     merged_data <- reactive({
       shiny::validate(
@@ -153,7 +167,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         }
         leaflet_map
       }
-    })
+    }) 
     
     output$map2 = renderLeaflet({
       req(merged_data())

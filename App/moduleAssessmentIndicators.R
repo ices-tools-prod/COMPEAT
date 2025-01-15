@@ -5,26 +5,30 @@ moduleAssessmentIndicatorsUI <- function(id) {
   tabPanel("Map",
     tagList(
       layout_sidebar(fg = "black", 
-        sidebar = bslib::sidebar(width = "15vw", fg = "black", open = T,
+        sidebar = bslib::sidebar(width = "15vw", fg = "black", open = TRUE,
+           selectInput(
+             inputId = ns("assessmentSelect"),
+             label = "Select Assessment Period:",
+             choices = list.dirs("./Data", recursive = FALSE, full.names = FALSE) %>% sort(decreasing = TRUE),
+             selected = NULL  # Initially NULL; server will set the default
+           ),
           uiOutput(ns("indicatorSelector")),
           radioButtons(inputId = ns("confidence"),
                        "Select confidence measure:",
                        choices = c("Confidence" = "C_Class",
                                    "Temporal Confidence" = "TC_Clss",
                                    "Spatial Confidence" = "SC_Clss")),
-          sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)",min = 0,max = 100,value = 50), 
+          sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)", min = 0, max = 100, value = 50), 
           checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
           downloadButton(ns("downloadAssessmentIndicators"), "Download"),
           accordion(open=1,
             accordion_panel(title = "Customise Table",
                             uiOutput(ns("indicator_cols_ui"))
-              
               ),
             accordion_panel("Glossary", DTOutput(ns("glossary")))
           )
         ), 
         uiOutput(ns("main_panel"))
-        
       )
   )
   )
@@ -35,11 +39,28 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    shinyselect_from_directory(dir = "./Data", selector = "dropdown", id = "assessment", uiOutput = "Select Assessment Period:", outputid = "assessmentSelect", module = T, output, session)
-    
-    observeEvent(input$assessment, {
-      shared_state$assessment <- input$assessment
+    # Update the selected assessment from shared_state on module load
+    observe({
+      updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
     })
+    
+    # When user changes the assessmentSelect, update shared_state$assessment
+    observeEvent(input$assessmentSelect, {
+      req(input$assessmentSelect)
+      if (input$assessmentSelect != shared_state$assessment) {
+        shared_state$assessment <- input$assessmentSelect
+      }
+    })
+    
+    # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
+    observeEvent(shared_state$assessment, {
+      req(input$assessmentSelect)
+      req(shared_state$assessment)
+      if (input$assessmentSelect != shared_state$assessment) {
+        updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
+      }
+    }, ignoreInit = T)
+    
     
     file_paths_assessment_indicators <- reactive({
       if(!is.null(shared_state$assessment)){
@@ -49,10 +70,9 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
 
     indicator_data <- reactive({
       if(!is.null(shared_state$assessment)){
-        indicators <- fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
+        fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
       }
     })
-    
     
     output$indicatorSelector <- renderUI({ 
       req(indicator_data())
