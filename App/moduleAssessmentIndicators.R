@@ -21,7 +21,7 @@ moduleAssessmentIndicatorsUI <- function(id) {
           sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)", min = 0, max = 100, value = 50), 
           checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
           downloadButton(ns("downloadAssessmentIndicators"), "Download"),
-          accordion(open="Glossary",
+          accordion(open=TRUE,
             accordion_panel(title = "Customise Table ",
                             uiOutput(ns("indicator_cols_ui"))
               ),
