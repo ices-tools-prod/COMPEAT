@@ -262,10 +262,10 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
     
     output$downloadAssessmentFile <- shiny::downloadHandler(
       filename = function () {
-        str_remove(file_paths_shared_state$assessment, pattern = "../")
+        str_remove(file_paths_assessment(), pattern = "../")
       },
       content = function(file) {
-        file.copy(file_paths_shared_state$assessment, file)
+        file.copy(file_paths_assessment(), file)
       }
     )
     

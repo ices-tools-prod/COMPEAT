@@ -27,7 +27,7 @@ moduleStationsServer <- function(id, shared_state) {
     
     file_paths <- reactive({
       if(!is.null(shared_state$assessment)){
-        paste0("./Data/",shared_state$assessment, rep("/Stations",3), type_names, ".csv.gz")
+        paste0("./Data/",shared_state$assessment, rep("/StationSamples",3), type_names, ".csv.gz")
         }
       })
     
