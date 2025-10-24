@@ -13,7 +13,8 @@ ipak(packages)
 #assessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
-assessmentPeriod <- "2015-2020" # COMP4
+#assessmentPeriod <- "2015-2020" # COMP4
+assessmentPeriod <- "2021-2026" # COMP5
 
 # Set flag to determined if dissolved inorganic nutrients are being salinity nomalised 
 dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
@@ -50,6 +51,7 @@ configurationFile <- file.path(inputPath, "")
 stationSamplesBOTFile <- file.path(inputPath, "")
 stationSamplesCTDFile <- file.path(inputPath, "")
 stationSamplesPMPFile <- file.path(inputPath, "")
+stationSamplesSURFile <- file.path(inputPath, "")
 indicator_CPHL_EO_02 <- file.path(inputPath, "")
 
 if (assessmentPeriod == "1877-9999"){
@@ -117,6 +119,21 @@ if (assessmentPeriod == "1877-9999"){
   stationSamplesCTDFile <- file.path(inputPath, "StationSamples2015-2020CTD_2022-08-09.txt.gz")
   stationSamplesPMPFile <- file.path(inputPath, "StationSamples2015-2020PMP_2022-08-09.txt.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2015-2020.csv")
+} else if (assessmentPeriod == "2021-2026") {
+  urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration2021-2026.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026BOT_2025-10-21.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026CTD_2025-10-21.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026PMP_2025-10-21.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026SUR_2025-10-21.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_2021-2026.csv")
+  unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
+  configurationFile <- file.path(inputPath, "Configuration2021-2026.xlsx")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2021-2026BOT_2025-10-21.csv.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2021-2026CTD_2025-10-21.csv.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2021-2026PMP_2025-10-21.csv.gz")
+  stationSamplesSURFile <- file.path(inputPath, "StationSamples2021-2026SUR_2025-10-21.csv.gz")
+  indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2021-2026.csv")
 }
 
 files <- sapply(urls, download.file.unzip.maybe, path = inputPath)
@@ -222,15 +239,15 @@ ggsave(file.path(outputPath, "Assessment_GridUnits.png"), width = 12, height = 9
 # Read station samples ---------------------------------------------------------
 
 # Ocean hydro chemistry - Bottle and low resolution CTD data
-stationSamplesBOT <- fread(input = stationSamplesBOTFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
+stationSamplesBOT <- fread(input = stationSamplesBOTFile, na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
 stationSamplesBOT[, Type := "B"]
 
 # Ocean hydro chemistry - High resolution CTD data
-stationSamplesCTD <- fread(input = stationSamplesCTDFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
+stationSamplesCTD <- fread(input = stationSamplesCTDFile, na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
 stationSamplesCTD[, Type := "C"]
 
 # Ocean hydro chemistry - Pump data
-stationSamplesPMP <- fread(input = stationSamplesPMPFile, sep = "\t", na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
+stationSamplesPMP <- fread(input = stationSamplesPMPFile, na.strings = "NULL", stringsAsFactors = FALSE, header = TRUE, check.names = TRUE)
 stationSamplesPMP[, Type := "P"]
 
 # Combine station samples
@@ -238,6 +255,87 @@ stationSamples <- rbindlist(list(stationSamplesBOT, stationSamplesCTD, stationSa
 
 # Remove original data tables
 rm(stationSamplesBOT, stationSamplesCTD, stationSamplesPMP)
+
+# Deal with format change in 2021
+if(assessmentPeriod == "2021-2026") {
+  stationSamples <- stationSamples[, .(
+    Cruise,
+    Station,
+    Type,
+    Year = as.integer(substr(yyyy.mm.ddThh.mm.ss.sss, 1, 4)),
+    Month = as.integer(substr(yyyy.mm.ddThh.mm.ss.sss, 6, 7)),
+    Day = as.integer(substr(yyyy.mm.ddThh.mm.ss.sss, 9, 10)),
+    Hour = as.integer(substr(yyyy.mm.ddThh.mm.ss.sss, 12, 13)),
+    Minute = as.integer(substr(yyyy.mm.ddThh.mm.ss.sss, 15, 16)),
+    Longitude..degrees_east.,
+    Latitude..degrees_north.,
+    Bot..Depth..m.,
+    QV.ODV.Bot.Depth..m. = 1,
+    Secchi.Depth..m..METAVAR.FLOAT = Secchi.Depth..m.,
+    QV.ODV.Secchi.Depth..m. = 1,
+    Depth..m. = Depth..ADEPZZ01_ULAA...m.,
+    QV.ODV.Depth..m. = QV.ODV.Depth..ADEPZZ01_ULAA.,
+    Temperature..degC. = Temperature..TEMPPR01_UPAA...degC.,
+    QV.ODV.Temperature..degC. = QV.ODV.Temperature..TEMPPR01_UPAA.,
+    Practical.Salinity..dmnless. = Salinity..PSALPR01_UUUU...dmnless.,
+    QV.ODV.Practical.Salinity..dmnless. = QV.ODV.Salinity..PSALPR01_UUUU.,
+    Dissolved.Oxygen..ml.l. = Oxygen..DOXYZZXX_UMLL...ml.l.,
+    QV.ODV.Dissolved.Oxygen..ml.l. = QV.ODV.Oxygen..DOXYZZXX_UMLL.,
+    Phosphate.Phosphorus..PO4.P...umol.l. = Phosphate..PHOSZZXX_UPOX...umol.l.,
+    QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l. = QV.ODV.Phosphate..PHOSZZXX_UPOX.,
+    Total.Phosphorus..P...umol.l. = Total.Phosphorus..TPHSZZXX_UPOX...umol.l.,
+    QV.ODV.Total.Phosphorus..P...umol.l. = QV.ODV.Total.Phosphorus..TPHSZZXX_UPOX.,
+    Nitrate.Nitrogen..NO3.N...umol.l. = ifelse(is.na(Nitrate..NTRAZZXX_UPOX...umol.l.), Nitrate...Nitrite..NTRZZZXX_UPOX...umol.l., Nitrate..NTRAZZXX_UPOX...umol.l.),
+    QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l. = ifelse(is.na(Nitrate..NTRAZZXX_UPOX...umol.l.), QV.ODV.Nitrate...Nitrite..NTRZZZXX_UPOX., QV.ODV.Nitrate..NTRAZZXX_UPOX.),
+    Nitrite.Nitrogen..NO2.N...umol.l. = Nitrite..NTRIZZXX_UPOX...umol.l.,
+    QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l. = QV.ODV.Nitrite..NTRIZZXX_UPOX.,
+    Ammonium.Nitrogen..NH4.N...umol.l. = Ammonium..AMONZZXX_UPOX...umol.l.,
+    QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l. = QV.ODV.Ammonium..AMONZZXX_UPOX.,
+    Total.Nitrogen..N...umol.l. = Total.Nitrogen..NTOTZZXX_UPOX...umol.l.,
+    QV.ODV.Total.Nitrogen..N...umol.l. = QV.ODV.Total.Nitrogen..NTOTZZXX_UPOX.,
+    Chlorophyll.a..ug.l. = Chlorophyll.a..CPHLZZXX_UGPL...ug.l.,
+    QV.ODV.Chlorophyll.a..ug.l. = QV.ODV.Chlorophyll.a..CPHLZZXX_UGPL.
+  )]
+} else {
+  stationSamples <- stationSamples[, .(
+    Cruise,
+    Station,
+    Type,
+    Year,
+    Month,
+    Day,
+    Hour,
+    Minute,
+    Longitude..degrees_east.,
+    Latitude..degrees_north.,
+    Bot..Depth..m.,
+    QV.ODV.Bot.Depth..m.,
+    Secchi.Depth..m..METAVAR.FLOAT,
+    QV.ODV.Secchi.Depth..m.,
+    Depth..m.,
+    QV.ODV.Depth..m.,
+    Temperature..degC.,
+    QV.ODV.Temperature..degC.,
+    Practical.Salinity..dmnless.,
+    QV.ODV.Practical.Salinity..dmnless.,
+    Dissolved.Oxygen..ml.l.,
+    QV.ODV.Dissolved.Oxygen..ml.l.,
+    Phosphate.Phosphorus..PO4.P...umol.l.,
+    QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l.,
+    Total.Phosphorus..P...umol.l.,
+    QV.ODV.Total.Phosphorus..P...umol.l.,
+    Nitrate.Nitrogen..NO3.N...umol.l.,
+    QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l.,
+    Nitrite.Nitrogen..NO2.N...umol.l.,
+    QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l.,
+    Ammonium.Nitrogen..NH4.N...umol.l.,
+    QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l.,
+    Total.Nitrogen..N...umol.l.,
+    QV.ODV.Total.Nitrogen..N...umol.l.,
+    Chlorophyll.a..ug.l.,
+    QV.ODV.Chlorophyll.a..ug.l.
+  )]
+}
 
 # Unique stations by natural key
 uniqueN(stationSamples, by = c("Cruise", "Station", "Type", "Year", "Month", "Day", "Hour", "Minute", "Longitude..degrees_east.", "Latitude..degrees_north."))
