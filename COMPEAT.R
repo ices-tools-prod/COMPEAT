@@ -371,6 +371,11 @@ fwrite(stationSamples[Type == 'B'], file.path(outputPath, "StationSamplesBOT.csv
 fwrite(stationSamples[Type == 'C'], file.path(outputPath, "StationSamplesCTD.csv"))
 fwrite(stationSamples[Type == 'P'], file.path(outputPath, "StationSamplesPMP.csv"))
 
+# Output stations for app
+fwrite(unique(stationSamples[Type == 'B', .(StationID, Cruise, Station, Type, Year, Month, Day, Hour, Minute, Longitude..degrees_east., Latitude..degrees_north.)]), file.path(outputPath, "StationsBOT.csv"))
+fwrite(unique(stationSamples[Type == 'C', .(StationID, Cruise, Station, Type, Year, Month, Day, Hour, Minute, Longitude..degrees_east., Latitude..degrees_north.)]), file.path(outputPath, "StationsCTD.csv"))
+fwrite(unique(stationSamples[Type == 'P', .(StationID, Cruise, Station, Type, Year, Month, Day, Hour, Minute, Longitude..degrees_east., Latitude..degrees_north.)]), file.path(outputPath, "StationsPMP.csv"))
+
 # Get bathymetric depth for the oxygen indicator -----------------------------
 
 # Function to get bathymetric depth from EMODnet bathymetry REST web service
