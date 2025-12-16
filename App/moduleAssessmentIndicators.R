@@ -225,7 +225,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       req(input$indicator_cols)
   
       display_cols <- intersect(colnames(indicator_data()), input$indicator_cols)
-      dat <- indicator_data()[indicator_data()$Name == input$indicator, display_cols]
+      dat <- indicator_data()[indicator_data()$Name == input$indicator, ..display_cols]
       tool_tips <- prepare_tooltips_with_fallback(column_names = colnames(dat), glossary)
       
       datatable(dat, 
