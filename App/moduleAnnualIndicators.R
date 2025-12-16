@@ -56,29 +56,43 @@ moduleAnnualIndicatorsServer <- function(id, shared_state) {
       }
     })
     
+    # efficiently load slim data
     indicator_data <- reactive({
       if(!is.null(shared_state$assessment)){
-        fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
+        ds <- open_dataset(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.parquet"))
+        # ds %>%
+        #   select(all_of(input$indicator)) %>%
+        #   collect() 
+        #fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
       }
     })
 
     output$indicatorSelector <- renderUI({ 
       req(indicator_data())
-      indicators <- unique(indicator_data()$Name)
+      
+      indicators <- indicator_data() %>% 
+        select(Name) %>% 
+        collect() %>% unique()
+      
       shiny::selectInput(session$ns("indicator"), "Select Indicator:", choices = indicators)
     })
    
      
     output$unitSelector <- renderUI({ 
       req(indicator_data())
-      units <- unique(indicator_data()$Description)
+      units <- indicator_data() %>% 
+        select(Description) %>% 
+        collect() %>% unique()
+      # units <- unique(indicator_data()$Description)
       shiny::selectInput(session$ns("unit"), "Select Unit:", choices = units)
     })
     
     
     plot_data <- reactive({
       if(!is.null(input$indicator)){
-        dplyr::filter(indicator_data(), Name == input$indicator)
+        indicator_data() %>%
+          collect() %>% 
+          dplyr::filter(Name == input$indicator)
       }
     })
     

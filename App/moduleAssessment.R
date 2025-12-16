@@ -67,10 +67,22 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
                      "2" = "Direct Effects",
                      "3" = "Indirect Effects")
     
+    # assessment_data <- reactive({
+    #   req(!is.null(shared_state$assessment))
+    #   fread(paste0("./Data/", shared_state$assessment, "/Assessment.csv"))
+    # }) 
+    
+      # efficiently load slim data
     assessment_data <- reactive({
-      req(!is.null(shared_state$assessment))
-      fread(paste0("./Data/", shared_state$assessment, "/Assessment.csv"))
-    }) 
+      if(!is.null(shared_state$assessment)){
+        ds <- open_dataset(paste0("./Data/", shared_state$assessment, "/Assessment.parquet"))
+        ds %>%
+          # select(all_of(input$indicatorSelector)) %>%
+          collect() 
+        #fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
+      }
+    })
+    
     
     units <- reactive({
       req(!is.null(shared_state$assessment))
@@ -277,17 +289,16 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
                             full_screen = T, 
                                card_header("Status",class = "bg-primary"),
                                leafletOutput(
-                                 outputId = ns("map1"), height = "100%"))%>% withSpinner(),
+                                 outputId = ns("map1"), height = "100%")),
           ),
               column(width = 6,
                      card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
                           full_screen = T,
                           card_header("Confidence", class = "bg-primary"),
-                          leafletOutput(outputId = ns("map2"), height = "100%"))%>% withSpinner(),
+                          leafletOutput(outputId = ns("map2"), height = "100%")),
             ))
           )),card(style = paste0("height: ", 85, "vh;"),
                  full_screen = T,
-                 #card_header("Table", class = "bg-primary"),
                  DTOutput(outputId = ns("assessmentTable")) %>% withSpinner()
             )
           

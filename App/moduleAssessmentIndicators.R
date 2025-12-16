@@ -54,24 +54,36 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
     
     # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
     observeEvent(shared_state$assessment, {
-      req(input$assessmentSelect)
-      req(shared_state$assessment)
       if (input$assessmentSelect != shared_state$assessment) {
         updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
       }
     }, ignoreInit = T)
     
     
-    file_paths_assessment_indicators <- reactive({
-      if(!is.null(shared_state$assessment)){
-        paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.csv")
-      }
+    starting_columns <- c("UnitID", "Code.x", "Description", "Name", "Parameters", "Metric", "Units","N_OBS", "ET", "ES", "TC", "TC_Class", "SC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
+    
+    data_set <- reactive({
+      req(!is.null(shared_state$assessment))
+      ds <- open_dataset(paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.parquet"))
     })
 
+    # All columns the user wants: starting + any extra selected
+    selected_cols <- reactive({
+      req(data_set())
+      
+      all_cols <- names(schema(data_set()))
+
+      extra_columns <- if (is.null(input$indicator_cols)) character(0) else input$indicator_cols
+      
+      # keep only valid column names
+      unique(intersect(c(starting_columns, extra_columns), all_cols))
+    })
+    
     indicator_data <- reactive({
-      if(!is.null(shared_state$assessment)){
-        fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
-      }
+      req(selected_cols())
+      data_set() %>%
+        select(all_of(selected_cols())) %>%
+        collect()
     })
     
     output$indicatorSelector <- renderUI({ 
@@ -80,11 +92,33 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       selectInput(session$ns("indicator"), "Select Indicator:", choices = indicators)
     })
     
-   
+    output$indicator_cols_ui <- renderUI({
+      req(!is.null(indicator_data()))
+      all_cols <- names(schema(data_set()))
+      selectizeInput(ns("indicator_cols"), multiple = T, "Select columns to display", choices = all_cols, selected = starting_columns)
+    })
     
+    # loaded_columns <- reactive({
+    #   req(input$indicator)
+    #   loaded <- starting_columns
+    # })
+    # 
+    # prior_columns <- reactive({
+    #   unique(c(starting_columns, input$indicator))
+    # })
+    # 
+    # new_columns <- reactive({
+    #   
+    #   
+    # })
     
     indicator_shape <- reactive({
-      sf::read_sf(paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.shp"), stringsAsFactors = T)
+      ds <- sf::read_sf(paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.shp"), stringsAsFactors = T)
+      #ds <- open_dataset(paste0("./Data/", shared_state$assessment, "/Assessment_Indicator_geo.parquet"))
+      df <- ds  %>% 
+        select(UntDscr,UnitCod, Name,  EQRS_Cl, EQRS, EQR, N, C,C_Class, TC, TC_Clss, SC_Clss, SC, geometry) %>% 
+        collect()
+      #sf_obj <- st_as_sf(df, wkb = "geometry")
     })
     
       
@@ -95,11 +129,11 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       }
     })
 
+    
         
     output$map1 <- renderLeaflet({
       req(plot_data_sf())
       req(nrow(plot_data_sf()) >0)
-      
       plot_dat <- plot_data_sf()
       
       # Transform the spatial data to WGS84
@@ -153,7 +187,6 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       plot_dat <- st_transform(plot_dat, crs = 4326)
       
       if (nrow(plot_dat) > 0) {
-        
           plot_dat[[input$confidence]] <- factor(st_drop_geometry(plot_dat)[[input$confidence]], 
                                               levels = c_levels, ordered = TRUE)
           
@@ -193,6 +226,12 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       }
     })
     
+    file_paths_assessment_indicators <- reactive({
+      if(!is.null(shared_state$assessment)){
+        paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.csv")
+      }
+    })
+    
     output$downloadAssessmentIndicators <- shiny::downloadHandler(
       filename = function () {
         stringr::str_remove(file_paths_assessment_indicators(), pattern = "../")
@@ -201,14 +240,6 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
         file.copy(file_paths_assessment_indicators(), file)
       }
     )
-    
-    output$indicator_cols_ui <- renderUI({
-      req(!is.null(indicator_data()))
-      initial_columns <- colnames(indicator_data())
-      unique_vals <- apply(indicator_data(), 2, function(x) length(unique(x)))
-      cols_with_variance <- names(unique_vals[unique_vals>1])
-      selectizeInput(ns("indicator_cols"), multiple = T, "Select columns to display", choices = sort(initial_columns), selected = initial_columns[initial_columns %in% cols_with_variance])
-    })
     
     output$glossary <- renderDT({
       names(glossary) <- stringr::str_to_title(names(glossary))
@@ -251,18 +282,19 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
                      card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
                           full_screen = T, 
                           card_header("Status",class = "bg-primary"),
-                          leafletOutput(ns("map1"), height = "100%"))%>% withSpinner()),
+                          leafletOutput(ns("map1"), height = "100%"))),
               column(width = 6,
                      card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
                           full_screen = T, 
                           card_header("Confidence",
                                       ,class = "bg-primary"),
-                          leafletOutput(ns("map2"), height = "100%"))%>% withSpinner(),
+                          leafletOutput(ns("map2"), height = "100%")),
               )
             ))),
         card(style = paste0("height: ", 85, "vh;"),
              full_screen = T,
-             DTOutput(ns("data"))) %>% withSpinner()
+             DTOutput(ns("data")) %>% withSpinner()
+        )
       )
     })
   }
