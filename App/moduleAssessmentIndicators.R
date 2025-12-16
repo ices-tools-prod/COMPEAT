@@ -202,12 +202,12 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       }
     )
     
-    output$indicator_cols_ui <- renderUI({
+      starting_columns <- c("UnitID", "Code.x", "Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
+    
+      output$indicator_cols_ui <- renderUI({
       req(!is.null(indicator_data()))
-      initial_columns <- colnames(indicator_data())
-      unique_vals <- apply(indicator_data(), 2, function(x) length(unique(x)))
-      cols_with_variance <- names(unique_vals[unique_vals>1])
-      selectizeInput(ns("indicator_cols"), multiple = T, "Select columns to display", choices = sort(initial_columns), selected = initial_columns[initial_columns %in% cols_with_variance])
+
+      selectizeInput(ns("indicator_cols"), multiple = T, "Select columns to display", choices = sort(colnames(indicator_data())), selected = starting_columns)
     })
     
     output$glossary <- renderDT({
