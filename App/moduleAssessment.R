@@ -240,13 +240,11 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
       req(!is.null(dt_data()))
       
       dat <- dt_data()
-      cols <- colnames(dat)
-      col_names <- mutate(glossary, 
-                          display_names = paste0('<span data-toggle="tooltip" title="', description, '">', abbreviation, '</span>'))
-    
+      tool_tips <- prepare_tooltips_with_fallback(column_names = colnames(dat), glossary)
+      
       datatable(
-        data = dt_data(), 
-        colnames = col_names$display_names[match(cols, col_names$abbreviation)],
+        data = dat, 
+        colnames = tool_tips,
         escape = FALSE,
         filter = 'top',
         extensions = 'FixedColumns',

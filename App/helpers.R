@@ -214,3 +214,12 @@ make_indicator_hovertext_content <- function(plot_data, output, confidence, var)
   label_text
 }
 
+prepare_tooltips_with_fallback <- function(column_names, glossary) {
+  stopifnot(c("abbreviation", "description") %in% colnames(glossary))
+  tool_tips <- glossary[match(column_names, glossary$abbreviation),]
+  tool_tips$description[is.na(tool_tips$description)] <- column_names[!column_names %in% tool_tips$abbreviation]
+  tool_tips$abbreviation[is.na(tool_tips$abbreviation)] <- column_names[!column_names %in% tool_tips$abbreviation]
+  tool_tips <- paste0('<span data-toggle="tooltip" title="', tool_tips$description, '">', tool_tips$abbreviation, '</span>')
+  
+}
+

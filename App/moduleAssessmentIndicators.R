@@ -223,20 +223,13 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
     output$data <- renderDT({
       req(indicator_data())
       req(input$indicator_cols)
-      
-      
-      dat <-  indicator_data() %>% 
-        filter(Name == input$indicator)
-      
-      original_order <- colnames(dat)
-      display_cols <- intersect(original_order, input$indicator_cols)
-      dat <- dat[, ..display_cols]
-      
-      col_names <- mutate(glossary, 
-                          display_names = paste0('<span data-toggle="tooltip" title="', description, '">', abbreviation, '</span>'))
+  
+      display_cols <- intersect(colnames(indicator_data()), input$indicator_cols)
+      dat <- indicator_data()[indicator_data()$Name == input$indicator, display_cols]
+      tool_tips <- prepare_tooltips_with_fallback(column_names = colnames(dat), glossary)
       
       datatable(dat, 
-                colnames = col_names$display_names[match(display_cols, col_names$abbreviation)],
+                colnames = tool_tips,
                 escape = FALSE,
                 filter = 'top', 
                 extensions = 'FixedColumns', 
