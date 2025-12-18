@@ -13,10 +13,14 @@ moduleAnnualIndicatorsUI <- function(id) {
                                               ),
         uiOutput(ns("unitSelector")),
         uiOutput(ns("indicatorSelector")),
+        uiOutput(ns("indicator_cols_ui")),
         shiny::downloadButton(ns("downloadAnnualIndicators"), "Download")), 
-        card(style = paste0("height: ", 85, "vh;"),
+        card(style = paste0("height: ", 65, "vh;"),
              full_screen = TRUE,
-             plotOutput(ns("chart")))
+             plotOutput(ns("chart"))),
+        card(style = paste0("height: ", 45, "vh;"),
+             full_screen = T,
+             DTOutput(ns("data")))
       )
     )
   )
@@ -77,9 +81,9 @@ moduleAnnualIndicatorsServer <- function(id, shared_state) {
     
     
     plot_data <- reactive({
-      if(!is.null(input$indicator)){
-        dplyr::filter(indicator_data(), Name == input$indicator)
-      }
+      req(!is.null(input$indicator))
+      req(!is.null(input$unit))
+        dplyr::filter(indicator_data(), Name == input$indicator, Description == input$unit)
     })
     
 
@@ -122,6 +126,36 @@ moduleAnnualIndicatorsServer <- function(id, shared_state) {
         }
         plot
       }
+    })
+    
+    starting_columns <- c("UnitID", "Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
+    
+    output$indicator_cols_ui <- renderUI({
+      req(!is.null(indicator_data()))
+      
+      selectizeInput(ns("indicator_cols"), multiple = T, "Select data for display", choices = sort(colnames(indicator_data())), selected = starting_columns)
+    })
+    
+    output$data <- renderDT({
+      req(plot_data())
+      req(input$indicator_cols)
+      
+      display_cols <- intersect(colnames(plot_data()), input$indicator_cols)
+      dat <- plot_data()[plot_data()$Name == input$indicator, ..display_cols]
+      tool_tips <- prepare_tooltips_with_fallback(column_names = colnames(dat), glossary)
+      
+      datatable(dat, 
+                colnames = tool_tips,
+                escape = FALSE,
+                filter = 'top', 
+                extensions = 'FixedColumns', 
+                options = list(
+                  dom = "t",
+                  scrollX = TRUE,
+                  fixedColumns = list(leftColumns = 3),
+                  fnDrawCallback = htmlwidgets::JS(
+                    "function() { $('[data-toggle=\"tooltip\"]').tooltip(); }"
+                  )))
     })
     
     output$downloadAnnualIndicators <- shiny::downloadHandler(
