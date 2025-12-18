@@ -104,7 +104,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         
       } else {
         cols_for_display <- c("NE", "EQR", "EQRS", "EQRS_Class", "NC", "C", "C_Class")
-        dat <- dat %>% dplyr::select(UnitID, Code, Description, all_of(cols_for_display)) 
+        dat <- dat %>% dplyr::select(Code, Description, all_of(cols_for_display)) 
       }
         dat <- dat %>% mutate(across(c(5:6,9), ~ round(.x, digits = 2)))
     })
