@@ -12,6 +12,7 @@ library(shinycssloaders)
 library(shinyjs)
 library(stringr)
 library(tidyverse)
+library(yaml)
 
 source("./helpers.R")
 source("./moduleStations.R")
@@ -19,6 +20,7 @@ source("./moduleAnnualIndicators.R")
 source("./moduleAssessmentIndicators.R")
 source("./moduleAssessment.R")
 glossary <- readRDS("./Data/glossary.rds")
+configuration <- read_yaml("./config.yml")
 
 ui <- tagList(
   tags$script(HTML("
