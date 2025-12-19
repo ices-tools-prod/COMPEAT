@@ -83,7 +83,7 @@ moduleStationsServer <- function(id, shared_state) {
     output$downloadStations <- shiny::downloadHandler(
       filename = function () {
         
-        paste0("_Da",input$assessmentSelect,"_StationSamples", input$stationType, ".csv.gz") 
+        paste0("_Da",input$assessmentSelect,"_StationSamples", input$stationType, configuration[[input$assessmentSelect]][[input$stationType]], ".csv.gz") 
       },
       content = function(file, config) {
         withProgress(message = paste("Fetching", input$stationType, "station sample data for ", input$assessmentSelect), value = 0, {
@@ -91,24 +91,17 @@ moduleStationsServer <- function(id, shared_state) {
         td <- tempfile("temp_")
         dir.create(td, showWarnings = FALSE)
         on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
-        # dest <- file.path(td, "stationdata")
+        dest <- file.path(td, "stationdata")
         assessment <- stringr::str_split_fixed(input$assessmentSelect, " ", n = 3)
         url_patch <- paste0(assessment[2], "/StationSamples",  gsub("\\(|\\)", "", assessment[3]))
         url <- paste0("https://icesoceanography.blob.core.windows.net/compeat/comp",
                       url_patch, input$stationType, "_",
                       configuration[[input$assessmentSelect]][[input$stationType]],
                       ".csv.gz")
-        # h <- curl::new_handle()
-        # curl::handle_setopt(h, connecttimeout = 30, timeout = 60)
-        # dat <- curl::curl_download(url, destfile = dest, quiet = TRUE, handle = h)
-        # file.copy(dat, file)
-        #zip::zipr(zipfile = file, files = csv_path, root = td)
-
-        dat <- fread(input = url)
-        csv_path <- file.path(td, stringr::str_replace(paste0("COMP", url_patch, input$stationType, "_",
-                                         configuration[[input$assessmentSelect]][[input$stationType]], ".csv"), pattern = "/", replacement = "_"))
-        utils::write.csv(dat, csv_path, row.names = FALSE)
-        R.utils::gzip(csv_path, file, ext ="gz")
+        h <- curl::new_handle()
+        curl::handle_setopt(h, connecttimeout = 30, timeout = 60)
+        dat <- curl::curl_download(url, destfile = dest, quiet = TRUE, handle = h)
+        file.copy(dat, file)
         })
       }
     )
