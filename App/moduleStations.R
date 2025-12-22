@@ -32,7 +32,7 @@ moduleStationsServer <- function(id, shared_state) {
     type_names <- c("Bottle" = "BOT", "CTD" ="CTD", "Pump" = "PMP", "SUR" = "SUR")
     
     types <- reactive({
-      required_station_types <- type_names[type_names %in% names(configuration[[input$assessmentSelect]])]
+      required_station_types <- type_names[type_names %in% names(station_configuration[[input$assessmentSelect]])]
       lookup <- data.frame(input = required_station_types, id = 1:length(required_station_types))
       list(required_station_types = required_station_types,
            lookup = lookup)
@@ -71,7 +71,10 @@ moduleStationsServer <- function(id, shared_state) {
 
         view_centre <- get_centroid(station_samples_sf)
         map <- leaflet() %>% 
-          addProviderTiles(providers$Esri.WorldImagery, options = list(minZoom=3.5)) %>%
+          enableTileCaching() %>%
+          addProviderTiles(providers$Esri.WorldImagery,
+                           options= list(tileOptions = tileOptions(useCache=TRUE,crossOrigin=TRUE),
+                                         minZoom=2)) %>% 
           setView(lng = view_centre$long, lat = view_centre$lat, zoom = 3) %>% 
           addCircleMarkers(lng = ~ Longitude..degrees_east., lat = ~ Latitude..degrees_north., data = station_data(),
                            clusterOptions = markerClusterOptions())
@@ -83,7 +86,7 @@ moduleStationsServer <- function(id, shared_state) {
     output$downloadStations <- shiny::downloadHandler(
       filename = function () {
         
-        paste0("_Da",input$assessmentSelect,"_StationSamples", input$stationType, configuration[[input$assessmentSelect]][[input$stationType]], ".csv.gz") 
+        paste0("_Da",input$assessmentSelect,"_StationSamples", input$stationType, station_configuration[[input$assessmentSelect]][[input$stationType]], ".csv.gz") 
       },
       content = function(file, config) {
         withProgress(message = paste("Fetching", input$stationType, "station sample data for ", input$assessmentSelect), value = 0, {
@@ -96,7 +99,7 @@ moduleStationsServer <- function(id, shared_state) {
         url_patch <- paste0(assessment[2], "/StationSamples",  gsub("\\(|\\)", "", assessment[3]))
         url <- paste0("https://icesoceanography.blob.core.windows.net/compeat/comp",
                       url_patch, input$stationType, "_",
-                      configuration[[input$assessmentSelect]][[input$stationType]],
+                      station_configuration[[input$assessmentSelect]][[input$stationType]],
                       ".csv.gz")
         h <- curl::new_handle()
         curl::handle_setopt(h, connecttimeout = 30, timeout = 60)

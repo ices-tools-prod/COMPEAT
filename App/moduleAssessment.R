@@ -138,7 +138,9 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         
         leaflet_map <- 
           leaflet(plot_dat) %>%
-          addProviderTiles(providers$Esri.WorldImagery) %>%
+          enableTileCaching() %>%
+          addProviderTiles(providers$Esri.WorldImagery,
+                           options=tileOptions(useCache=TRUE,crossOrigin=TRUE)) %>%  
           addPolygons(
             fillColor = ~pal(get(display_col)),
             stroke = TRUE, 
@@ -198,7 +200,9 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
           
         leaflet_map <- 
           leaflet(plot_dat) %>%
-          addProviderTiles(providers$Esri.WorldImagery) %>%
+          enableTileCaching() %>%
+          addProviderTiles(providers$Esri.WorldImagery,
+                           options=tileOptions(useCache=TRUE,crossOrigin=TRUE)) %>%  
           addPolygons(
             fillColor = ~pal(get(display_col)),
             stroke = TRUE, 
