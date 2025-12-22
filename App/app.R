@@ -21,7 +21,7 @@ source("./moduleAnnualIndicators.R")
 source("./moduleAssessmentIndicators.R")
 source("./moduleAssessment.R")
 glossary <- readRDS("./Data/glossary.rds")
-configuration <- read_yaml("./config.yml")
+station_configuration <- read_yaml("./stations_config.yml")
 
 ui <- tagList(
   tags$script(HTML("
