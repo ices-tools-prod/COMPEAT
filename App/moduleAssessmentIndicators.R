@@ -2,7 +2,7 @@
 moduleAssessmentIndicatorsUI <- function(id) {
   ns <- NS(id)
   
-  tabPanel("Map",
+  tabPanel("Indicator score",
     tagList(
       layout_sidebar(fg = "black", 
         sidebar = bslib::sidebar(width = 300, fg = "black", open = TRUE,
@@ -69,9 +69,9 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
     })
 
     indicator_data <- reactive({
-      if(!is.null(shared_state$assessment)){
-        fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
-      }
+      req(!is.null(shared_state$assessment))
+        fread(file_paths_assessment_indicators()) %>% 
+          mutate(across(where(is.double), ~ round(.x, 2)))
     })
     
     output$indicatorSelector <- renderUI({ 
@@ -80,12 +80,9 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       selectInput(session$ns("indicator"), "Select Indicator:", choices = indicators)
     })
     
-   
-    
-    
     indicator_shape <- reactive({
       sf::read_sf(paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.shp"), stringsAsFactors = T)
-    })
+      })
     
       
     plot_data_sf <- reactive({
@@ -206,12 +203,12 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       }
     )
     
-      starting_columns <- c("UnitID", "Code.x", "Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
+      starting_columns <- c("Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
     
       output$indicator_cols_ui <- renderUI({
       req(!is.null(indicator_data()))
 
-      selectizeInput(ns("indicator_cols"), multiple = T, "Select columns to display", choices = sort(colnames(indicator_data())), selected = starting_columns)
+      selectizeInput(ns("indicator_cols"), multiple = T, "Adjust table columns", choices = sort(colnames(indicator_data())), selected = starting_columns)
     })
     
     output$glossary <- renderDT({
@@ -220,14 +217,13 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
                 options = list(dom = 'ftp', 
                                paging = T,  
                                ordering = T,
-                               info = FALSE 
+                               info = FALSE
                 ), rownames = F)
     })
     
     output$data <- renderDT({
       req(indicator_data())
       req(input$indicator_cols)
-  
       display_cols <- intersect(colnames(indicator_data()), input$indicator_cols)
       dat <- indicator_data()[indicator_data()$Name == input$indicator, ..display_cols]
       tool_tips <- prepare_tooltips_with_fallback(column_names = colnames(dat), glossary)
@@ -237,9 +233,10 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
                 escape = FALSE,
                 filter = 'top', 
                 extensions = 'FixedColumns', 
+                rownames = F,
                 options = list(
                   scrollX = TRUE,
-                  fixedColumns = list(leftColumns = 3),
+                  fixedColumns = list(leftColumns = 1),
                   fnDrawCallback = htmlwidgets::JS(
                     "function() { $('[data-toggle=\"tooltip\"]').tooltip(); }"
                   )))

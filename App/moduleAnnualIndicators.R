@@ -1,7 +1,7 @@
 # Define UI for the module
 moduleAnnualIndicatorsUI <- function(id) {
   ns <- NS(id)
-  tabPanel("Charts",
+  tabPanel("Indicator trends",
     tagList(
       layout_sidebar(fg = "black", 
                      sidebar = bslib::sidebar(width = 300, fg = "black", open = TRUE,
@@ -13,14 +13,10 @@ moduleAnnualIndicatorsUI <- function(id) {
                                               ),
         uiOutput(ns("unitSelector")),
         uiOutput(ns("indicatorSelector")),
+        sliderInput(ns("plot_display_size"), label = "Plot size (% Screen Height)", min = 0, max = 100, value = 75), 
         uiOutput(ns("indicator_cols_ui")),
-        shiny::downloadButton(ns("downloadAnnualIndicators"), "Download")), 
-        card(style = paste0("height: ", 65, "vh;"),
-             full_screen = TRUE,
-             plotOutput(ns("chart"))),
-        card(style = paste0("height: ", 45, "vh;"),
-             full_screen = T,
-             DTOutput(ns("data")))
+        shiny::downloadButton(ns("downloadAnnualIndicators"), "Download")),
+        uiOutput(ns("main_panel"))
       )
     )
   )
@@ -128,12 +124,12 @@ moduleAnnualIndicatorsServer <- function(id, shared_state) {
       }
     })
     
-    starting_columns <- c("UnitID", "Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
+    starting_columns <- c("Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
     
     output$indicator_cols_ui <- renderUI({
       req(!is.null(indicator_data()))
       
-      selectizeInput(ns("indicator_cols"), multiple = T, "Select data for display", choices = sort(colnames(indicator_data())), selected = starting_columns)
+      selectizeInput(ns("indicator_cols"), multiple = T, "Adjust table columns", choices = sort(colnames(indicator_data())), selected = starting_columns)
     })
     
     output$data <- renderDT({
@@ -152,12 +148,22 @@ moduleAnnualIndicatorsServer <- function(id, shared_state) {
                 options = list(
                   dom = "t",
                   scrollX = TRUE,
-                  fixedColumns = list(leftColumns = 3),
+                  fixedColumns = list(leftColumns = 1),
                   fnDrawCallback = htmlwidgets::JS(
                     "function() { $('[data-toggle=\"tooltip\"]').tooltip(); }"
                   )))
     })
     
+    output$main_panel <- renderUI({
+      tagList(
+        card(style = paste0("height: ", input$plot_display_size*0.9, "vh;"),
+           full_screen = TRUE,
+           plotOutput(ns("chart"))),
+      card(style = paste0("height: ", 75, "vh;"),
+           full_screen = T,
+           DTOutput(ns("data")))
+      )
+    })
     output$downloadAnnualIndicators <- shiny::downloadHandler(
       filename = function () {
         stringr::str_remove(file_paths_annual_indicators(), pattern = "../")

@@ -99,24 +99,20 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
       
       if(var() != "All") {
         cols_for_display <- stringr::str_subset(names(dat), var()) 
-        dat <- dat %>% dplyr::select(UnitID, Code, Description, all_of(cols_for_display)) %>% 
+        dat <- dat %>% dplyr::select(Code, Description, all_of(cols_for_display)) %>% 
           dplyr::relocate(contains("C_"), .after = last_col())
         
       } else {
         cols_for_display <- c("NE", "EQR", "EQRS", "EQRS_Class", "NC", "C", "C_Class")
         dat <- dat %>% dplyr::select(Code, Description, all_of(cols_for_display)) 
       }
-        dat <- dat %>% mutate(across(c(5:6,9), ~ round(.x, digits = 2)))
+        dat <- dat %>% mutate(across(where(is.double), ~ round(.x, digits = 2)))
     })
     
     output$map1 <- renderLeaflet({
       req(merged_data())
       plot_dat <- merged_data()
       
-      if (nrow(plot_dat) > 0) {
-        # validate(
-        #   need(c("EQRS_Class", "EQRS_11_Class", "EQRS_12_Class", "EQRS_2_Class", "EQRS_3_Class", "C_Class", "C_11_Class", "C_12_Class", "C_2_Class", "C_3_Class") %in% colnames(plot_dat), message = 'Check that columns "EQRS_Class", "EQRS_11_Class", "EQRS_12_Class", "EQRS_2_Class", "EQRS_3_Class", "C_Class", "C_11_Class", "C_12_Class", "C_2_Class", "C_3_Class" are present within the data')
-        # )
         plot_dat <- st_transform(plot_dat, crs = 4326)
         type_lower <- "eqrs"
         type <- "EQRS"
@@ -168,7 +164,6 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
             )
         }
         leaflet_map
-      }
     }) 
     
     output$map2 = renderLeaflet({
@@ -274,7 +269,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
     output$main_panel <- renderUI({
       tagList(
         accordion(open = TRUE,
-          accordion_panel(title = "Maps",
+          accordion_panel(title = "Maps", 
             fluidRow(
               column(width = 6,
                           card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
