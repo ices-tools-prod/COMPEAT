@@ -23,7 +23,7 @@ moduleAnnualIndicatorsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleAnnualIndicatorsServer <- function(id, shared_state) {
+moduleAnnualIndicatorsServer <- function(id, shared_state, glossary) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     

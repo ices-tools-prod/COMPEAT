@@ -25,7 +25,7 @@ moduleStationsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleStationsServer <- function(id, shared_state) {
+moduleStationsServer <- function(id, shared_state, station_configuration) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
