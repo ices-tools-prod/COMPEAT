@@ -16,7 +16,7 @@ ipak(packages)
 #assessmentPeriod <- "2015-2020" # COMP4
 assessmentPeriod <- "2021-2026" # COMP5
 
-# Set flag to determined if dissolved inorganic nutrients are being salinity nomalised 
+# Set flag to determined if dissolved inorganic nutrients are being salinity nomalized 
 dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
 
 # Set flag to determined if the combined chlorophyll a in-situ/satellite indicator is a simple mean or a weighted mean based on confidence measures
@@ -35,6 +35,7 @@ dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
 dir.create(outputPath, showWarnings = FALSE, recursive = TRUE)
 
 # Download and unpack files needed for the assessment --------------------------
+options(timeout = 1000)
 download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
   dest <- file.path(path, sub("\\?.+", "", basename(url)))
   if (refetch || !file.exists(dest)) {
@@ -54,85 +55,91 @@ stationSamplesPMPFile <- file.path(inputPath, "")
 stationSamplesSURFile <- file.path(inputPath, "")
 indicator_CPHL_EO_02 <- file.path(inputPath, "")
 
+# In-situ datasets are downloaded from ICES data portal at http://data.ices.dk
+# BOT = Bottle and low resolution CTD data
+# CTD = High resolution CTD data
+# PMP = Pump data
+# SUR = Surface data
+
 if (assessmentPeriod == "1877-9999"){
   urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
-            "https://icesoceanography.blob.core.windows.net/compeat/Configuration1877-9999.xlsx",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1877-9999BOT_2023-01-31.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1877-9999CTD_2023-01-31.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1877-9999PMP_2023-01-31.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_1877-9999.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration1877-9999.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1877-9999BOT_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1877-9999CTD_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1877-9999PMP_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_1877-9999.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1877-9999.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples1877-9999BOT_2023-01-31.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples1877-9999CTD_2023-01-31.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples1877-9999PMP_2023-01-31.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples1877-9999BOT_2026-01-09.csv.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples1877-9999CTD_2026-01-09.csv.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples1877-9999PMP_2026-01-09.csv.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_1877-9999.csv")
 } else if (assessmentPeriod == "1990-2000") {
   urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
-            "https://icesoceanography.blob.core.windows.net/compeat/Configuration1990-2000.xlsx",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1990-2000BOT_2022-05-11.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1990-2000CTD_2022-05-11.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples1990-2000PMP_2022-05-11.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_1990-2000.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration1990-2000.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1990-2000BOT_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1990-2000CTD_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1990-2000PMP_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_1990-2000.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1990-2000.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples1990-2000BOT_2022-05-11.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples1990-2000CTD_2022-05-11.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples1990-2000PMP_2022-05-11.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples1990-2000BOT_2026-01-09.csv.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples1990-2000CTD_2026-01-09.csv.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples1990-2000PMP_2026-01-09.csv.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_1990-2000.csv")
 } else if (assessmentPeriod == "2001-2006") {
   urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
-            "https://icesoceanography.blob.core.windows.net/compeat/Configuration2001-2006.xlsx",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2001-2006BOT_2022-05-11.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2001-2006CTD_2022-05-11.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2001-2006PMP_2022-05-11.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_2001-2006.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration2001-2006.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2001-2006BOT_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2001-2006CTD_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2001-2006PMP_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_2001-2006.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2001-2006.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2001-2006BOT_2022-05-11.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2001-2006CTD_2022-05-11.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2001-2006PMP_2022-05-11.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2001-2006BOT_2026-01-09.csv.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2001-2006CTD_2026-01-09.csv.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2001-2006PMP_2026-01-09.csv.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2001-2006.csv")
 } else if (assessmentPeriod == "2006-2014") {
   urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
-            "https://icesoceanography.blob.core.windows.net/compeat/Configuration2006-2014.xlsx",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2006-2014BOT_2022-09-13.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2006-2014CTD_2022-09-13.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2006-2014PMP_2022-09-13.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_2006-2014.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration2006-2014.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2006-2014BOT_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2006-2014CTD_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2006-2014PMP_2026-01-09.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_2006-2014.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2006-2014.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2006-2014BOT_2022-09-13.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2006-2014CTD_2022-09-13.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2006-2014PMP_2022-09-13.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2006-2014BOT_2026-01-09.csv.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2006-2014CTD_2026-01-09.csv.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2006-2014PMP_2026-01-09.csv.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2006-2014.csv")
 } else if (assessmentPeriod == "2015-2020") {
   urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
-            "https://icesoceanography.blob.core.windows.net/compeat/Configuration2015-2020.xlsx",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2015-2020BOT_2022-08-09.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2015-2020CTD_2022-08-09.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/StationSamples2015-2020PMP_2022-08-09.txt.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/Indicator_CPHL_EO_02_2015-2020.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration2015-2020.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2015-2020BOT_2026-01-08.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2015-2020CTD_2026-01-08.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2015-2020PMP_2026-01-08.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_2015-2020.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2015-2020BOT_2022-08-09.txt.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2015-2020CTD_2022-08-09.txt.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2015-2020PMP_2022-08-09.txt.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2015-2020BOT_2026-01-08.csv.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2015-2020CTD_2026-01-08.csv.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2015-2020PMP_2026-01-08.csv.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2015-2020.csv")
 } else if (assessmentPeriod == "2021-2026") {
   urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration2021-2026.xlsx",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026BOT_2025-10-21.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026CTD_2025-10-21.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026PMP_2025-10-21.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026SUR_2025-10-21.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026BOT_2026-01-08.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026CTD_2026-01-08.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026PMP_2026-01-08.csv.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026SUR_2026-01-08.csv.gz",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_2021-2026.csv")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2021-2026.xlsx")
-  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2021-2026BOT_2025-10-21.csv.gz")
-  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2021-2026CTD_2025-10-21.csv.gz")
-  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2021-2026PMP_2025-10-21.csv.gz")
-  stationSamplesSURFile <- file.path(inputPath, "StationSamples2021-2026SUR_2025-10-21.csv.gz")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2021-2026BOT_2026-01-08.csv.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2021-2026CTD_2026-01-08.csv.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2021-2026PMP_2026-01-08.csv.gz")
+  stationSamplesSURFile <- file.path(inputPath, "StationSamples2021-2026SUR_2026-01-08.csv.gz")
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2021-2026.csv")
 }
 
@@ -256,8 +263,8 @@ stationSamples <- rbindlist(list(stationSamplesBOT, stationSamplesCTD, stationSa
 # Remove original data tables
 rm(stationSamplesBOT, stationSamplesCTD, stationSamplesPMP)
 
-# Deal with format change in 2021
-if(assessmentPeriod == "2021-2026") {
+# Deal with format change in COMP 5
+if(sub(".*_(.*?)\\..*$", "\\1", stationSamplesBOTFile) > "2026") {
   stationSamples <- stationSamples[, .(
     Cruise,
     Station,
@@ -274,27 +281,27 @@ if(assessmentPeriod == "2021-2026") {
     Secchi.Depth..m..METAVAR.FLOAT = Secchi.Depth..m.,
     QV.ODV.Secchi.Depth..m. = 1,
     Depth..m. = Depth..ADEPZZ01_ULAA...m.,
-    QV.ODV.Depth..m. = QV.ODV.Depth..ADEPZZ01_ULAA.,
+    QV.ODV.Depth..m. = QV.ODV.Depth..ADEPZZ01_ULAA...m.,
     Temperature..degC. = Temperature..TEMPPR01_UPAA...degC.,
-    QV.ODV.Temperature..degC. = QV.ODV.Temperature..TEMPPR01_UPAA.,
+    QV.ODV.Temperature..degC. = QV.ODV.Temperature..TEMPPR01_UPAA...degC.,
     Practical.Salinity..dmnless. = Salinity..PSALPR01_UUUU...dmnless.,
-    QV.ODV.Practical.Salinity..dmnless. = QV.ODV.Salinity..PSALPR01_UUUU.,
+    QV.ODV.Practical.Salinity..dmnless. = QV.ODV.Salinity..PSALPR01_UUUU...dmnless.,
     Dissolved.Oxygen..ml.l. = Oxygen..DOXYZZXX_UMLL...ml.l.,
-    QV.ODV.Dissolved.Oxygen..ml.l. = QV.ODV.Oxygen..DOXYZZXX_UMLL.,
+    QV.ODV.Dissolved.Oxygen..ml.l. = QV.ODV.Oxygen..DOXYZZXX_UMLL...ml.l.,
     Phosphate.Phosphorus..PO4.P...umol.l. = Phosphate..PHOSZZXX_UPOX...umol.l.,
-    QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l. = QV.ODV.Phosphate..PHOSZZXX_UPOX.,
+    QV.ODV.Phosphate.Phosphorus..PO4.P...umol.l. = QV.ODV.Phosphate..PHOSZZXX_UPOX...umol.l.,
     Total.Phosphorus..P...umol.l. = Total.Phosphorus..TPHSZZXX_UPOX...umol.l.,
-    QV.ODV.Total.Phosphorus..P...umol.l. = QV.ODV.Total.Phosphorus..TPHSZZXX_UPOX.,
+    QV.ODV.Total.Phosphorus..P...umol.l. = QV.ODV.Total.Phosphorus..TPHSZZXX_UPOX...umol.l.,
     Nitrate.Nitrogen..NO3.N...umol.l. = ifelse(is.na(Nitrate..NTRAZZXX_UPOX...umol.l.), Nitrate...Nitrite..NTRZZZXX_UPOX...umol.l., Nitrate..NTRAZZXX_UPOX...umol.l.),
-    QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l. = ifelse(is.na(Nitrate..NTRAZZXX_UPOX...umol.l.), QV.ODV.Nitrate...Nitrite..NTRZZZXX_UPOX., QV.ODV.Nitrate..NTRAZZXX_UPOX.),
+    QV.ODV.Nitrate.Nitrogen..NO3.N...umol.l. = ifelse(is.na(Nitrate..NTRAZZXX_UPOX...umol.l.), QV.ODV.Nitrate...Nitrite..NTRZZZXX_UPOX...umol.l., QV.ODV.Nitrate..NTRAZZXX_UPOX...umol.l.),
     Nitrite.Nitrogen..NO2.N...umol.l. = Nitrite..NTRIZZXX_UPOX...umol.l.,
-    QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l. = QV.ODV.Nitrite..NTRIZZXX_UPOX.,
+    QV.ODV.Nitrite.Nitrogen..NO2.N...umol.l. = QV.ODV.Nitrite..NTRIZZXX_UPOX...umol.l.,
     Ammonium.Nitrogen..NH4.N...umol.l. = Ammonium..AMONZZXX_UPOX...umol.l.,
-    QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l. = QV.ODV.Ammonium..AMONZZXX_UPOX.,
+    QV.ODV.Ammonium.Nitrogen..NH4.N...umol.l. = QV.ODV.Ammonium..AMONZZXX_UPOX...umol.l.,
     Total.Nitrogen..N...umol.l. = Total.Nitrogen..NTOTZZXX_UPOX...umol.l.,
-    QV.ODV.Total.Nitrogen..N...umol.l. = QV.ODV.Total.Nitrogen..NTOTZZXX_UPOX.,
+    QV.ODV.Total.Nitrogen..N...umol.l. = QV.ODV.Total.Nitrogen..NTOTZZXX_UPOX...umol.l.,
     Chlorophyll.a..ug.l. = Chlorophyll.a..CPHLZZXX_UGPL...ug.l.,
-    QV.ODV.Chlorophyll.a..ug.l. = QV.ODV.Chlorophyll.a..CPHLZZXX_UGPL.
+    QV.ODV.Chlorophyll.a..ug.l. = QV.ODV.Chlorophyll.a..CPHLZZXX_UGPL...ug.l.
   )]
 } else {
   stationSamples <- stationSamples[, .(
