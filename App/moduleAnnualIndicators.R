@@ -13,7 +13,7 @@ moduleAnnualIndicatorsUI <- function(id) {
                                               ),
         uiOutput(ns("unitSelector")),
         uiOutput(ns("indicatorSelector")),
-        sliderInput(ns("plot_display_size"), label = "Plot size (% Screen Height)", min = 0, max = 100, value = 75), 
+        sliderInput(ns("plot_display_size"), label = "Plot size (% Screen Height)", min = 0, max = 100, value = 70), 
         uiOutput(ns("indicator_cols_ui")),
         shiny::downloadButton(ns("downloadAnnualIndicators"), "Download")),
         uiOutput(ns("main_panel"))
@@ -157,7 +157,7 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary) {
     
     output$main_panel <- renderUI({
       tagList(
-        card(style = paste0("height: ", input$plot_display_size*0.9, "vh;"),
+        card(style = paste0("height: ", input$plot_display_size*0.95, "vh;"),
            full_screen = TRUE,
            plotOutput(ns("chart"))),
       card(style = paste0("height: ", 75, "vh;"),

@@ -250,22 +250,25 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
     output$main_panel <- renderUI({
       tagList(
         accordion(open = TRUE,
-          accordion_panel(title = "Maps",
+          accordion_panel(title = "Maps", class = "py-1 px-1",
             fluidRow(
               column(width = 6,
-                     card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
+                     card(style = paste0("height: ", input$map_display_size*0.95, "vh;"),
                           full_screen = T, 
-                          card_header("Status",class = "bg-primary"),
-                          leafletOutput(ns("map1"), height = "100%"))%>% withSpinner()),
+                          card_header("Status",class = "bg-primary py-1 px-3"),
+                          card_body(padding = 0,
+                                    leafletOutput(ns("map1"), height = "100%")))
+                     ),
               column(width = 6,
-                     card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
+                     card(style = paste0("height: ", input$map_display_size*0.95, "vh;"),
                           full_screen = T, 
                           card_header("Confidence",
-                                      ,class = "bg-primary"),
-                          leafletOutput(ns("map2"), height = "100%"))%>% withSpinner(),
+                                      ,class = "bg-primary py-1 px-3"),
+                          card_body(padding = 0,
+                          leafletOutput(ns("map2"), height = "100%")))
               )
             ))),
-        card(style = paste0("height: ", 85, "vh;"),
+        card(min_height = "100vh",
              full_screen = T,
              DTOutput(ns("data")) %>% withSpinner())
       )
