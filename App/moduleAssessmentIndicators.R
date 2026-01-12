@@ -111,7 +111,9 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
         label_text <- make_indicator_hovertext_content(plot_data = plot_dat, output = "EQRS", confidence = NULL, var = input$indicator)
         
         leaflet_map <- 
-          leaflet(plot_dat) %>%
+          leaflet(plot_dat, 
+                  options = leafletOptions(
+                    attributionControl=FALSE)) %>%
           enableTileCaching() %>%
           addProviderTiles(providers$Esri.WorldImagery,
                            options=tileOptions(useCache=TRUE,crossOrigin=TRUE)) %>%  
@@ -160,7 +162,9 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
           label_text <- make_indicator_hovertext_content(plot_data = plot_dat, output = "C", confidence = input$confidence, var = input$indicator)
           
         leaflet_map <- 
-          leaflet(plot_dat) %>%
+          leaflet(plot_dat, 
+                  options = leafletOptions(
+                    attributionControl=FALSE)) %>%
           enableTileCaching() %>%
           addProviderTiles(providers$Esri.WorldImagery,
                            options=tileOptions(useCache=TRUE,crossOrigin=TRUE)) %>% 

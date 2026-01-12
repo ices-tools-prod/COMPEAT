@@ -70,7 +70,8 @@ moduleStationsServer <- function(id, shared_state, station_configuration) {
         station_samples_sf <- sf::st_as_sf(station_data(), coords = c("Longitude..degrees_east.", "Latitude..degrees_north."))
 
         view_centre <- get_centroid(station_samples_sf)
-        map <- leaflet() %>% 
+        map <- leaflet(options = leafletOptions(
+                         attributionControl=FALSE)) %>% 
           enableTileCaching() %>%
           addProviderTiles(providers$Esri.WorldImagery,
                            options= list(tileOptions = tileOptions(useCache=TRUE,crossOrigin=TRUE),

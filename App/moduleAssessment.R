@@ -133,7 +133,9 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
           
         
         leaflet_map <- 
-          leaflet(plot_dat) %>%
+          leaflet(plot_dat, 
+                  options = leafletOptions(
+                    attributionControl=FALSE)) %>%
           enableTileCaching() %>%
           addProviderTiles(providers$Esri.WorldImagery,
                            options=tileOptions(useCache=TRUE,crossOrigin=TRUE)) %>%  
@@ -194,7 +196,9 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         label_text <- make_assessment_hovertext_content(plot_data = plot_dat, output = type, category = category, var = var)
           
         leaflet_map <- 
-          leaflet(plot_dat) %>%
+          leaflet(plot_dat, 
+                  options = leafletOptions(
+                    attributionControl=FALSE)) %>%
           enableTileCaching() %>%
           addProviderTiles(providers$Esri.WorldImagery,
                            options=tileOptions(useCache=TRUE,crossOrigin=TRUE)) %>%  
