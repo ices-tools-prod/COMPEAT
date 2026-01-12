@@ -58,7 +58,8 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary) {
     
     indicator_data <- reactive({
       if(!is.null(shared_state$assessment)){
-        fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv"))
+        fread(paste0("./Data/", shared_state$assessment, "/Annual_Indicator.csv")) %>%
+          mutate(across(where(is.double), ~ round(.x, digits = 2)))
       }
     })
 
@@ -161,7 +162,7 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary) {
            plotOutput(ns("chart"))),
       card(style = paste0("height: ", 75, "vh;"),
            full_screen = T,
-           DTOutput(ns("data")))
+           DTOutput(ns("data")) %>% withSpinner())
       )
     })
     output$downloadAnnualIndicators <- shiny::downloadHandler(

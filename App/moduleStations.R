@@ -11,10 +11,7 @@ moduleStationsUI <- function(id) {
                                               selected = NULL  # Initially NULL; server will set the default
                                             ),
                                             uiOutput(ns("typeSelect")),
-                                            # shiny::radioButtons(inputId = ns("stationType"),
-                                            #                     "Select data type",
-                                            #                     choices = c("Bottle" = "BOT", "CTD" ="CTD", "Pump" = "PMP")),
-                                            shiny::downloadButton(ns("downloadStations"), "Download Station Samples (Wait 5s)") %>% withSpinner()
+                                            shiny::downloadButton(ns("downloadStations"), "Download Station Samples (Wait 5s)")
                                             ), 
       card(style = paste0("height: ", 85, "vh;"),
         full_screen = T,

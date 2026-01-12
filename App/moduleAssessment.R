@@ -272,29 +272,45 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
     
     output$main_panel <- renderUI({
       tagList(
-        accordion(open = TRUE,
-          accordion_panel(title = "Maps", 
-            fluidRow(
-              column(width = 6,
-                          card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
-                            full_screen = T, 
-                               card_header("Status",class = "bg-primary"),
-                               leafletOutput(
-                                 outputId = ns("map1"), height = "100%"))%>% withSpinner(),
-          ),
-              column(width = 6,
-                     card(style = paste0("height: ", input$map_display_size*0.9, "vh;"),
-                          full_screen = T,
-                          card_header("Confidence", class = "bg-primary"),
-                          leafletOutput(outputId = ns("map2"), height = "100%"))%>% withSpinner(),
-            ))
-          )),card(style = paste0("height: ", 85, "vh;"),
-                 full_screen = T,
-                 #card_header("Table", class = "bg-primary"),
-                 DTOutput(outputId = ns("assessmentTable")) %>% withSpinner()
+        div(
+          class = "acc-tight py-1 px-0",
+          accordion(
+            open = TRUE,
+            accordion_panel(
+              title = "Maps", class = "py-2 px-3",
+              fluidRow(
+                column(
+                  width = 6,
+                  card(class = "card-square",
+                    style = paste0("height: ", input$map_display_size * 0.9, "vh;"),
+                    full_screen = TRUE,
+                    card_header("Status", class = "bg-primary py-1 px-3 card-squareh"),
+                    card_body(padding = 0,
+                              leafletOutput(ns("map1"), height = "100%")
+                    )
+                  )
+                ),
+                column(
+                  width = 6,
+                  card(class = "card-square",
+                    style = paste0("height: ", input$map_display_size * 0.9, "vh;"),
+                    full_screen = TRUE,
+                    card_header("Confidence", class = "bg-primary py-1 px-3 card-squareh"),
+                    card_body(padding = 0,
+                              leafletOutput(ns("map2"), height = "100%")
+                    )
+                  )
+                )
+              )
             )
-          
+          )
+        ),
         
+        card(
+          style = "height: 85vh;",
+          full_screen = TRUE,
+          DTOutput(ns("assessmentTable")) %>% withSpinner()
+        )
       )
     })
     

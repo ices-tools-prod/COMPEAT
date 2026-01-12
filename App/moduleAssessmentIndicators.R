@@ -267,7 +267,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
             ))),
         card(style = paste0("height: ", 85, "vh;"),
              full_screen = T,
-             DTOutput(ns("data"))) %>% withSpinner()
+             DTOutput(ns("data")) %>% withSpinner())
       )
     })
   }
