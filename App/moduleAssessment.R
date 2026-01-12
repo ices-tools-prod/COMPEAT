@@ -104,7 +104,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         
       } else {
         cols_for_display <- c("NE", "EQR", "EQRS", "EQRS_Class", "NC", "C", "C_Class")
-        dat <- dat %>% dplyr::select(Code, Description, all_of(cols_for_display)) 
+        dat <- dat %>% dplyr::select(UnitID, Code, Description, all_of(cols_for_display)) 
       }
         dat <- dat %>% mutate(across(where(is.double), ~ round(.x, digits = 2)))
     })
@@ -272,19 +272,16 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
     
     output$main_panel <- renderUI({
       tagList(
-        div(
-          class = "acc-tight py-1 px-0",
-          accordion(
+        accordion(
             open = TRUE,
             accordion_panel(
-              title = "Maps", class = "py-2 px-3",
+              title = "Maps", class = "py-1 px-1",
               fluidRow(
                 column(
                   width = 6,
-                  card(class = "card-square",
-                    style = paste0("height: ", input$map_display_size * 0.9, "vh;"),
+                  card(style = paste0("height: ", input$map_display_size * 0.95, "vh;"),
                     full_screen = TRUE,
-                    card_header("Status", class = "bg-primary py-1 px-3 card-squareh"),
+                    card_header("Status", class = "bg-primary py-1 px-3"),
                     card_body(padding = 0,
                               leafletOutput(ns("map1"), height = "100%")
                     )
@@ -292,20 +289,16 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
                 ),
                 column(
                   width = 6,
-                  card(class = "card-square",
-                    style = paste0("height: ", input$map_display_size * 0.9, "vh;"),
+                  card(style = paste0("height: ", input$map_display_size * 0.95, "vh;"),
                     full_screen = TRUE,
-                    card_header("Confidence", class = "bg-primary py-1 px-3 card-squareh"),
+                    card_header("Confidence", class = "bg-primary py-1 px-3"),
                     card_body(padding = 0,
                               leafletOutput(ns("map2"), height = "100%")
                     )
                   )
                 )
               )
-            )
-          )
-        ),
-        
+            )),
         card(
           style = "height: 85vh;",
           full_screen = TRUE,

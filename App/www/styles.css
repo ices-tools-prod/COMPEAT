@@ -1,0 +1,25 @@
+.bslib-sidebar-layout>.main {
+    padding: 6px;
+}
+
+.tab-pane{
+  --bslib-navbar-margin: 0px;
+}
+
+.bslib-mb-spacing {
+  margin: 0;
+}
+
+.map-card {
+  padding: 4px 0px;
+}
+.map-card-body {
+  padding: 4px 0px;
+}
+
+.main {
+  padding:0px 0px;
+}
+
+.acc-tight .accordion-button { padding: .5rem 1rem !important; } /* thinner header */
+

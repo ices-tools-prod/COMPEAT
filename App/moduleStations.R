@@ -15,7 +15,8 @@ moduleStationsUI <- function(id) {
                                             ), 
       card(style = paste0("height: ", 85, "vh;"),
         full_screen = T,
-        leaflet::leafletOutput(ns("map"))
+        card_body(leaflet::leafletOutput(ns("map")),
+                  padding = 0)
       )
   )
 )

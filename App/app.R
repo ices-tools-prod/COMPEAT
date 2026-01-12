@@ -6,7 +6,7 @@ library(leaflet)
 library(leaflet.extras)
 library(R.methodsS3)
 library(R.oo)
-library(R.utils, pos = grep("shiny", search()) + 1)
+library(R.utils)
 library(sf)
 library(shiny)
 library(shinycssloaders)
@@ -24,12 +24,13 @@ glossary <- readRDS("./Data/glossary.rds")
 station_configuration <- read_yaml("./stations_config.yml")
 
 ui <- tagList(
+  
   tags$script(HTML("
     $(document).ready(function() {
       $('[data-toggle=\"tooltip\"]').tooltip();
     });
   ")),
-  
+  tags$head(tags$link(rel = "stylesheet", type="text/css", href="./styles.css")),
   navbarPage(
     position = "static-top",
     collapsible = TRUE,
@@ -37,7 +38,6 @@ ui <- tagList(
     id = "tabset",
     fluid = TRUE,
     theme = bslib::bs_theme(bootswatch = "flatly"),
-      
     title = span("Commom Procedure Eutrophication Assessment Tool (COMPEAT)"), 
     
     tabPanel("Assessment",
