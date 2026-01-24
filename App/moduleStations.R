@@ -26,17 +26,37 @@ moduleStationsUI <- function(id) {
 moduleStationsServer <- function(id, shared_state, station_configuration) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-
+    
+    # Update the selected assessment from shared_state on module load
+    observe({
+      updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
+    })
+    
+    # When user changes the assessmentSelect, update shared_state$assessment
+    observeEvent(input$assessmentSelect, {
+      req(input$assessmentSelect)
+      if (input$assessmentSelect != shared_state$assessment) {
+        shared_state$assessment <- input$assessmentSelect
+      }
+    })
+    
+    # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
+    observeEvent(shared_state$assessment, {
+      req(shared_state$assessment)
+      req(input$assessmentSelect)
+      if (input$assessmentSelect != shared_state$assessment) {
+        updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
+      }
+    })
+    
     type_names <- c("Bottle" = "BOT", "CTD" ="CTD", "Pump" = "PMP", "SUR" = "SUR")
     
     types <- reactive({
       required_station_types <- type_names[type_names %in% names(station_configuration[[input$assessmentSelect]])]
       lookup <- data.frame(input = required_station_types, id = 1:length(required_station_types))
-      list(required_station_types = required_station_types,
-           lookup = lookup)
-    }
-      
-    )
+      list(required_station_types = required_station_types, lookup = lookup)
+      })
+    
     output$typeSelect <- renderUI({
       req(types)
       shiny::radioButtons(inputId = ns("stationType"),
@@ -84,8 +104,8 @@ moduleStationsServer <- function(id, shared_state, station_configuration) {
     
     output$downloadStations <- shiny::downloadHandler(
       filename = function () {
-        
-        paste0("_Da",input$assessmentSelect,"_StationSamples", input$stationType, station_configuration[[input$assessmentSelect]][[input$stationType]], ".csv.gz") 
+        url <- station_configuration[[input$assessmentSelect]][[input$stationType]]
+        filename <- basename(url)
       },
       content = function(file, config) {
         withProgress(message = paste("Fetching", input$stationType, "station sample data for ", input$assessmentSelect), value = 0, {
@@ -94,12 +114,7 @@ moduleStationsServer <- function(id, shared_state, station_configuration) {
         dir.create(td, showWarnings = FALSE)
         on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
         dest <- file.path(td, "stationdata")
-        assessment <- stringr::str_split_fixed(input$assessmentSelect, " ", n = 3)
-        url_patch <- paste0(assessment[2], "/StationSamples",  gsub("\\(|\\)", "", assessment[3]))
-        url <- paste0("https://icesoceanography.blob.core.windows.net/compeat/comp",
-                      url_patch, input$stationType, "_",
-                      station_configuration[[input$assessmentSelect]][[input$stationType]],
-                      ".csv.gz")
+        url <- station_configuration[[input$assessmentSelect]][[input$stationType]]
         h <- curl::new_handle()
         curl::handle_setopt(h, connecttimeout = 30, timeout = 60)
         dat <- curl::curl_download(url, destfile = dest, quiet = TRUE, handle = h)

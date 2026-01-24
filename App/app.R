@@ -21,16 +21,16 @@ source("./moduleAnnualIndicators.R")
 source("./moduleAssessmentIndicators.R")
 source("./moduleAssessment.R")
 glossary <- readRDS("./Data/glossary.rds")
-station_configuration <- read_yaml("./stations_config.yml")
+station_configuration <- read_yaml("./Data/stations_config.yml")
 
 ui <- tagList(
-  
   tags$script(HTML("
     $(document).ready(function() {
       $('[data-toggle=\"tooltip\"]').tooltip();
     });
   ")),
-  tags$head(tags$link(rel = "stylesheet", type="text/css", href="./styles.css")),
+  tags$head(tags$link(rel = "stylesheet", type = "text/css",
+                      href = "./styles.css")),
   navbarPage(
     position = "static-top",
     collapsible = TRUE,
@@ -38,57 +38,57 @@ ui <- tagList(
     id = "tabset",
     fluid = TRUE,
     theme = bslib::bs_theme(bootswatch = "flatly"),
-    title = span("Commom Procedure Eutrophication Assessment Tool (COMPEAT)"), 
-    
-    tabPanel("Assessment",
-             moduleAssessmentUI("Assessment")
+    title = span("Commom Procedure Eutrophication Assessment Tool (COMPEAT)"),
+    tabPanel(
+      "Assessment",
+      moduleAssessmentUI("Assessment")
     ),
-    tabPanel("Indicators",
-             tabsetPanel(
-               moduleAssessmentIndicatorsUI("AssessInd"),
-               moduleAnnualIndicatorsUI("AnnualInd"))
+    tabPanel(
+      "Indicators",
+      tabsetPanel(
+        moduleAssessmentIndicatorsUI("AssessInd"),
+        moduleAnnualIndicatorsUI("AnnualInd")
+      )
     ),
-    tabPanel("Stations",
-             moduleStationsUI("Stations")
+    tabPanel(
+      "Stations",
+      moduleStationsUI("Stations")
     ),
   )
 )
- 
 
 server <- function(input, output, session) {
+  shared_state <- reactiveValues(assessment = NULL)
 
-      shared_state <- reactiveValues(assessment = NULL)
-      
-       # Fetch available assessments
-       available_assessments <- list.dirs("./Data", recursive = FALSE, full.names = FALSE) %>% sort(decreasing = TRUE)
-       
-       # Initialize shared_state$assessment with the first available assessment
-       observe({
-         if (is.null(shared_state$assessment) && length(available_assessments) > 0) {
-           shared_state$assessment <- available_assessments[1]
-         }
-       })
-       
-       # Optional: If no assessments are available, handle accordingly
-       observe({
-         if (length(available_assessments) == 0) {
-           showModal(modalDialog(
-             title = "No Assessments Found",
-             "Please add assessments to the ./Data directory.",
-             easyClose = TRUE,
-             footer = NULL
-           ))
-         }
-      })
-    
-    
+  # Fetch available assessments
+  available_assessments <- list.dirs("./Data",
+                                     recursive = FALSE,
+                                     full.names = FALSE) %>% sort(decreasing = TRUE)
+
+  # Initialize shared_state$assessment with the first available assessment
+  observe({
+    if (is.null(shared_state$assessment) && length(available_assessments) > 0) {
+      shared_state$assessment <- available_assessments[1]
+    }
+  })
+
+  # Optional: If no assessments are available, handle accordingly
+  observe({
+    if (length(available_assessments) == 0) {
+      showModal(modalDialog(
+        title = "No Assessments Found",
+        "Please add assessments to the ./Data directory.",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    }
+  })
+
   # Initialize Modules without their own assessment selectors
   moduleAssessmentServer("Assessment", shared_state = shared_state, glossary = glossary)
   moduleAssessmentIndicatorsServer("AssessInd", shared_state = shared_state, glossary = glossary)
   moduleAnnualIndicatorsServer("AnnualInd", shared_state = shared_state, glossary = glossary)
   moduleStationsServer("Stations", shared_state = shared_state, station_configuration = station_configuration)
-  
 }
 
 shinyApp(ui = ui, server = server)
-

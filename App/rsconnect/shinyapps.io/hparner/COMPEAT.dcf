@@ -1,11 +1,12 @@
 name: COMPEAT
-title: COMPEAT
-username:
+title: compeat
+username: hparner
 account: hparner
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 8528700
-bundleId: 8133427
+bundleId: 11442876
 url: https://hparner.shinyapps.io/COMPEAT/
+version: 1
 asMultiple: FALSE
 asStatic: FALSE
