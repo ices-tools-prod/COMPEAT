@@ -133,11 +133,11 @@ make_indicator_hovertext_content <- function(plot_data, output, confidence, var)
   
   if (output == "EQRS") {
       label_text <- with(plot_data, paste0(
-        "<div><strong>", get("UntDscr"), " (", get("UnitCod"),")<br>",var, "</strong><br><br></div>",
+        "<div><strong>", get("Description"), " (", get("Code.x"),")<br>",var, "</strong><br><br></div>",
         "<table style='border: 1px solid black; border-collapse: collapse; width: auto;'>",
         
         "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>EQRS_Class </b></td>
-             <td style='border: 1px solid black; padding-inline: 5px'>", get("EQRS_Cl"), "</td></tr>",
+             <td style='border: 1px solid black; padding-inline: 5px'>", get("EQRS_Class"), "</td></tr>",
         
         "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>EQRS </b></td>
              <td style='border: 1px solid black; padding-inline: 5px'>", get("EQRS"), "</td></tr>",
@@ -158,7 +158,7 @@ make_indicator_hovertext_content <- function(plot_data, output, confidence, var)
       
       
       label_text <- with(plot_data, paste0(
-        "<div><strong>", get("UntDscr"), " (", get("UnitCod"),")<br>",var, "</strong><br><br></div>",
+        "<div><strong>", get("Description"), " (", get("Code.x"),")<br>",var, "</strong><br><br></div>",
         "<table style='border: 1px solid black; border-collapse: collapse; width: auto;'>",
         
         "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>C_Class</b></td>
@@ -172,10 +172,10 @@ make_indicator_hovertext_content <- function(plot_data, output, confidence, var)
         
         "</table>"
       ))
-    } else if (confidence == "TC_Clss"){
+    } else if (confidence == "TC_Class"){
       
       label_text <- with(plot_data, paste0(
-        "<div><strong>", get("UntDscr"), " (", get("UnitCod"),")<br>",var, "</strong><br><br></div>",
+        "<div><strong>", get("Description"), " (", get("Code.x"),")<br>",var, "</strong><br><br></div>",
         "<table style='border: 1px solid black; border-collapse: collapse; width: auto;'>",
         
         "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>TC_Class</b></td>
@@ -190,10 +190,10 @@ make_indicator_hovertext_content <- function(plot_data, output, confidence, var)
         "</table>"
       ))
       
-    } else if (confidence == "SC_Clss"){
+    } else if (confidence == "SC_Class"){
       
       label_text <- with(plot_data, paste0(
-        "<div><strong>", get("UntDscr"), " (", get("UnitCod"),")<br>",var, "</strong><br><br></div>",
+        "<div><strong>", get("Description"), " (", get("Code.x"),")<br>",var, "</strong><br><br></div>",
         "<table style='border: 1px solid black; border-collapse: collapse; width: auto;'>",
         
         "<tr><td style='border: 1px solid black; padding-inline: 5px'><b>SC_Class</b></td>

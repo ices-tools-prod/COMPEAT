@@ -125,7 +125,7 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary) {
       }
     })
     
-    starting_columns <- c("UnitID", "Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
+    starting_columns <- c("Code.x", "Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
     
     output$indicator_cols_ui <- renderUI({
       req(!is.null(indicator_data()))

@@ -16,8 +16,8 @@ moduleAssessmentIndicatorsUI <- function(id) {
           radioButtons(inputId = ns("confidence"),
                        "Select confidence measure:",
                        choices = c("Confidence" = "C_Class",
-                                   "Temporal Confidence" = "TC_Clss",
-                                   "Spatial Confidence" = "SC_Clss")),
+                                   "Temporal Confidence" = "TC_Class",
+                                   "Spatial Confidence" = "SC_Class")),
           sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)", min = 0, max = 100, value = 50), 
           checkboxInput(ns("show_legend"), "Show Legend", value = TRUE),
           downloadButton(ns("downloadAssessmentIndicators"), "Download"),
@@ -79,19 +79,28 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       indicators <- unique(indicator_data()$Name) %>% sort()
       selectInput(session$ns("indicator"), "Select Indicator:", choices = indicators)
     })
+
+    units <- reactive({
+      req(!is.null(shared_state$assessment))
+      sf::read_sf(paste0("./Data/", shared_state$assessment, "/Units.shp"), stringsAsFactors = TRUE)
+    })
     
     indicator_shape <- reactive({
-      sf::read_sf(paste0("./Data/", shared_state$assessment, "/Assessment_Indicator.shp"), stringsAsFactors = T)
-      })
-    
+      shiny::validate(
+        need(!is.null(shared_state$assessment), "No assessment selected"),
+        need(!is.null(units()), "Units not available")
+      )
+      req(units(), indicator_data())
       
+      dat <- merge(select(units(), UnitID), indicator_data(), all.x = TRUE)
+    })
+
     plot_data_sf <- reactive({
       if(!is.null(input$indicator)){
         dplyr::filter(indicator_shape(), Name == input$indicator) %>% 
             mutate(across(where(is.double), ~ round(.x, 2)))
       }
     })
-
         
     output$map1 <- renderLeaflet({
       req(plot_data_sf())
@@ -102,11 +111,11 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       # Transform the spatial data to WGS84
       plot_dat <- st_transform(plot_dat, crs = 4326)
       
-      
-        plot_dat$EQRS_Cl <- factor(st_drop_geometry(plot_dat)[["EQRS_Cl"]], 
+
+        plot_dat$EQRS_Class <- factor(st_drop_geometry(plot_dat)[["EQRS_Class"]], 
                                      levels = eqrs_levels, ordered = TRUE)
           
-        pal <- colorFactor(eqrs_palette, plot_dat$EQRS_Cl)
+        pal <- colorFactor(eqrs_palette, plot_dat$EQRS_Class)
      
         label_text <- make_indicator_hovertext_content(plot_data = plot_dat, output = "EQRS", confidence = NULL, var = input$indicator)
         
@@ -118,7 +127,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
           addProviderTiles(providers$Esri.WorldImagery,
                            options=tileOptions(useCache=TRUE,crossOrigin=TRUE)) %>%  
           addPolygons(
-            fillColor = ~pal(plot_dat[["EQRS_Cl"]]),
+            fillColor = ~pal(plot_dat[["EQRS_Class"]]),
             stroke = TRUE, 
             fillOpacity = 0.9, 
             color = "black", 
@@ -136,14 +145,12 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
             addLegend(
             position = "bottomright",
             pal = pal,
-            values = plot_dat[["EQRS_Cl"]],
+            values = plot_dat[["EQRS_Class"]],
             title = "Eutrophication Status",
             opacity = 1)
         }
-      leaflet_map
-})
-    
-    
+        leaflet_map
+      })
     
     output$map2 <- renderLeaflet({
       req(plot_data_sf())
@@ -190,8 +197,8 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
                 pal = pal,
                 values = plot_dat[[input$confidence]],
                 title = case_when(input$confidence == "C_Class" ~ "Confidence",
-                                  input$confidence == "TC_Clss" ~ "Temporal Confidence",
-                                  input$confidence == "SC_Clss" ~ "Spatial Confidence"),
+                                  input$confidence == "TC_Class" ~ "Temporal Confidence",
+                                  input$confidence == "SC_Class" ~ "Spatial Confidence"),
                 opacity = 1)
           }
         leaflet_map
@@ -207,7 +214,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
       }
     )
     
-      starting_columns <- c("UnitID", "Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
+      starting_columns <- c("Code.x", "Description", "Name", "Parameters", "Metric", "Units", "Period", "N", "ES", "ET", "STC", "TC_Class", "SSC", "SC_Class", "C", "C_Class", "EQRS", "EQRS_Class")
     
       output$indicator_cols_ui <- renderUI({
       req(!is.null(indicator_data()))
