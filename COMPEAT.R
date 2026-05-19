@@ -10,7 +10,7 @@ ipak(packages)
 
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "1877-9999"
-#assessmentPeriod <- "1990-2000" # COMP1
+#ssessmentPeriod <- "1990-2000" # COMP1
 #assessmentPeriod <- "2001-2006" # COMP2
 #assessmentPeriod <- "2006-2014" # COMP3
 #assessmentPeriod <- "2015-2020" # COMP4
@@ -161,6 +161,9 @@ units <- units[order(ID), .(Code = ID, Description = LongName, GEOM = geometry)]
 # Assign IDs
 units$UnitID = 1:nrow(units)
 
+# Write to file
+st_write(units, file.path(outputPath, "Units.shp"), delete_layer = TRUE)
+
 # Write to database
 # st_write(
 #   units,
@@ -229,7 +232,7 @@ rm(a,b,c)
 
 gridunits <- st_cast(gridunits)
 
-st_write(gridunits, file.path(outputPath, "gridunits.shp"), delete_layer = TRUE)
+st_write(gridunits, file.path(outputPath, "GridUnits.shp"), delete_layer = TRUE)
 
 # Plot
 ggplot() + geom_sf(data = units) + coord_sf()
@@ -369,6 +372,10 @@ stations <- na.omit(stations)
 
 # Remove spatial column and nake into data table
 stations <- st_set_geometry(stations, NULL) %>% as.data.table()
+
+# Create station units table 
+#stationUnits <- merge(as.data.table(units)[, .(UnitID, UnitCode = Code, UnitDescription = Description)], stations[, .(Longitude..degrees_east., Latitude..degrees_north., UnitID)])
+#fwrite(stationUnits, file.path(outputPath, "StationUnits.csv"))
 
 # Merge stations back into station samples - getting rid of station samples not classified into assessment units
 stationSamples <- stations[stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.), nomatch = 0]
