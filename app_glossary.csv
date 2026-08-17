@@ -1,0 +1,49 @@
+description,abbreviation
+Dissolved Inorganic Nitrogen,DIN
+Dissolved Inorganic Phosphorus,DIP
+Chlorophyll a,CPHL
+Oxygen Deficiency,DOXY
+Total Nitrogen,TN
+Total Phosphorus,TP
+Secchi Depth,SECC
+Dissolved Inorganic Nitrogen:Dissolved Inorganic Phosphorus,DIN:DIP
+Total Nitrogen:Total Phosphorus,TN:TP
+Eutrophication Status,ES
+Standard Deviation,SD
+Number of observations,N
+Number of unique Months,NM
+Number of potential Months,NMP
+Standards Error,SE
+Confidense Interval,CI
+Eutrophication Target / Threshold,ET
+Acceptable Deviation,ACDEV
+Reference Condition,BEST
+Ecological Quality Ratio,EQR
+Ecological Quality Ratio High/Good boundary,EQR_HG
+Ecological Quality Ratio Good/Moderate boundary,EQR_GM
+Ecological Quality Ratio Moderate/Poor boundary,EQR_MP
+Ecological Quality Ratio Poor/Bad boundary,EQR_PB
+Ecological Quality Ratio Scaled,EQRS
+General Temporal Confidence,GTC
+General Temporal Confidence High/Moderate boundary,GTC_HM
+General Temporal Confidence Moderate/Low boundary,GTC_ML
+Specific Temporal Confidence,STC
+Specific Temporal Confidence High/Moderate boundary,STC_HM
+Specific Temporal Confidence Moderate/Low boundary,STC_ML
+Temporal Confidence,TC
+General Spatial Confidence,GSC
+General Spatial Confidence High/Moderate boundary,GSC_HM
+General Spatial Confidence Moderate/Low boundary,GSC_ML
+Specific Spatial Confidence,SSC
+Specific Spatial Confidence High/Moderate boundary,SSC_HM
+Specific Spatial Confidence Moderate/Low boundary,SSC_ML
+Spatial Confidence,SC
+Confidence,C
+None Problem Area,NPA
+Problem Area,PA
+Accuracy Confidence,AC
+Accuracy Confidence Class,ACC
+Indicator Weight,IW
+Unit Id,UnitID
+Unit Code,Code
+Unit Description,Description

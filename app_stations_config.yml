@@ -1,0 +1,17 @@
+---
+'COMP 4 (2015-2020)':
+  BOT: https://icesoceanography.blob.core.windows.net/compeat/comp4/StationSamples2015-2020BOT_2022-08-09.txt.gz
+  CTD: https://icesoceanography.blob.core.windows.net/compeat/comp4/StationSamples2015-2020CTD_2022-08-09.txt.gz
+  PMP: https://icesoceanography.blob.core.windows.net/compeat/comp4/StationSamples2015-2020PMP_2022-08-09.txt.gz
+
+'COMP 5 (2015-2020)':
+  BOT: https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2015-2020BOT_2026-01-08.csv.gz
+  CTD: https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2015-2020CTD_2026-01-08.csv.gz
+  PMP: https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2015-2020PMP_2026-01-08.csv.gz
+
+'COMP 5 (2021-2026)':
+  BOT: https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026BOT_2026-01-08.csv.gz
+  CTD: https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026CTD_2026-01-08.csv.gz
+  PMP: https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026PMP_2026-01-08.csv.gz
+  SUR: https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2021-2026SUR_2026-01-08.csv.gz
+---
