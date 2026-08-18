@@ -59,7 +59,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
     
     file_paths_assessment <- reactive({
       req(!is.null(shared_state$assessment))
-      paste0("./data/", shared_state$assessment, "/Assessment.csv")
+      paste0("./data/", shared_state$assessment, "/output/Assessment.csv")
     })
 
     name_schema <- c("11" = "Nitrogen", 
@@ -69,12 +69,12 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
     
     assessment_data <- reactive({
       req(!is.null(shared_state$assessment))
-      fread(paste0("./data/", shared_state$assessment, "/Assessment.csv"))
+      fread(paste0("./data/", shared_state$assessment, "/output/Assessment.csv"))
     }) 
     
     units <- reactive({
       req(!is.null(shared_state$assessment))
-      sf::read_sf(paste0("./data/", shared_state$assessment, "/Units.shp"), stringsAsFactors = TRUE)
+      sf::read_sf(paste0("./data/", shared_state$assessment, "/output/Units.shp"), stringsAsFactors = TRUE)
     }) 
     
     var <- reactive({

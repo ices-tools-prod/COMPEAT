@@ -75,7 +75,7 @@ server <- function(input, output, session) {
     if (length(available_assessments) == 0) {
       showModal(modalDialog(
         title = "No Assessments Found",
-        "Please add assessments to the ./data directory.",
+        "Please run and add an assessments.",
         easyClose = TRUE,
         footer = NULL
       ))
