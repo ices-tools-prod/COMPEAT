@@ -64,7 +64,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
     
     file_paths_assessment_indicators <- reactive({
       if(!is.null(shared_state$assessment)){
-        paste0("./data/", shared_state$assessment, "/output/Assessment_Indicator.csv")
+        paste0("./data/", shared_state$assessment, "/output/Assessment_Indicator.csv.gz")
       }
     })
 
@@ -280,5 +280,5 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
              DTOutput(ns("data")) %>% withSpinner())
       )
     })
-  }
-)}
+  })
+}

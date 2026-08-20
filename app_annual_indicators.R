@@ -52,13 +52,13 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary) {
     
     file_paths_annual_indicators <- reactive({
       if(!is.null(shared_state$assessment)){
-        paste0("./data/", shared_state$assessment, "/output/Annual_Indicator.csv")
+        paste0("./data/", shared_state$assessment, "/output/Annual_Indicator.csv.gz")
       }
     })
     
     indicator_data <- reactive({
       if(!is.null(shared_state$assessment)){
-        fread(paste0("./data/", shared_state$assessment, "/output/Annual_Indicator.csv")) %>%
+        fread(file_paths_annual_indicators()) %>%
           mutate(across(where(is.double), ~ round(.x, digits = 2)))
       }
     })
@@ -173,5 +173,5 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary) {
         file.copy(file_paths_annual_indicators(), file)
       }
     )
-  }
-)}
+  })
+}

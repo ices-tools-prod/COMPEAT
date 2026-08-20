@@ -12,6 +12,12 @@ library(stringr)
 library(tidyverse)
 library(yaml)
 
+run_assessment <- function() {
+  if (!dir.exists(file.path("data", "COMP 5 (2021-2026)"))){
+    source("data.R")
+  } 
+}
+
 source("./app_helpers.R")
 source("./app_stations.R")
 source("./app_annual_indicators.R")
@@ -69,16 +75,17 @@ server <- function(input, output, session) {
       shared_state$assessment <- available_assessments[1]
     }
   })
-
+  
   # Optional: If no assessments are available, handle accordingly
   observe({
     if (length(available_assessments) == 0) {
-      showModal(modalDialog(
-        title = "No Assessments Found",
-        "Please run and add an assessments.",
-        easyClose = TRUE,
-        footer = NULL
-      ))
+      # showModal(modalDialog(
+      #   title = "No Assessments Found",
+      #   "Please run and add an assessments.",
+      #   easyClose = TRUE,
+      #   footer = NULL
+      # ))
+      run_assessment()
     }
   })
 

@@ -59,7 +59,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
     
     file_paths_assessment <- reactive({
       req(!is.null(shared_state$assessment))
-      paste0("./data/", shared_state$assessment, "/output/Assessment.csv")
+      paste0("./data/", shared_state$assessment, "/output/Assessment.csv.gz")
     })
 
     name_schema <- c("11" = "Nitrogen", 
@@ -69,7 +69,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
     
     assessment_data <- reactive({
       req(!is.null(shared_state$assessment))
-      fread(paste0("./data/", shared_state$assessment, "/output/Assessment.csv"))
+      fread(file_paths_assessment())
     }) 
     
     units <- reactive({
@@ -168,7 +168,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         leaflet_map
     }) 
     
-    output$map2 = renderLeaflet({
+    output$map2 <- renderLeaflet({
       req(merged_data())
       plot_dat <- merged_data()
       
@@ -306,9 +306,5 @@ moduleAssessmentServer <- function(id, shared_state, glossary) {
         )
       )
     })
-    
-    
-    
-    
-  }
-  )}
+  })
+}
