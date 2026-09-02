@@ -1,10 +1,3 @@
-# library(data.table)
-# #library(ggplot2)
-# library(httr)
-# library(readxl)
-# library(sf)
-# library(tidyverse)
-
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
 #assessmentPeriod <- "COMP 5 (1877-9999)"
 #assessmentPeriod <- "COMP 5 (1990-2000)" # COMP1 period
