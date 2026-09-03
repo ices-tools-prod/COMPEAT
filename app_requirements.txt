@@ -6,7 +6,6 @@ httr
 leaflet
 leaflet.extras
 readxl
-sf
 shiny
 shinycssloaders
 shinyjs
