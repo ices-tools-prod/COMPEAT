@@ -15,9 +15,9 @@ library(tidyverse)
 library(yaml)
 
 run_assessment <- function() {
-  if (!dir.exists(file.path("data", "COMP 5 (2021-2026)"))){
-    source("data.R")
-  }
+  # if (!dir.exists(file.path("data", "COMP 5 (2021-2026)"))){
+  #   source("data.R")
+  # }
 }
 
 source("./app_helpers.R")
