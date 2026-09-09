@@ -1,0 +1,68 @@
+# ==========================================
+# STAGE 1: Build Environment
+# ==========================================
+FROM rocker/r-ver:4.6.1 AS builder
+
+ARG RENV_PATHS_CACHE=/root/.cache/R/renv
+ENV RENV_PATHS_CACHE="${RENV_PATHS_CACHE}"
+
+# Install system dependencies needed for compiling packages
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+    cmake make libuv1-dev pandoc libicu-dev libx11-dev \
+    libcurl4-openssl-dev libssl-dev zlib1g-dev libgdal-dev \
+    gdal-bin libgeos-dev libpng-dev libproj-dev libsqlite3-dev \
+    libudunits2-dev libfontconfig1-dev libfreetype6-dev \
+    libfribidi-dev libharfbuzz-dev libjpeg-dev libtiff-dev \
+    libwebp-dev libxml2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/local/lib/R/etc/ /usr/lib/R/etc/ && \
+    echo "options(renv.config.pak.enabled = FALSE, repos = c(CRAN = 'https://cloud.r-project.org'), download.file.method = 'libcurl', Ncpus = 4)" | tee /usr/local/lib/R/etc/Rprofile.site | tee /usr/lib/R/etc/Rprofile.site
+
+WORKDIR /srv/shiny-server/
+COPY renv.lock renv.lock
+
+# Install renv and restore packages globally inside the site library
+RUN --mount=type=cache,id=renv-cache,target=${RENV_PATHS_CACHE} \
+    R -e 'install.packages("renv", repos="https://cloud.r-project.org"); renv::restore(library="/usr/local/lib/R/site-library")'
+
+# HYPER-OPTIMIZATION 1: Strip debugging symbols from compiled C/C++ binaries inside R packages
+RUN find /usr/local/lib/R/site-library/ -name "*.so" -exec strip --strip-unneeded {} +
+
+# HYPER-OPTIMIZATION 2: Wipe documentation, tests, and source directories from the built R packages
+RUN find /usr/local/lib/R/site-library/ -type d \( -name "help" -o -name "doc" -o -name "tests" -o -name "html" -o -name "include" \) -exec rm -rf {} +
+
+
+# ==========================================
+# STAGE 2: Runtime Environment
+# ==========================================
+FROM rocker/r-ver:4.6.1 AS runner
+
+# Install ONLY the system libraries (No compilers, clean headers/docs afterwards)
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+    pandoc gdal-bin \
+    libuv1-dev libicu-dev libx11-dev \
+    libcurl4-openssl-dev libssl-dev zlib1g-dev libgdal-dev \
+    libgeos-dev libpng-dev libproj-dev libsqlite3-dev \
+    libudunits2-dev libfontconfig1-dev libfreetype6-dev \
+    libfribidi-dev libharfbuzz-dev libjpeg-dev libtiff-dev \
+    libwebp-dev libxml2-dev \
+    && rm -rf /usr/include /usr/share/doc /usr/share/man \
+    && find /usr/lib /usr/local/lib -type f -name "*.a" -delete \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/local/lib/R/etc/ /usr/lib/R/etc/ && \
+    echo "options(renv.config.pak.enabled = FALSE, repos = c(CRAN = 'https://cloud.r-project.org'), download.file.method = 'libcurl')" | tee /usr/local/lib/R/etc/Rprofile.site | tee /usr/lib/R/etc/Rprofile.site
+
+# Create user and their home directory first
+RUN groupadd -r shiny && useradd -r -g shiny -m -d /home/shiny shiny
+WORKDIR /srv/shiny-server/
+
+# HYPER-OPTIMIZATION 3: Copy directly as the shiny user to avoid layer-duplicating 'RUN chown'
+COPY --from=builder --chown=shiny:shiny /usr/local/lib/R/site-library /usr/local/lib/R/site-library
+COPY --chown=shiny:shiny . /srv/shiny-server/
+
+USER shiny
+EXPOSE 3838
+
+CMD ["R", "-e", "shiny::runApp('/srv/shiny-server', host='0.0.0.0', port=3838)"]

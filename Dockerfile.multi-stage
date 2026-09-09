@@ -1,0 +1,68 @@
+# ==========================================
+# STAGE 1: Build Environment
+# ==========================================
+FROM rocker/r-ver:4.6.1 AS builder
+
+ARG RENV_PATHS_CACHE=/root/.cache/R/renv
+ENV RENV_PATHS_CACHE="${RENV_PATHS_CACHE}"
+
+# Install all development tools and headers needed ONLY for compilation
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+    cmake make libuv1-dev pandoc libicu-dev libx11-dev \
+    libcurl4-openssl-dev libssl-dev zlib1g-dev libgdal-dev \
+    gdal-bin libgeos-dev libpng-dev libproj-dev libsqlite3-dev \
+    libudunits2-dev libfontconfig1-dev libfreetype6-dev \
+    libfribidi-dev libharfbuzz-dev libjpeg-dev libtiff-dev \
+    libwebp-dev libxml2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/local/lib/R/etc/ /usr/lib/R/etc/ && \
+    echo "options(renv.config.pak.enabled = FALSE, repos = c(CRAN = 'https://cloud.r-project.org'), download.file.method = 'libcurl', Ncpus = 4)" | tee /usr/local/lib/R/etc/Rprofile.site | tee /usr/lib/R/etc/Rprofile.site
+
+WORKDIR /srv/shiny-server/
+COPY renv.lock renv.lock
+
+# Install renv and restore packages globally
+RUN --mount=type=cache,id=renv-cache,target=${RENV_PATHS_CACHE} \
+    R -e 'install.packages("renv", repos="https://cloud.r-project.org"); renv::restore(library="/usr/local/lib/R/site-library")'
+
+# Clean up documentation, tests, and source directories from the built R packages to save space
+RUN find /usr/local/lib/R/site-library/ -type d \( -name "help" -o -name "doc" -o -name "tests" -o -name "html" -o -name "include" \) -exec rm -rf {} +
+
+
+# ==========================================
+# STAGE 2: Runtime Environment
+# ==========================================
+FROM rocker/r-ver:4.6.1 AS runner
+
+# 1. Heavily resource-intensive compilers (cmake, make) are removed completely
+# 2. We strip out header files (/usr/include) and static libraries (*.a) to minimize size safely
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+    pandoc gdal-bin \
+    libuv1-dev libicu-dev libx11-dev \
+    libcurl4-openssl-dev libssl-dev zlib1g-dev libgdal-dev \
+    libgeos-dev libpng-dev libproj-dev libsqlite3-dev \
+    libudunits2-dev libfontconfig1-dev libfreetype6-dev \
+    libfribidi-dev libharfbuzz-dev libjpeg-dev libtiff-dev \
+    libwebp-dev libxml2-dev \
+    && rm -rf /usr/include /usr/share/doc /usr/share/man \
+    && find /usr/lib /usr/local/lib -type f -name "*.a" -delete \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/local/lib/R/etc/ /usr/lib/R/etc/ && \
+    echo "options(renv.config.pak.enabled = FALSE, repos = c(CRAN = 'https://cloud.r-project.org'), download.file.method = 'libcurl')" | tee /usr/local/lib/R/etc/Rprofile.site | tee /usr/lib/R/etc/Rprofile.site
+
+RUN groupadd -r shiny && useradd -r -g shiny -m -d /home/shiny shiny
+WORKDIR /srv/shiny-server/
+
+# Copy the completely compiled R site library from the builder stage
+COPY --from=builder /usr/local/lib/R/site-library /usr/local/lib/R/site-library
+
+# Copy your application code
+COPY . /srv/shiny-server/
+
+RUN chown -R shiny:shiny /srv/shiny-server/ /home/shiny/
+USER shiny
+EXPOSE 3838
+
+CMD ["R", "-e", "shiny::runApp('/srv/shiny-server', host='0.0.0.0', port=3838)"]
