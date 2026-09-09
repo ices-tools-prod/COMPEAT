@@ -10,7 +10,7 @@ RUN apt-get update -y && apt-get install -y \
     gdal-bin libgeos-dev libpng-dev libproj-dev libsqlite3-dev \
     libudunits2-dev libfontconfig1-dev libfreetype6-dev \
     libfribidi-dev libharfbuzz-dev libjpeg-dev libtiff-dev \
-    libwebp-dev libxml2-dev \
+    libwebp-dev libxml2-dev libabsl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up global R profile options
