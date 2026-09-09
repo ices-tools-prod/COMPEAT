@@ -85,10 +85,10 @@ if (length(list.files(file.path(filePath, "csv"))) == 0) {
 }
 
 # Process data -----------------------------------------------------------------
-library(data.table)
-library(sf)
-library(tidyverse)
-library(ncdf4)
+#library(data.table)
+#library(sf)
+#library(tidyverse)
+#library(ncdf4)
 
 # Read Units
 # units <- st_read(file.path("C:/GitHub/COMPEAT/Input/2015-2020", "AssessmentUnits.csv"))

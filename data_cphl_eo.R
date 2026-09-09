@@ -1,8 +1,8 @@
-library(data.table)
-library(sf)
-library(tidyverse)
-library(ncdf4)
-library(R.utils)
+#library(data.table)
+#library(sf)
+#library(tidyverse)
+#library(ncdf4)
+#library(R.utils)
 
 pathARGANS <- "D:/COMPEAT/CPHL_EO_ARGANS/OSPARIV"
 pathRBINS <- "D:/COMPEAT/CPHL_EO_RBINS/v2.00"

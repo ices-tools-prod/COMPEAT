@@ -4,5 +4,6 @@
 manifest.json
 rsconnect/
 .Rproj.user
+.Rproj
 .Rprofile
 /data
