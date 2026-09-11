@@ -378,18 +378,43 @@ fwrite(unique(stationSamples[Type == 'P', .(StationID, Cruise, Station, Type, Ye
 
 # Get bathymetric depth for the oxygen indicator -----------------------------
 
+# # Function to get bathymetric depth from EMODnet bathymetry REST web service
+# get.bathymetric <- function(x, y, host = "https://rest.emodnet-bathymetry.eu") {
+#   query = paste0("/depth_sample?geom=POINT(", x, " ", y,")")
+#   path = httr::modify_url(paste0(host, query))
+#   r = GET(path)
+#   # to catch empty responses in a proper way
+#   if(is.numeric(content(r)$avg)){
+#     return(paste(content(r)$min, content(r)$max, content(r)$avg, content(r)$stdev, sep = "_"))
+#   } else {
+#     return(NA_real_)
+#   }
+# }
+
 # Function to get bathymetric depth from EMODnet bathymetry REST web service
 get.bathymetric <- function(x, y, host = "https://rest.emodnet-bathymetry.eu") {
-  query = paste0("/depth_sample?geom=POINT(", x, " ", y,")")
-  path = httr::modify_url(paste0(host, query))
-  r = GET(path)
-  # to catch empty responses in a proper way
-  if(is.numeric(content(r)$avg)){
-    return(paste(content(r)$min, content(r)$max, content(r)$avg, content(r)$stdev, sep = "_"))
+  query <- paste0("/depth_sample?geom=POINT(", x, " ", y, ")")
+  path <- httr::modify_url(paste0(host, query))
+  
+  # Fetch the API response
+  r <- httr::GET(path)
+  
+  # Prevent failure if the server returned a bad status code (e.g., 404 or 500)
+  if (httr::status_code(r) != 200) {
+    return(NA_character_)
+  }
+  
+  # Parse the content ONCE and enforce UTF-8 to suppress the encoding warning
+  res_content <- httr::content(r, as = "parsed", type = "application/json", encoding = "UTF-8")
+  
+  # Safely check if 'avg' exists and is numeric
+  if (!is.null(res_content$avg) && is.numeric(res_content$avg)) {
+    return(paste(res_content$min, res_content$max, res_content$avg, res_content$stdev, sep = "_"))
   } else {
-    return(NA_real_)
+    return(NA_character_) # Changed to match the text return type of your successful branch
   }
 }
+
 
 # Extract station samples with oxygen and missing bottom depth
 stationSamplesWithOxygen <- stationSamples[!is.na(Dissolved.Oxygen..ml.l.) & is.na(Bot..Depth..m.)]
@@ -398,18 +423,23 @@ stationSamplesWithOxygen <- stationSamples[!is.na(Dissolved.Oxygen..ml.l.) & is.
 stationsWithOxygen <- unique(stationSamplesWithOxygen[, .(Longitude..degrees_east., Latitude..degrees_north.)])
 
 # Get bathymetrics for stations with oxygen
-bathymetrics <- map2(stationsWithOxygen$Longitude..degrees_east., stationsWithOxygen$Latitude..degrees_north., get.bathymetric) %>% unlist
+bathymetrics <- map2_chr(stationsWithOxygen$Longitude..degrees_east., stationsWithOxygen$Latitude..degrees_north., get.bathymetric)
 
 stationsWithOxygen$Bathymetric <- bathymetrics
 
-stationsWithOxygen <- stationsWithOxygen %>%
-  separate(Bathymetric, c("BathymetricMin", "BathymetricMax", "BathymetricAvg", "BathymetricStDev"), sep = "_") %>%
-  mutate(
-    BathymetricMin = -as.numeric(BathymetricMin),
-    BathymetricMax = -as.numeric(BathymetricMax),
-    BathymetricAvg = -as.numeric(BathymetricAvg),
-    BathymetricStDev = -as.numeric(BathymetricStDev),
+# Split the string and transform to negative numeric in-place
+stationsWithOxygen[, c("BathymetricMin", "BathymetricMax", "BathymetricAvg", "BathymetricStDev") := {
+  splits <- tstrsplit(Bathymetric, "_", type.convert = TRUE)
+  list(
+    -splits[[1]], # Min Depth
+    -splits[[2]], # Max Depth
+    -splits[[3]], # Avg Depth
+    splits[[4]]  # StDev (Kept positive)
   )
+}]
+
+# Drop the temporary combined character column
+stationsWithOxygen[, Bathymetric := NULL]
 
 # Merge bathymetric back into station samples
 stationSamples <- as.data.table(stationsWithOxygen)[, .(Longitude..degrees_east., Latitude..degrees_north., Bathymetric..m. = BathymetricAvg)][stationSamples, on = .(Longitude..degrees_east., Latitude..degrees_north.)]

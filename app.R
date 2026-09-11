@@ -15,12 +15,6 @@ library(shinyjs)
 library(tidyverse)
 library(yaml)
 
-run_assessment <- function() {
-  if (!dir.exists(file.path("data", "COMP 5 (2021-2026)"))){
-    source("data.R")
-  }
-}
-
 source("./app_helpers.R")
 source("./app_stations.R")
 source("./app_annual_indicators.R")
@@ -72,6 +66,13 @@ server <- function(input, output, session) {
                                      recursive = FALSE,
                                      full.names = FALSE) %>% sort(decreasing = TRUE)
 
+  # If no assessments are available, handle accordingly
+  observe({
+    if (length(available_assessments) == 0) {
+      source("data.R")
+    }
+  })
+  
   # Initialize shared_state$assessment with the first available assessment
   observe({
     if (is.null(shared_state$assessment) && length(available_assessments) > 0) {
@@ -79,19 +80,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # Optional: If no assessments are available, handle accordingly
-  observe({
-    if (length(available_assessments) == 0) {
-      # showModal(modalDialog(
-      #   title = "No Assessments Found",
-      #   "Please run and add an assessments.",
-      #   easyClose = TRUE,
-      #   footer = NULL
-      # ))
-      run_assessment()
-    }
-  })
-
   # Initialize Modules without their own assessment selectors
   moduleAssessmentServer("Assessment", shared_state = shared_state, glossary = glossary)
   moduleAssessmentIndicatorsServer("AssessInd", shared_state = shared_state, glossary = glossary)
