@@ -59,32 +59,94 @@ ui <- tagList(
 )
 
 server <- function(input, output, session) {
-  shared_state <- reactiveValues(assessment = NULL)
-
-  # Fetch available assessments
-  available_assessments <- list.dirs("./data",
-                                     recursive = FALSE,
-                                     full.names = FALSE) %>% sort(decreasing = TRUE)
-
-  # If no assessments are available, handle accordingly
-  observe({
-    if (length(available_assessments) == 0) {
-      source("data.R")
-    }
-  })
   
-  # Initialize shared_state$assessment with the first available assessment
-  observe({
-    if (is.null(shared_state$assessment) && length(available_assessments) > 0) {
-      shared_state$assessment <- available_assessments[1]
-    }
-  })
+  shared_state <- reactiveValues(
+    assessment = NULL,
+    data_ready = FALSE
+  )
   
-  # Initialize Modules without their own assessment selectors
-  moduleAssessmentServer("Assessment", shared_state = shared_state, glossary = glossary)
-  moduleAssessmentIndicatorsServer("AssessInd", shared_state = shared_state, glossary = glossary)
-  moduleAnnualIndicatorsServer("AnnualInd", shared_state = shared_state, glossary = glossary)
-  moduleStationsServer("Stations", shared_state = shared_state, station_configuration = station_configuration)
+  get_assessments <- function() {
+    list.dirs(
+      "./data",
+      recursive = FALSE,
+      full.names = FALSE
+    ) |>
+      sort(decreasing = TRUE)
+  }
+  
+  # Run once at startup
+  observeEvent(TRUE, {
+    
+    assessments <- get_assessments()
+    
+    # Generate data only when needed
+    if (length(assessments) == 0) {
+      
+      showNotification(
+        "No assessments found. Generating initial data...",
+        type = "message",
+        duration = NULL
+      )
+      
+      tryCatch({
+        
+        source("data.R", local = TRUE)
+        
+        assessments <- get_assessments()
+        
+        if (length(assessments) == 0) {
+          stop("Data generation completed but no assessments were created.")
+        }
+        
+      }, error = function(e) {
+        
+        showNotification(
+          paste("Assessment generation failed:", e$message),
+          type = "error",
+          duration = NULL
+        )
+        
+        return(NULL)
+      })
+    }
+    
+    shared_state$assessment <- assessments[[1]]
+    shared_state$data_ready <- TRUE
+    
+  }, once = TRUE)
+  
+  #
+  # Initialize modules only after data is available
+  #
+  observeEvent(shared_state$data_ready, {
+    
+    req(shared_state$assessment)
+    
+    moduleAssessmentServer(
+      "Assessment",
+      shared_state = shared_state,
+      glossary = glossary
+    )
+    
+    moduleAssessmentIndicatorsServer(
+      "AssessInd",
+      shared_state = shared_state,
+      glossary = glossary
+    )
+    
+    moduleAnnualIndicatorsServer(
+      "AnnualInd",
+      shared_state = shared_state,
+      glossary = glossary
+    )
+    
+    moduleStationsServer(
+      "Stations",
+      shared_state = shared_state,
+      station_configuration = station_configuration
+    )
+    
+  }, once = TRUE)
 }
 
 shinyApp(ui = ui, server = server)
