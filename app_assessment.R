@@ -8,8 +8,8 @@ moduleAssessmentUI <- function(id) {
                                selectInput(
                                  inputId = ns("assessmentSelect"),
                                  label = "Select Assessment Period:",
-                                 choices = list.dirs("./data", recursive = FALSE, full.names = FALSE) %>% sort(decreasing = TRUE),
-                                 selected = NULL  # Initially NULL; server will set the default
+                                 choices = c("Select assessment" = "", assessment_periods),
+                                 selected = ""
                                ),
         selectInput(
           inputId = ns("category"),
@@ -30,29 +30,41 @@ moduleAssessmentUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleAssessmentServer <- function(id, shared_state, glossary) {
+moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    
-    # Update the selected assessment from shared_state on module load
+
     observe({
-      updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
+      shinyjs::toggleState(
+        ns("assessmentSelect"),
+        condition = !isTRUE(shared_state$assessment_running)
+      )
     })
     
-    # When user changes the assessmentSelect, update shared_state$assessment
     observeEvent(input$assessmentSelect, {
-      req(input$assessmentSelect)
-      if (input$assessmentSelect != shared_state$assessment) {
-        shared_state$assessment <- input$assessmentSelect
+      if (isTRUE(shared_state$assessment_running)) {
+        return()
       }
-    })
+      assessment <- input$assessmentSelect
+      if (identical(assessment, "") || is.null(assessment)) {
+        shared_state$assessment <- NULL
+        return()
+      }
+
+      tryCatch({
+        run_assessment(assessment)
+        shared_state$assessment <- assessment
+      }, error = function(e) {
+        updateSelectInput(session, "assessmentSelect", selected = "")
+        shared_state$assessment <- NULL
+      })
+    }, ignoreInit = TRUE)
     
     # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
     observeEvent(shared_state$assessment, {
-      req(shared_state$assessment)
-      req(input$assessmentSelect)
-      if (input$assessmentSelect != shared_state$assessment) {
-        updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
+      selected <- if (is.null(shared_state$assessment)) "" else shared_state$assessment
+      if (!identical(input$assessmentSelect, selected)) {
+        updateSelectInput(session, "assessmentSelect", selected = selected)
       }
     })
     

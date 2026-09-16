@@ -25,6 +25,7 @@ glossary <- read.csv("./app_glossary.csv")
 station_configuration <- read_yaml("./app_stations_config.yml")
 
 ui <- tagList(
+  shinyjs::useShinyjs(),
   tags$script(HTML("
     $(document).ready(function() {
       $('[data-toggle=\"tooltip\"]').tooltip();
@@ -47,8 +48,8 @@ ui <- tagList(
     tabPanel(
       "Indicators",
       tabsetPanel(
-        moduleAssessmentIndicatorsUI("AssessInd"),
-        moduleAnnualIndicatorsUI("AnnualInd")
+        moduleAssessmentIndicatorsUI("AssessmentIndicator"),
+        moduleAnnualIndicatorsUI("AnnualIndicator")
       )
     ),
     tabPanel(
@@ -59,93 +60,88 @@ ui <- tagList(
 )
 
 server <- function(input, output, session) {
-  
+
   shared_state <- reactiveValues(
     assessment = NULL,
-    data_ready = FALSE
+    data_ready = FALSE,
+    assessment_running = FALSE
   )
-  
-  get_assessments <- function() {
-    list.dirs(
-      "./data",
-      recursive = FALSE,
-      full.names = FALSE
-    ) |>
-      sort(decreasing = TRUE)
+
+  assessment_output_files <- function(assessment) {
+    file.path(
+      "./data", assessment, "output",
+      c("Assessment.csv.gz", "Assessment_Indicator.csv.gz", "Annual_Indicator.csv.gz")
+    )
   }
-  
-  # Run once at startup
-  observeEvent(TRUE, {
-    
-    assessments <- get_assessments()
-    
-    # Generate data only when needed
-    if (length(assessments) == 0) {
-      
-      showNotification(
-        "No assessments found. Generating initial data...",
-        type = "message",
-        duration = NULL
-      )
-      
+
+  run_assessment <- function(assessment) {
+    req(assessment %in% assessment_periods)
+
+    if (all(file.exists(assessment_output_files(assessment)))) {
+      return(invisible(TRUE))
+    }
+
+    shared_state$assessment_running <- TRUE
+    on.exit(shared_state$assessment_running <- FALSE, add = TRUE)
+
+    withProgress(message = paste("Running", assessment), value = 0, {
       tryCatch({
-        
-        source("data.R", local = TRUE)
-        
-        assessments <- get_assessments()
-        
-        if (length(assessments) == 0) {
-          stop("Data generation completed but no assessments were created.")
-        }
-        
+        source("data.R", local = list2env(list(assessmentPeriod = assessment)))
+        incProgress(1)
       }, error = function(e) {
-        
         showNotification(
           paste("Assessment generation failed:", e$message),
           type = "error",
           duration = NULL
         )
-        
-        return(NULL)
+        stop(e)
       })
+    })
+
+    if (!all(file.exists(assessment_output_files(assessment)))) {
+      stop("Assessment generation completed without creating all result files.")
     }
-    
-    shared_state$assessment <- assessments[[1]]
+
+    invisible(TRUE)
+  }
+
+  observeEvent(TRUE, {
     shared_state$data_ready <- TRUE
-    
   }, once = TRUE)
-  
+
   #
   # Initialize modules only after data is available
   #
   observeEvent(shared_state$data_ready, {
-    
-    req(shared_state$assessment)
-    
+
     moduleAssessmentServer(
       "Assessment",
       shared_state = shared_state,
-      glossary = glossary
+      glossary = glossary,
+      run_assessment = run_assessment
     )
-    
+
     moduleAssessmentIndicatorsServer(
-      "AssessInd",
+      "AssessmentIndicator",
       shared_state = shared_state,
-      glossary = glossary
+      glossary = glossary,
+      run_assessment = run_assessment
     )
-    
+
     moduleAnnualIndicatorsServer(
-      "AnnualInd",
+      "AnnualIndicator",
       shared_state = shared_state,
-      glossary = glossary
+      glossary = glossary,
+      run_assessment = run_assessment
     )
-    
+
     moduleStationsServer(
       "Stations",
       shared_state = shared_state,
-      station_configuration = station_configuration
+      station_configuration = station_configuration,
+      run_assessment = run_assessment
     )
-    
+
   }, once = TRUE)
 }
 

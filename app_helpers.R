@@ -1,3 +1,12 @@
+# Assessment periods supported by data.R and exposed in the UI.
+assessment_periods <- c(
+  "COMP 5 (2021-2026)",
+  "COMP 5 (2015-2020)",
+  "COMP 5 (2006-2014)",
+  "COMP 5 (2001-2006)",
+  "COMP 5 (1990-2000)"
+)
+
 # Create a color palette with handmade bins.
 
 eqrs_bins <- c(1.0,0.8,0.6,0.4,0.2,0.0)

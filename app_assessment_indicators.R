@@ -6,16 +6,16 @@ moduleAssessmentIndicatorsUI <- function(id) {
     tagList(
       layout_sidebar(fg = "black", 
         sidebar = bslib::sidebar(width = 300, fg = "black", open = TRUE,
-           selectInput(
-             inputId = ns("assessmentSelect"),
-             label = "Select Assessment Period:",
-             choices = list.dirs("./data", recursive = FALSE, full.names = FALSE) %>% sort(decreasing = TRUE),
-             selected = NULL  # Initially NULL; server will set the default
-           ),
+          selectInput(
+            inputId = ns("assessmentSelect"),
+            label = "Select Assessment Period:",
+            choices = c("Select assessment" = "", assessment_periods),
+            selected = ""
+          ),
           uiOutput(ns("indicatorSelector")),
           radioButtons(inputId = ns("confidence"),
-                       "Select confidence measure:",
-                       choices = c("Confidence" = "C_Class",
+            "Select confidence measure:",
+            choices = c("Confidence" = "C_Class",
                                    "Temporal Confidence" = "TC_Class",
                                    "Spatial Confidence" = "SC_Class")),
           sliderInput(ns("map_display_size"), label = "Map size (% Screen Height)", min = 0, max = 100, value = 50), 
@@ -35,31 +35,35 @@ moduleAssessmentIndicatorsUI <- function(id) {
 }
 
 # Define server logic for the module
-moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary) {
+moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary, run_assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    # Update the selected assessment from shared_state on module load
     observe({
-      updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
+      shinyjs::toggleState(
+        ns("assessmentSelect"),
+        condition = !isTRUE(shared_state$assessment_running)
+      )
     })
-    
-    # When user changes the assessmentSelect, update shared_state$assessment
+
     observeEvent(input$assessmentSelect, {
-      req(input$assessmentSelect)
-      if (input$assessmentSelect != shared_state$assessment) {
-        shared_state$assessment <- input$assessmentSelect
+      if (isTRUE(shared_state$assessment_running)) {
+        return()
       }
-    })
+      assessment <- input$assessmentSelect
+      if (!is.null(assessment) && assessment != "") {
+        run_assessment(assessment)
+        shared_state$assessment <- assessment
+      }
+    }, ignoreInit = TRUE)
     
     # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
     observeEvent(shared_state$assessment, {
-      req(input$assessmentSelect)
-      req(shared_state$assessment)
-      if (input$assessmentSelect != shared_state$assessment) {
-        updateSelectInput(session, "assessmentSelect", selected = shared_state$assessment)
+      selected <- if (is.null(shared_state$assessment)) "" else shared_state$assessment
+      if (!identical(input$assessmentSelect, selected)) {
+        updateSelectInput(session, "assessmentSelect", selected = selected)
       }
-    }, ignoreInit = T)
+    })
     
     
     file_paths_assessment_indicators <- reactive({

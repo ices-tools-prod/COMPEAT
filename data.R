@@ -4,7 +4,9 @@
 #assessmentPeriod <- "COMP 5 (2001-2006)" # COMP2 period
 #assessmentPeriod <- "COMP 5 (2006-2014)" # COMP3 period
 #assessmentPeriod <- "COMP 5 (2015-2020)" # COMP4 period
-assessmentPeriod <- "COMP 5 (2021-2026)" # COMP5 period
+if (!exists("assessmentPeriod", inherits = FALSE)) {
+  assessmentPeriod <- "COMP 5 (2021-2026)" # COMP5 period
+}
 
 # Set flag to determined if dissolved inorganic nutrients are being salinity nomalized 
 dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
@@ -47,13 +49,12 @@ indicator_CPHL_EO_02 <- file.path(inputPath, "")
 # PMP = Pump data
 # SUR = Surface data
 
-if (assessmentPeriod == "COMP 5 (1877-9999)"){
+if (assessmentPeriod == "COMP 5 (1877-9999)") {
   urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration1877-9999.xlsx",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1877-9999BOT_2026-01-09.csv.gz",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1877-9999CTD_2026-01-09.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1877-9999PMP_2026-01-09.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_1877-9999.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1877-9999PMP_2026-01-09.csv.gz")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1877-9999.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples1877-9999BOT_2026-01-09.csv.gz")
@@ -65,8 +66,7 @@ if (assessmentPeriod == "COMP 5 (1877-9999)"){
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration1990-2000.xlsx",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1990-2000BOT_2026-01-09.csv.gz",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1990-2000CTD_2026-01-09.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1990-2000PMP_2026-01-09.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_1990-2000.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1990-2000PMP_2026-01-09.csv.gz")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration1990-2000.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples1990-2000BOT_2026-01-09.csv.gz")
@@ -78,8 +78,7 @@ if (assessmentPeriod == "COMP 5 (1877-9999)"){
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration2001-2006.xlsx",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2001-2006BOT_2026-01-09.csv.gz",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2001-2006CTD_2026-01-09.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2001-2006PMP_2026-01-09.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_2001-2006.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2001-2006PMP_2026-01-09.csv.gz")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2001-2006.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples2001-2006BOT_2026-01-09.csv.gz")
@@ -91,8 +90,7 @@ if (assessmentPeriod == "COMP 5 (1877-9999)"){
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration2006-2014.xlsx",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2006-2014BOT_2026-01-09.csv.gz",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2006-2014CTD_2026-01-09.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2006-2014PMP_2026-01-09.csv.gz",
-            "https://icesoceanography.blob.core.windows.net/compeat/comp5/Indicator_CPHL_EO_02_2006-2014.csv")
+            "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples2006-2014PMP_2026-01-09.csv.gz")
   unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
   configurationFile <- file.path(inputPath, "Configuration2006-2014.xlsx")
   stationSamplesBOTFile <- file.path(inputPath, "StationSamples2006-2014BOT_2026-01-09.csv.gz")

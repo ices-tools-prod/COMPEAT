@@ -5,11 +5,12 @@ htmltools
 httr
 leaflet
 leaflet.extras
+ncdf4
+R.utils
 readxl
 sf
 shiny
 shinycssloaders
 shinyjs
-stringr
 tidyverse
 yaml
