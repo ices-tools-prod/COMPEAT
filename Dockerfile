@@ -8,9 +8,9 @@ RUN apt-get update -y && apt-get install -y \
     cmake make libuv1-dev pandoc libicu-dev libx11-dev \
     libcurl4-openssl-dev libssl-dev zlib1g-dev libgdal-dev \
     gdal-bin libgeos-dev libpng-dev libproj-dev libsqlite3-dev \
-    libudunits2-dev libfontconfig1-dev libfreetype6-dev \
+    libudunits2-dev libnetcdf-dev libfontconfig1-dev libfreetype6-dev \
     libfribidi-dev libharfbuzz-dev libjpeg-dev libtiff-dev \
-    libwebp-dev libxml2-dev libabsl-dev \
+    libwebp-dev libxml2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up global R profile options
