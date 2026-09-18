@@ -41,7 +41,6 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary, run_assessm
       assessment <- input$assessmentSelect
       if (!is.null(assessment) && assessment != "") {
         run_assessment(assessment)
-        shared_state$assessment <- assessment
       }
     }, ignoreInit = TRUE)
     
@@ -56,7 +55,7 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary, run_assessm
     
     file_paths_annual_indicators <- reactive({
       if(!is.null(shared_state$assessment)){
-        paste0("./data/", shared_state$assessment, "/output/Annual_Indicator.csv.gz")
+        assessment_data_path(shared_state$assessment, "Annual_Indicator.csv.gz")
       }
     })
     

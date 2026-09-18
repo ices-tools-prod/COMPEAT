@@ -1,28 +1,12 @@
-library(bslib)
-library(data.table)
-library(DT)
-library(htmltools)
-library(httr)
-library(leaflet)
-library(leaflet.extras)
-library(ncdf4)
-library(R.utils)
-library(readxl)
-library(sf)
-library(shiny)
-library(shinycssloaders)
-library(shinyjs)
-library(tidyverse)
-library(yaml)
-
+source("./global.R")
 source("./app_helpers.R")
 source("./app_stations.R")
 source("./app_annual_indicators.R")
 source("./app_assessment_indicators.R")
 source("./app_assessment.R")
 
-glossary <- read.csv("./app_glossary.csv")
-station_configuration <- read_yaml("./app_stations_config.yml")
+glossary <- read.csv(file.path(app_root, "app_glossary.csv"))
+station_configuration <- read_yaml(file.path(app_root, "app_stations_config.yml"))
 
 ui <- tagList(
   shinyjs::useShinyjs(),
@@ -69,7 +53,7 @@ server <- function(input, output, session) {
 
   assessment_output_files <- function(assessment) {
     file.path(
-      "./data", assessment, "output",
+      app_root, "data", assessment, "output",
       c("Assessment.csv.gz", "Assessment_Indicator.csv.gz", "Annual_Indicator.csv.gz")
     )
   }
@@ -78,29 +62,50 @@ server <- function(input, output, session) {
     req(assessment %in% assessment_periods)
 
     if (all(file.exists(assessment_output_files(assessment)))) {
+      shared_state$assessment <- assessment
       return(invisible(TRUE))
     }
 
     shared_state$assessment_running <- TRUE
-    on.exit(shared_state$assessment_running <- FALSE, add = TRUE)
+    showNotification(
+      paste("Assessment generation started for", assessment, "in the background."),
+      type = "message",
+      duration = 10
+    )
 
-    withProgress(message = paste("Running", assessment), value = 0, {
-      tryCatch({
-        source("data.R", local = list2env(list(assessmentPeriod = assessment)))
-        incProgress(1)
-      }, error = function(e) {
-        showNotification(
-          paste("Assessment generation failed:", e$message),
-          type = "error",
-          duration = NULL
-        )
-        stop(e)
-      })
+    future({
+      setwd(app_root)
+      library(data.table)
+      library(ncdf4)
+      library(R.utils)
+      library(readxl)
+      library(sf)
+      library(tidyverse)
+      source(file.path(app_root, "data.R"), local = list2env(list(assessmentPeriod = assessment)))
+
+      if (!all(file.exists(assessment_output_files(assessment)))) {
+        stop("Assessment generation completed without creating all result files.")
+      }
+
+      TRUE
+    }, seed = TRUE) %...>% (function(result) {
+      shared_state$assessment_running <- FALSE
+      shared_state$assessment <- assessment
+      showNotification(
+        paste("Assessment", assessment, "completed successfully."),
+        type = "message",
+        duration = 10
+      )
+      invisible(result)
+    }) %...!% (function(error) {
+      shared_state$assessment_running <- FALSE
+      showNotification(
+        paste("Assessment generation failed:", conditionMessage(error)),
+        type = "error",
+        duration = NULL
+      )
+      NULL
     })
-
-    if (!all(file.exists(assessment_output_files(assessment)))) {
-      stop("Assessment generation completed without creating all result files.")
-    }
 
     invisible(TRUE)
   }

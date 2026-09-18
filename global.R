@@ -1,0 +1,25 @@
+library(bslib)
+library(data.table)
+library(DT)
+library(future)
+library(htmltools)
+library(httr)
+library(leaflet)
+library(leaflet.extras)
+library(ncdf4)
+library(promises)
+library(R.utils)
+library(readxl)
+library(sf)
+library(shiny)
+library(shinycssloaders)
+library(shinyjs)
+library(tidyverse)
+library(yaml)
+
+plan(multisession)
+
+app_root <- normalizePath(getwd())
+assessment_data_path <- function(assessment, file_name) {
+  file.path(app_root, "data", assessment, "output", file_name)
+}

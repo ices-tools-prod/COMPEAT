@@ -1,11 +1,13 @@
 bslib
 data.table
 DT
+future
 htmltools
 httr
 leaflet
 leaflet.extras
 ncdf4
+promises
 R.utils
 readxl
 sf

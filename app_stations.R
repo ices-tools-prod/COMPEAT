@@ -41,7 +41,6 @@ moduleStationsServer <- function(id, shared_state, station_configuration, run_as
       assessment <- input$assessmentSelect
       if (!is.null(assessment) && assessment != "") {
         run_assessment(assessment)
-        shared_state$assessment <- assessment
       }
     }, ignoreInit = TRUE)
     
@@ -70,9 +69,9 @@ moduleStationsServer <- function(id, shared_state, station_configuration, run_as
     
     file_paths <- reactive({
       if(!is.null(shared_state$assessment)){
-        paste0("./data/",shared_state$assessment, rep("/output/Stations", 3), type_names, ".csv.gz")
-        }
-      })
+        file.path(app_root, "data", shared_state$assessment, "output", paste0("Stations", type_names, ".csv.gz"))
+      }
+    })
     
     req_file <- reactive({
       req(types)

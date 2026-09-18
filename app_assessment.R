@@ -53,7 +53,6 @@ moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
 
       tryCatch({
         run_assessment(assessment)
-        shared_state$assessment <- assessment
       }, error = function(e) {
         updateSelectInput(session, "assessmentSelect", selected = "")
         shared_state$assessment <- NULL
@@ -71,7 +70,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
     
     file_paths_assessment <- reactive({
       req(!is.null(shared_state$assessment))
-      paste0("./data/", shared_state$assessment, "/output/Assessment.csv.gz")
+      assessment_data_path(shared_state$assessment, "Assessment.csv.gz")
     })
 
     name_schema <- c("11" = "Nitrogen", 
@@ -86,7 +85,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
     
     units <- reactive({
       req(!is.null(shared_state$assessment))
-      sf::read_sf(paste0("./data/", shared_state$assessment, "/output/Units.shp"), stringsAsFactors = TRUE)
+      sf::read_sf(assessment_data_path(shared_state$assessment, "Units.shp"), stringsAsFactors = TRUE)
     }) 
     
     var <- reactive({

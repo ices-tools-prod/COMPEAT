@@ -53,7 +53,6 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary, run_ass
       assessment <- input$assessmentSelect
       if (!is.null(assessment) && assessment != "") {
         run_assessment(assessment)
-        shared_state$assessment <- assessment
       }
     }, ignoreInit = TRUE)
     
@@ -68,7 +67,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary, run_ass
     
     file_paths_assessment_indicators <- reactive({
       if(!is.null(shared_state$assessment)){
-        paste0("./data/", shared_state$assessment, "/output/Assessment_Indicator.csv.gz")
+        assessment_data_path(shared_state$assessment, "Assessment_Indicator.csv.gz")
       }
     })
 
@@ -86,7 +85,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary, run_ass
 
     units <- reactive({
       req(!is.null(shared_state$assessment))
-      sf::read_sf(paste0("./data/", shared_state$assessment, "/output/Units.shp"), stringsAsFactors = TRUE)
+      sf::read_sf(assessment_data_path(shared_state$assessment, "Units.shp"), stringsAsFactors = TRUE)
     })
     
     indicator_shape <- reactive({
