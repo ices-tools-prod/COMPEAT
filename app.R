@@ -228,35 +228,43 @@ server <- function(input, output, session) {
                        type = "error", duration = NULL)
       return(invisible(FALSE))
     }
-    process <- tryCatch(callr::r_bg(
-      function(app_root, assessment, output_files, marker) {
-        setwd(app_root)
-        library(data.table)
-        library(ncdf4)
-        library(R.utils)
-        library(readxl)
-        library(sf)
-        library(tidyverse)
-        source(file.path(app_root, "data.R"), local = list2env(list(assessmentPeriod = assessment)))
+    process <- tryCatch({
+      if (!dir.exists(target_dir) &&
+          !dir.create(target_dir, recursive = TRUE, showWarnings = FALSE)) {
+        stop("Could not create the assessment output directory.")
+      }
+      callr::r_bg(
+        function(app_root, assessment, output_files, marker) {
+          setwd(app_root)
+          library(data.table)
+          library(ncdf4)
+          library(R.utils)
+          library(readxl)
+          library(sf)
+          library(tidyverse)
+          source(file.path(app_root, "data.R"), local = list2env(list(assessmentPeriod = assessment)))
 
-        if (!all(file.exists(output_files))) {
-          stop("Assessment generation completed without creating all result files.")
-        }
-        temporary_marker <- tempfile("assessment-complete-", tmpdir = dirname(marker))
-        on.exit(unlink(temporary_marker), add = TRUE)
-        writeLines(as.character(Sys.time()), temporary_marker)
-        if (!file.rename(temporary_marker, marker)) {
-          stop("Could not publish the assessment completion marker.")
-        }
-        TRUE
-      },
-      args = list(
-        app_root = app_root,
-        assessment = assessment,
-        output_files = assessment_output_files(assessment),
-        marker = marker
+          if (!all(file.exists(output_files))) {
+            stop("Assessment generation completed without creating all result files.")
+          }
+          temporary_marker <- tempfile("assessment-complete-", tmpdir = dirname(marker))
+          on.exit(unlink(temporary_marker), add = TRUE)
+          writeLines(as.character(Sys.time()), temporary_marker)
+          if (!file.rename(temporary_marker, marker)) {
+            stop("Could not publish the assessment completion marker.")
+          }
+          TRUE
+        },
+        args = list(
+          app_root = app_root,
+          assessment = assessment,
+          output_files = assessment_output_files(assessment),
+          marker = marker
+        ),
+        stdout = file.path(target_dir, "assessment-stdout.log"),
+        stderr = file.path(target_dir, "assessment-stderr.log")
       )
-    ), error = function(error) error)
+    }, error = function(error) error)
 
     if (inherits(process, "error")) {
       shared_state$assessment_loading <- FALSE

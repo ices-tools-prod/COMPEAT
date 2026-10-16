@@ -27,10 +27,19 @@ options(timeout = 1000)
 download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
   dest <- file.path(path, sub("\\?.+", "", basename(url)))
   if (refetch || !file.exists(dest)) {
-    download.file(url, dest, mode = "wb")
-    if (tools::file_ext(dest) == "zip") {
-      unzip(dest, exdir = path)
+    temporary_dest <- tempfile("assessment-download-", tmpdir = path)
+    on.exit(unlink(temporary_dest), add = TRUE)
+    status <- download.file(url, temporary_dest, mode = "wb", quiet = TRUE)
+    if (status != 0L) {
+      stop("Download failed for ", url, " (status ", status, ").")
     }
+    if (!file.rename(temporary_dest, dest)) {
+      stop("Could not publish downloaded file: ", dest)
+    }
+  }
+  # Re-extract cached archives in case an earlier run stopped during extraction.
+  if (tools::file_ext(dest) == "zip") {
+    unzip(dest, exdir = path)
   }
 }
 

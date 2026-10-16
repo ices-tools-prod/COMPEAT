@@ -27,6 +27,10 @@ local({
 
   writeLines(c(
     'while (!file.exists(file.path(app_root, paste0(assessmentPeriod, ".release")))) Sys.sleep(0.05)',
+    'for (i in seq_len(2048)) {',
+    '  cat(strrep("o", 1024), "\\n")',
+    '  cat(strrep("e", 1024), "\\n", file = stderr())',
+    '}',
     'output_path <- file.path(app_root, "data", assessmentPeriod, "output")',
     'dir.create(output_path, recursive = TRUE, showWarnings = FALSE)',
     'file.create(file.path(output_path, c("Assessment.csv.gz", "Assessment_Indicator.csv.gz", "Annual_Indicator.csv.gz", "Units.shp", "Units.shx", "Units.dbf", "Units.prj", "StationsBOT.csv.gz", "StationsCTD.csv.gz", "StationsPMP.csv.gz")))',
@@ -71,7 +75,8 @@ local({
 
   testServer(app_environment$server, {
     session$flushReact()
-    dir.create(dirname(assessment_output_files("shared")[1]), recursive = TRUE)
+    dir.create(dirname(assessment_output_files("shared")[1]), recursive = TRUE,
+               showWarnings = FALSE)
     file.create(assessment_output_files("shared"))
     run_assessment("shared")
     stopifnot(
@@ -91,6 +96,9 @@ local({
       identical(shared_state$assessment, "shared")
     )
     stopifnot(file.exists(completion_marker("shared")))
+    logs <- file.path(dirname(completion_marker("shared")),
+                      c("assessment-stdout.log", "assessment-stderr.log"))
+    stopifnot(all(file.info(logs)$size > 2 * 1024^2))
   })
 
   release("independent")
