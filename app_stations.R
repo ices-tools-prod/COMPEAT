@@ -13,11 +13,7 @@ moduleStationsUI <- function(id) {
                                             uiOutput(ns("typeSelect")),
                                             shiny::downloadButton(ns("downloadStations"), "Download Station Samples (Wait 5s)")
                                             ), 
-      card(style = paste0("height: ", 85, "vh;"),
-        full_screen = T,
-        card_body(leaflet::leafletOutput(ns("map")),
-                  padding = 0)
-      )
+      uiOutput(ns("main_panel"))
   )
 )
 }
@@ -29,39 +25,56 @@ moduleStationsServer <- function(id, shared_state, station_configuration, run_as
 
     observe({
       shinyjs::toggleState(
-        ns("assessmentSelect"),
-        condition = !isTRUE(shared_state$assessment_running)
+        "downloadStations",
+        condition = !is.null(shared_state$assessment)
+      )
+      shinyjs::toggleState(
+        "assessmentSelect",
+        condition = !isTRUE(shared_state$assessment_running) &&
+          !isTRUE(shared_state$assessment_loading)
       )
     })
     
     observeEvent(input$assessmentSelect, {
-      if (isTRUE(shared_state$assessment_running)) {
+      if (isTRUE(shared_state$assessment_running) ||
+          isTRUE(shared_state$assessment_loading)) {
+        updateSelectInput(session, "assessmentSelect",
+                          selected = shared_state$requested_assessment)
         return()
       }
       assessment <- input$assessmentSelect
-      if (!is.null(assessment) && assessment != "") {
+      if (!identical(assessment, shared_state$requested_assessment)) {
         run_assessment(assessment)
       }
     }, ignoreInit = TRUE)
     
-    # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
-    observeEvent(shared_state$assessment, {
-      selected <- if (is.null(shared_state$assessment)) "" else shared_state$assessment
+    observeEvent(shared_state$requested_assessment, {
+      selected <- if (is.null(shared_state$requested_assessment)) "" else shared_state$requested_assessment
       if (!identical(input$assessmentSelect, selected)) {
         updateSelectInput(session, "assessmentSelect", selected = selected)
       }
-    })
+    }, ignoreNULL = FALSE)
     
     type_names <- c("Bottle" = "BOT", "CTD" ="CTD", "Pump" = "PMP", "SUR" = "SUR")
     
     types <- reactive({
-      required_station_types <- type_names[type_names %in% names(station_configuration[[input$assessmentSelect]])]
-      lookup <- data.frame(input = required_station_types, id = 1:length(required_station_types))
+      req(shared_state$assessment)
+      required_station_types <- type_names[type_names %in% names(station_configuration[[shared_state$assessment]])]
+      lookup <- data.frame(input = required_station_types, id = match(required_station_types, type_names))
       list(required_station_types = required_station_types, lookup = lookup)
       })
+
+    output$main_panel <- renderUI({
+      if (is.null(shared_state$assessment)) return(NULL)
+      bslib::card(
+        style = "height: 85vh;",
+        full_screen = TRUE,
+        bslib::card_body(leaflet::leafletOutput(ns("map")), padding = 0)
+      )
+    })
     
     output$typeSelect <- renderUI({
-      req(types)
+      req(types())
       shiny::radioButtons(inputId = ns("stationType"),
                           "Select data type",
                           choices = types()$required_station_types)
@@ -74,9 +87,10 @@ moduleStationsServer <- function(id, shared_state, station_configuration, run_as
     })
     
     req_file <- reactive({
-      req(types)
+      req(types())
       req(input$stationType)
         val <- types()$lookup[types()$lookup$input == input$stationType, "id"]
+        req(length(val) == 1L)
         file_name <- file_paths()[val]
     })
     
@@ -107,17 +121,19 @@ moduleStationsServer <- function(id, shared_state, station_configuration, run_as
     
     output$downloadStations <- shiny::downloadHandler(
       filename = function () {
-        url <- station_configuration[[input$assessmentSelect]][[input$stationType]]
+        req(shared_state$assessment, input$stationType)
+        url <- station_configuration[[shared_state$assessment]][[input$stationType]]
         filename <- basename(url)
       },
       content = function(file, config) {
-        withProgress(message = paste("Fetching", input$stationType, "station sample data for ", input$assessmentSelect), value = 0, {
+        req(shared_state$assessment, input$stationType)
+        withProgress(message = paste("Fetching", input$stationType, "station sample data for ", shared_state$assessment), value = 0, {
           incProgress(0.2, detail = "This can take up to 1 minute...")
         td <- tempfile("temp_")
         dir.create(td, showWarnings = FALSE)
         on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
         dest <- file.path(td, "stationdata")
-        url <- station_configuration[[input$assessmentSelect]][[input$stationType]]
+        url <- station_configuration[[shared_state$assessment]][[input$stationType]]
         h <- curl::new_handle()
         curl::handle_setopt(h, connecttimeout = 30, timeout = 60)
         dat <- curl::curl_download(url, destfile = dest, quiet = TRUE, handle = h)

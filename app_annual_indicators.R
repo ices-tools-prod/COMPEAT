@@ -29,28 +29,35 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary, run_assessm
 
     observe({
       shinyjs::toggleState(
-        ns("assessmentSelect"),
-        condition = !isTRUE(shared_state$assessment_running)
+        "downloadAnnualIndicators",
+        condition = !is.null(shared_state$assessment)
+      )
+      shinyjs::toggleState(
+        "assessmentSelect",
+        condition = !isTRUE(shared_state$assessment_running) &&
+          !isTRUE(shared_state$assessment_loading)
       )
     })
     
     observeEvent(input$assessmentSelect, {
-      if (isTRUE(shared_state$assessment_running)) {
+      if (isTRUE(shared_state$assessment_running) ||
+          isTRUE(shared_state$assessment_loading)) {
+        updateSelectInput(session, "assessmentSelect",
+                          selected = shared_state$requested_assessment)
         return()
       }
       assessment <- input$assessmentSelect
-      if (!is.null(assessment) && assessment != "") {
+      if (!identical(assessment, shared_state$requested_assessment)) {
         run_assessment(assessment)
       }
     }, ignoreInit = TRUE)
     
-    # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
-    observeEvent(shared_state$assessment, {
-      selected <- if (is.null(shared_state$assessment)) "" else shared_state$assessment
+    observeEvent(shared_state$requested_assessment, {
+      selected <- if (is.null(shared_state$requested_assessment)) "" else shared_state$requested_assessment
       if (!identical(input$assessmentSelect, selected)) {
         updateSelectInput(session, "assessmentSelect", selected = selected)
       }
-    })
+    }, ignoreNULL = FALSE)
     
     
     file_paths_annual_indicators <- reactive({
@@ -159,6 +166,7 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary, run_assessm
     })
     
     output$main_panel <- renderUI({
+      if (is.null(shared_state$assessment)) return(NULL)
       tagList(
         card(style = paste0("height: ", input$plot_display_size*0.95, "vh;"),
            full_screen = TRUE,

@@ -1,7 +1,7 @@
 # Define UI for the module
 moduleAssessmentUI <- function(id) {
   ns <- NS(id)
-  
+
   tagList(
     layout_sidebar(fg = "black", 
       sidebar = bslib::sidebar(width = 300, fg = "black", open = TRUE,
@@ -36,36 +36,35 @@ moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
 
     observe({
       shinyjs::toggleState(
-        ns("assessmentSelect"),
-        condition = !isTRUE(shared_state$assessment_running)
+        "downloadAssessmentFile",
+        condition = !is.null(shared_state$assessment)
+      )
+      shinyjs::toggleState(
+        "assessmentSelect",
+        condition = !isTRUE(shared_state$assessment_running) &&
+          !isTRUE(shared_state$assessment_loading)
       )
     })
     
     observeEvent(input$assessmentSelect, {
-      if (isTRUE(shared_state$assessment_running)) {
+      if (isTRUE(shared_state$assessment_running) ||
+          isTRUE(shared_state$assessment_loading)) {
+        updateSelectInput(session, "assessmentSelect",
+                          selected = shared_state$requested_assessment)
         return()
       }
       assessment <- input$assessmentSelect
-      if (identical(assessment, "") || is.null(assessment)) {
-        shared_state$assessment <- NULL
-        return()
-      }
-
-      tryCatch({
+      if (!identical(assessment, shared_state$requested_assessment)) {
         run_assessment(assessment)
-      }, error = function(e) {
-        updateSelectInput(session, "assessmentSelect", selected = "")
-        shared_state$assessment <- NULL
-      })
+      }
     }, ignoreInit = TRUE)
     
-    # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
-    observeEvent(shared_state$assessment, {
-      selected <- if (is.null(shared_state$assessment)) "" else shared_state$assessment
+    observeEvent(shared_state$requested_assessment, {
+      selected <- if (is.null(shared_state$requested_assessment)) "" else shared_state$requested_assessment
       if (!identical(input$assessmentSelect, selected)) {
         updateSelectInput(session, "assessmentSelect", selected = selected)
       }
-    })
+    }, ignoreNULL = FALSE)
     
     
     file_paths_assessment <- reactive({
@@ -282,6 +281,7 @@ moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
     )
     
     output$main_panel <- renderUI({
+      if (is.null(shared_state$assessment)) return(NULL)
       tagList(
         accordion(
             open = TRUE,

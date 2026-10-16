@@ -41,28 +41,35 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary, run_ass
 
     observe({
       shinyjs::toggleState(
-        ns("assessmentSelect"),
-        condition = !isTRUE(shared_state$assessment_running)
+        "downloadAssessmentIndicators",
+        condition = !is.null(shared_state$assessment)
+      )
+      shinyjs::toggleState(
+        "assessmentSelect",
+        condition = !isTRUE(shared_state$assessment_running) &&
+          !isTRUE(shared_state$assessment_loading)
       )
     })
 
     observeEvent(input$assessmentSelect, {
-      if (isTRUE(shared_state$assessment_running)) {
+      if (isTRUE(shared_state$assessment_running) ||
+          isTRUE(shared_state$assessment_loading)) {
+        updateSelectInput(session, "assessmentSelect",
+                          selected = shared_state$requested_assessment)
         return()
       }
       assessment <- input$assessmentSelect
-      if (!is.null(assessment) && assessment != "") {
+      if (!identical(assessment, shared_state$requested_assessment)) {
         run_assessment(assessment)
       }
     }, ignoreInit = TRUE)
     
-    # When shared_state$assessment changes (from other modules), update this module's assessmentSelect
-    observeEvent(shared_state$assessment, {
-      selected <- if (is.null(shared_state$assessment)) "" else shared_state$assessment
+    observeEvent(shared_state$requested_assessment, {
+      selected <- if (is.null(shared_state$requested_assessment)) "" else shared_state$requested_assessment
       if (!identical(input$assessmentSelect, selected)) {
         updateSelectInput(session, "assessmentSelect", selected = selected)
       }
-    })
+    }, ignoreNULL = FALSE)
     
     
     file_paths_assessment_indicators <- reactive({
@@ -258,6 +265,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary, run_ass
     
     
     output$main_panel <- renderUI({
+      if (is.null(shared_state$assessment)) return(NULL)
       tagList(
         accordion(open = TRUE,
           accordion_panel(title = "Maps", class = "py-1 px-1",
