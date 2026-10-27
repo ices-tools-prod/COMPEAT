@@ -1,4 +1,5 @@
 # Define assessment period i.e. uncomment the period you want to run the assessment for!
+#assessmentPeriod <- "COMP 4 (2015-2020)" # COMP4 period
 #assessmentPeriod <- "COMP 5 (1877-9999)"
 #assessmentPeriod <- "COMP 5 (1990-2000)" # COMP1 period
 #assessmentPeriod <- "COMP 5 (2001-2006)" # COMP2 period
@@ -58,7 +59,20 @@ indicator_CPHL_EO_02 <- file.path(inputPath, "")
 # PMP = Pump data
 # SUR = Surface data
 
-if (assessmentPeriod == "COMP 5 (1877-9999)") {
+if (assessmentPeriod == "COMP 4 (2015-2020)") {
+  urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp4/Configuration2015-2020.xlsx",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp4/StationSamples2015-2020BOT_2022-08-09.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp4/StationSamples2015-2020CTD_2022-08-09.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp4/StationSamples2015-2020PMP_2022-08-09.txt.gz",
+            "https://icesoceanography.blob.core.windows.net/compeat/comp4/Indicator_CPHL_EO_02_2015-2020.csv")
+  unitsFile <- file.path(inputPath, "AssessmentUnits.csv")
+  configurationFile <- file.path(inputPath, "Configuration2015-2020.xlsx")
+  stationSamplesBOTFile <- file.path(inputPath, "StationSamples2015-2020BOT_2022-08-09.txt.gz")
+  stationSamplesCTDFile <- file.path(inputPath, "StationSamples2015-2020CTD_2022-08-09.txt.gz")
+  stationSamplesPMPFile <- file.path(inputPath, "StationSamples2015-2020PMP_2022-08-09.txt.gz")
+  indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2015-2020.csv")
+} else if (assessmentPeriod == "COMP 5 (1877-9999)") {
   urls <- c("https://icesoceanography.blob.core.windows.net/compeat/AssessmentUnits.zip",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/Configuration1877-9999.xlsx",
             "https://icesoceanography.blob.core.windows.net/compeat/comp5/StationSamples1877-9999BOT_2026-01-09.csv.gz",
@@ -385,35 +399,34 @@ fwrite(unique(stationSamples[Type == 'P', .(StationID, Cruise, Station, Type, Ye
 
 # Get bathymetric depth for the oxygen indicator -----------------------------
 
-# # Function to get bathymetric depth from EMODnet bathymetry REST web service
-# get.bathymetric <- function(x, y, host = "https://rest.emodnet-bathymetry.eu") {
-#   query = paste0("/depth_sample?geom=POINT(", x, " ", y,")")
-#   path = httr::modify_url(paste0(host, query))
-#   r = GET(path)
-#   # to catch empty responses in a proper way
-#   if(is.numeric(content(r)$avg)){
-#     return(paste(content(r)$min, content(r)$max, content(r)$avg, content(r)$stdev, sep = "_"))
-#   } else {
-#     return(NA_real_)
-#   }
-# }
-
 # Function to get bathymetric depth from EMODnet bathymetry REST web service
 get.bathymetric <- function(x, y, host = "https://rest.emodnet-bathymetry.eu") {
   query <- paste0("/depth_sample?geom=POINT(", x, " ", y, ")")
   path <- httr::modify_url(paste0(host, query))
-  
-  # Fetch the API response
-  r <- httr::GET(path)
-  
-  # Prevent failure if the server returned a bad status code (e.g., 404 or 500)
-  if (httr::status_code(r) != 200) {
+
+  r <- tryCatch(
+    httr::RETRY("GET", path, httr::timeout(30), times = 5,
+                terminate_on = c(400, 401, 403, 404, 422), quiet = TRUE),
+    error = function(error) {
+      warning("Bathymetry lookup failed at (", x, ", ", y, "): ",
+              conditionMessage(error), call. = FALSE)
+      NULL
+    }
+  )
+  if (is.null(r)) {
     return(NA_character_)
   }
-  
+
+  # Prevent failure if the server returned a bad status code (e.g., 404 or 500)
+  if (httr::status_code(r) != 200) {
+    warning("Bathymetry lookup failed at (", x, ", ", y, "): HTTP ",
+            httr::status_code(r), call. = FALSE)
+    return(NA_character_)
+  }
+
   # Parse the content ONCE and enforce UTF-8 to suppress the encoding warning
   res_content <- httr::content(r, as = "parsed", type = "application/json", encoding = "UTF-8")
-  
+
   # Safely check if 'avg' exists and is numeric
   if (!is.null(res_content$avg) && is.numeric(res_content$avg)) {
     return(paste(res_content$min, res_content$max, res_content$avg, res_content$stdev, sep = "_"))

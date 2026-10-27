@@ -4,7 +4,8 @@ assessment_periods <- c(
   "COMP 5 (2015-2020)",
   "COMP 5 (2006-2014)",
   "COMP 5 (2001-2006)",
-  "COMP 5 (1990-2000)"
+  "COMP 5 (1990-2000)",
+  "COMP 4 (2015-2020)"
 )
 
 # Create a color palette with handmade bins.
