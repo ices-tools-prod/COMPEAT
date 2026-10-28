@@ -16,8 +16,11 @@ dissolved_inorganic_nutrients_are_salinity_normalised <- FALSE
 combined_Chlorophylla_IsWeighted <- TRUE
 
 # Define paths
-inputPath <- file.path("data", assessmentPeriod,"input")
-outputPath <- file.path("data", assessmentPeriod,"output")
+if (!exists("assessmentDataDir", inherits = FALSE)) {
+  assessmentDataDir <- Sys.getenv("COMPEAT_DATA_DIR", "data")
+}
+inputPath <- file.path(assessmentDataDir, assessmentPeriod, "input")
+outputPath <- file.path(assessmentDataDir, assessmentPeriod, "output")
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)

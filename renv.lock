@@ -381,6 +381,75 @@
       "Maintainer": "Jeroen Ooms <jeroenooms@gmail.com>",
       "Repository": "CRAN"
     },
+    "aws.s3": {
+      "Package": "aws.s3",
+      "Version": "0.3.22",
+      "Source": "Repository",
+      "Priority": null,
+      "Depends": [
+        null
+      ],
+      "Imports": [
+        "utils",
+        "tools",
+        "curl",
+        "httr",
+        "xml2 (> 1.0.0)",
+        "base64enc",
+        "digest",
+        "aws.signature (>= 0.3.7)"
+      ],
+      "LinkingTo": [
+        null
+      ],
+      "Suggests": [
+        "testthat",
+        "datasets"
+      ],
+      "Enhances": [
+        null
+      ],
+      "License": "GPL (>= 2)",
+      "License_is_FOSS": null,
+      "License_restricts_use": null,
+      "OS_type": null,
+      "NeedsCompilation": "no",
+      "Repository": "CRAN",
+      "Type": "source"
+    },
+    "aws.signature": {
+      "Package": "aws.signature",
+      "Version": "0.6.2",
+      "Source": "Repository",
+      "Priority": null,
+      "Depends": [
+        null
+      ],
+      "Imports": [
+        "digest",
+        "base64enc",
+        "jsonlite",
+        "curl"
+      ],
+      "LinkingTo": [
+        null
+      ],
+      "Suggests": [
+        "devtools",
+        "testthat (>= 2.1.0)",
+        "aws.ec2metadata (>= 0.1.6)"
+      ],
+      "Enhances": [
+        null
+      ],
+      "License": "GPL (>= 2)",
+      "License_is_FOSS": null,
+      "License_restricts_use": null,
+      "OS_type": null,
+      "NeedsCompilation": "no",
+      "Repository": "CRAN",
+      "Type": "source"
+    },
     "backports": {
       "Package": "backports",
       "Version": "1.5.1",

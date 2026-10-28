@@ -18,10 +18,13 @@ library(yaml)
 
 app_root <- normalizePath(getwd())
 
+source("./app_storage.R", local = TRUE)
+assessment_storage <- assessment_storage_config(app_root)
+
 global_active_jobs <- list()
 
 assessment_data_path <- function(assessment, file_name) {
-  file.path(app_root, "data", assessment, "output", file_name)
+  file.path(assessment_storage$data_dir, assessment, "output", file_name)
 }
 
 source("./app_helpers.R", local = TRUE)
@@ -35,6 +38,7 @@ station_configuration <- read_yaml(file.path(app_root, "app_stations_config.yml"
 
 ui <- tagList(
   shinyjs::useShinyjs(),
+  textOutput("storage_status"),
   textOutput("assessment_status"),
   tags$script(
     HTML(
@@ -126,28 +130,25 @@ server <- function(input, output, session) {
   assessment_process_name <- NULL
 
   assessment_output_files <- function(assessment) {
-    file.path(
-      app_root,
-      "data",
-      assessment,
-      "output",
-      c(
-        "Assessment.csv.gz",
-        "Assessment_Indicator.csv.gz",
-        "Annual_Indicator.csv.gz",
-        "Units.shp", "Units.shx", "Units.dbf", "Units.prj",
-        "StationsBOT.csv.gz", "StationsCTD.csv.gz", "StationsPMP.csv.gz"
-      )
-    )
+    assessment_data_path(assessment, assessment_required_files)
   }
 
   completion_marker <- function(assessment) {
-    file.path(app_root, "data", assessment, "output", "assessment.complete")
+    assessment_data_path(assessment, "assessment.complete")
   }
 
   assessment_complete <- function(assessment) {
-    all(file.exists(c(completion_marker(assessment), assessment_output_files(assessment))))
+    assessment_cache_complete(assessment_storage, assessment)
   }
+
+  output$storage_status <- renderText({
+    if (assessment_storage$mode == "s3") {
+      paste0("Storage: S3 (s3://", assessment_storage$bucket, "/",
+             assessment_storage$prefix, "); local working cache: ", assessment_storage$data_dir)
+    } else {
+      paste("Storage: local files at", assessment_storage$data_dir)
+    }
+  })
 
   output$assessment_status <- renderText({
     requested <- shared_state$requested_assessment
@@ -187,7 +188,7 @@ server <- function(input, output, session) {
     shared_state$assessment <- NULL
     shared_state$assessment_loading <- TRUE
 
-    target_dir <- file.path(app_root, "data", assessment, "output")
+    target_dir <- file.path(assessment_storage$data_dir, assessment, "output")
     job <- global_active_jobs[[target_dir]]
     job_running <- !is.null(job) && job$is_alive()
     previous_result <- if (!is.null(job) && !job_running) {
@@ -195,12 +196,18 @@ server <- function(input, output, session) {
     }
 
     # CASE A: Reuse cached results only when no unfinished or failed job owns them.
-    if (!job_running && !inherits(previous_result, "error") &&
-        assessment_complete(assessment)) {
+    cached <- tryCatch(assessment_complete(assessment), error = function(error) error)
+    if (inherits(cached, "error")) {
+      shared_state$assessment_loading <- FALSE
+      showNotification(paste("Could not validate assessment cache:", conditionMessage(cached)),
+                       type = "error", duration = NULL)
+      return(invisible(FALSE))
+    }
+    if (!job_running && !inherits(previous_result, "error") && cached) {
       shared_state$assessment <- assessment
       session$sendCustomMessage("assessmentResultsLoading", list(assessment = assessment))
       showNotification(
-        "Results already calculated for this folder. Loading...",
+        "Results already calculated for this assessment. Loading...",
         type = "message",
         duration = 10
       )
@@ -222,6 +229,8 @@ server <- function(input, output, session) {
 
     # CASE C: Start a new shared background job for this folder.
     marker <- completion_marker(assessment)
+    reuse_local <- all(file.exists(c(marker, assessment_output_files(assessment)))) &&
+      !inherits(previous_result, "error")
     if (file.exists(marker) && !file.remove(marker)) {
       shared_state$assessment_loading <- FALSE
       showNotification("Could not invalidate the previous assessment completion marker.",
@@ -234,32 +243,16 @@ server <- function(input, output, session) {
         stop("Could not create the assessment output directory.")
       }
       callr::r_bg(
-        function(app_root, assessment, output_files, marker) {
+        function(app_root, assessment, storage, reuse_local) {
           setwd(app_root)
-          library(data.table)
-          library(ncdf4)
-          library(R.utils)
-          library(readxl)
-          library(sf)
-          library(tidyverse)
-          source(file.path(app_root, "data.R"), local = list2env(list(assessmentPeriod = assessment)))
-
-          if (!all(file.exists(output_files))) {
-            stop("Assessment generation completed without creating all result files.")
-          }
-          temporary_marker <- tempfile("assessment-complete-", tmpdir = dirname(marker))
-          on.exit(unlink(temporary_marker), add = TRUE)
-          writeLines(as.character(Sys.time()), temporary_marker)
-          if (!file.rename(temporary_marker, marker)) {
-            stop("Could not publish the assessment completion marker.")
-          }
-          TRUE
+          source(file.path(app_root, "app_storage.R"), local = TRUE)
+          assessment_run_job(app_root, assessment, storage, reuse_local)
         },
         args = list(
           app_root = app_root,
           assessment = assessment,
-          output_files = assessment_output_files(assessment),
-          marker = marker
+          storage = assessment_storage,
+          reuse_local = reuse_local
         ),
         stdout = file.path(target_dir, "assessment-stdout.log"),
         stderr = file.path(target_dir, "assessment-stderr.log")
@@ -269,7 +262,7 @@ server <- function(input, output, session) {
     if (inherits(process, "error")) {
       shared_state$assessment_loading <- FALSE
       showNotification(
-        paste("Assessment generation could not start:", conditionMessage(process)),
+        paste("Assessment preparation could not start:", conditionMessage(process)),
         type = "error",
         duration = NULL
       )
@@ -281,7 +274,8 @@ server <- function(input, output, session) {
     shared_state$assessment_loading <- FALSE
     shared_state$assessment_running <- TRUE
     showNotification(
-      paste("Assessment generation started for", assessment, "in the background."),
+      paste("Assessment preparation started for", assessment,
+            "in the background (restore, calculate or publish)."),
       type = "default",
       duration = 10
     )
@@ -297,7 +291,7 @@ server <- function(input, output, session) {
     }
 
     assessment <- assessment_process_name
-    target_dir <- file.path(app_root, "data", assessment, "output")
+    target_dir <- file.path(assessment_storage$data_dir, assessment, "output")
     job <- global_active_jobs[[target_dir]]
     if (job$is_alive()) {
       return()
@@ -308,8 +302,13 @@ server <- function(input, output, session) {
       error = function(error)
         error
     )
-    if (!inherits(result, "error") && !assessment_complete(assessment)) {
-      result <- simpleError("Assessment completion marker or required output files are missing.")
+    if (!inherits(result, "error")) {
+      result <- tryCatch({
+        if (!assessment_complete(assessment)) {
+          stop("Assessment completion marker, persistence receipt or required output files are missing.")
+        }
+        result
+      }, error = function(error) error)
     }
     assessment_process_name <<- NULL
     shared_state$assessment_running <- FALSE
@@ -317,7 +316,7 @@ server <- function(input, output, session) {
     if (inherits(result, "error")) {
       showNotification(
         paste(
-          "Assessment generation failed:",
+          "Assessment preparation failed:",
           conditionMessage(result)
         ),
         type = "error",

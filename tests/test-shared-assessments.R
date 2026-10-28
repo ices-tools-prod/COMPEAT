@@ -4,6 +4,14 @@ local({
   app_environment <- new.env(parent = globalenv())
   app_environment$app_root <- tempfile("shared-assessments-")
   dir.create(app_environment$app_root)
+  sys.source("app_storage.R", envir = app_environment)
+  file.copy("app_storage.R", file.path(app_environment$app_root, "app_storage.R"))
+  app_environment$assessment_storage <- list(
+    mode = "local", data_dir = file.path(app_environment$app_root, "working-data")
+  )
+  app_environment$assessment_data_path <- function(assessment, file_name) {
+    file.path(app_environment$assessment_storage$data_dir, assessment, "output", file_name)
+  }
   app_environment$global_active_jobs <- list()
   app_environment$assessment_periods <- c("shared", "independent", "failed")
   app_environment$glossary <- NULL
@@ -31,7 +39,7 @@ local({
     '  cat(strrep("o", 1024), "\\n")',
     '  cat(strrep("e", 1024), "\\n", file = stderr())',
     '}',
-    'output_path <- file.path(app_root, "data", assessmentPeriod, "output")',
+    'output_path <- file.path(assessmentDataDir, assessmentPeriod, "output")',
     'dir.create(output_path, recursive = TRUE, showWarnings = FALSE)',
     'file.create(file.path(output_path, c("Assessment.csv.gz", "Assessment_Indicator.csv.gz", "Annual_Indicator.csv.gz", "Units.shp", "Units.shx", "Units.dbf", "Units.prj", "StationsBOT.csv.gz", "StationsCTD.csv.gz", "StationsPMP.csv.gz")))',
     'if (file.exists(file.path(app_root, "fail"))) stop("Fixture assessment failure")'
@@ -46,7 +54,7 @@ local({
 
   job_for <- function(assessment) {
     app_environment$global_active_jobs[[
-      file.path(app_environment$app_root, "data", assessment, "output")
+      file.path(app_environment$assessment_storage$data_dir, assessment, "output")
     ]]
   }
   release <- function(assessment) {
@@ -206,6 +214,9 @@ local({
   source("app_annual_indicators.R", local = TRUE)
   source("app_stations.R", local = TRUE)
   app_root <- tempdir()
+  assessment_data_path <- function(assessment, file_name) {
+    file.path(app_root, "working-data", assessment, "output", file_name)
+  }
 
   for (module in list(
     moduleAssessmentServer, moduleAssessmentIndicatorsServer,
@@ -275,7 +286,7 @@ local({
         session$setInputs(assessmentSelect = "requested", stationType = "CTD")
         stopifnot(
           identical(unname(types()$required_station_types), "CTD"),
-          identical(basename(req_file()), "StationsCTD.csv.gz")
+          identical(req_file(), assessment_data_path("displayed", "StationsCTD.csv.gz"))
         )
       }
     })
