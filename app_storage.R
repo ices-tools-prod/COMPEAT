@@ -39,7 +39,7 @@ assessment_storage_config <- function(app_root, getenv = Sys.getenv) {
     stop("AWS_S3_ENDPOINT must be an HTTP(S) hostname, optionally with a port, without a path or credentials.")
   }
   missing <- c("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
-  missing <- missing[!nzchar(vapply(missing, getenv, character(1), default = ""))]
+  missing <- missing[!nzchar(vapply(missing, function(name) getenv(name, ""), character(1)))]
   if (length(missing)) stop("S3 storage requires: ", paste(missing, collapse = ", "), ".")
   if (!requireNamespace("aws.s3", quietly = TRUE)) {
     stop("S3 storage requires aws.s3. Restore dependencies from renv.lock.")

@@ -54,6 +54,33 @@ local({
 })
 
 local({
+  variables <- c("COMPEAT_STORAGE", "COMPEAT_DATA_DIR", "COMPEAT_S3_BUCKET",
+                 "COMPEAT_S3_PREFIX", "COMPEAT_S3_URL_STYLE", "AWS_S3_ENDPOINT",
+                 "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
+  previous <- Sys.getenv(variables, unset = NA_character_)
+  on.exit({
+    Sys.unsetenv(names(previous)[is.na(previous)])
+    if (any(!is.na(previous))) do.call(Sys.setenv, as.list(previous[!is.na(previous)]))
+  }, add = TRUE)
+  Sys.unsetenv(variables)
+  root <- tempfile("real-storage-config-")
+  stopifnot(assessment_storage_config(root)$mode == "local")
+  Sys.setenv(COMPEAT_S3_BUCKET = "fixture-bucket", AWS_S3_ENDPOINT = "s3.example.invalid")
+  expect_error(assessment_storage_config(root), "AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY")
+  Sys.setenv(AWS_ACCESS_KEY_ID = "fixture-key")
+  expect_error(assessment_storage_config(root), "requires: AWS_SECRET_ACCESS_KEY")
+  Sys.setenv(AWS_SECRET_ACCESS_KEY = "fixture-secret")
+  storage <- assessment_storage_config(root)
+  stopifnot(storage$mode == "s3", storage$bucket == "fixture-bucket",
+            storage$prefix == "compeat", storage$base_url == "s3.example.invalid")
+  Sys.setenv(COMPEAT_STORAGE = "s3")
+  stopifnot(assessment_storage_config(root)$mode == "s3")
+  Sys.setenv(COMPEAT_STORAGE = "local")
+  stopifnot(assessment_storage_config(root)$mode == "local")
+  cat("Real environment storage configuration tests passed.\n")
+})
+
+local({
   root <- tempfile("assessment-storage-")
   dir.create(root)
   on.exit(unlink(root, recursive = TRUE))
