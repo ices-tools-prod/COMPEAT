@@ -186,6 +186,11 @@ into a temporary staging directory and validates its files before exposing it
 to the UI. Only an explicit S3 `NoSuchKey` response for `current.json` means no
 published assessment exists. Permission errors, missing buckets, incomplete runs
 and checksum failures fail visibly instead of triggering recalculation.
+Failed downloads report the HTTP status and a recognized S3 error code (such as
+`AccessDenied`, `ExpiredToken` or `SignatureDoesNotMatch`), with a troubleshooting
+hint. Raw response bodies, server messages and signed requests are not included
+in these notifications; unrecognized or malformed responses retain the HTTP
+status without exposing their contents.
 Existing local completed results can be published if S3 has no published run.
 
 After calculation, `assessment.generated.json` records validated local results

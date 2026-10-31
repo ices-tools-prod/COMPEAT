@@ -67,6 +67,32 @@ assessment_s3_key <- function(storage, assessment, ...) {
   paste(c(if (nzchar(storage$prefix)) storage$prefix, assessment, ...), collapse = "/")
 }
 
+assessment_s3_error_code <- function(file) {
+  if (!file.exists(file) || file.info(file)$size > 65536) return(NULL)
+  document <- tryCatch(
+    xml2::read_xml(file, options = "NONET"),
+    error = function(error) NULL
+  )
+  if (is.null(document)) return(NULL)
+  code <- xml2::xml_text(xml2::xml_find_first(document, "/*[local-name()='Error']/*[local-name()='Code']"))
+  hints <- c(
+    AccessDenied = "Check service bucket/prefix permissions; missing objects can also return 403 without ListBucket permission.",
+    ExpiredToken = "Renew the service's temporary S3 credentials.",
+    InvalidToken = "Check that the access key, secret and session token belong to the same credential set.",
+    InvalidAccessKeyId = "Check the service's injected access key and selected S3 configuration.",
+    SignatureDoesNotMatch = "Check the matching credentials, session token, endpoint and signing region.",
+    AuthorizationHeaderMalformed = "Check the endpoint and signing region.",
+    RequestTimeTooSkewed = "Check the container clock.",
+    NoSuchBucket = "Check the selected bucket and endpoint.",
+    NoSuchKey = "The requested object does not exist.",
+    InvalidSecurity = "Check the service's injected credentials.",
+    InternalError = "The storage service reported an internal error; retry later.",
+    SlowDown = "The storage service is throttling requests; retry later."
+  )
+  if (is.na(code) || !code %in% names(hints)) return(NULL)
+  list(code = code, hint = unname(hints[[code]]))
+}
+
 assessment_s3_client <- function(storage) {
   arguments <- list(
     bucket = storage$bucket, base_url = storage$base_url, use_https = storage$use_https,
@@ -81,12 +107,17 @@ assessment_s3_client <- function(storage) {
         write_disk = httr::write_disk(file, overwrite = TRUE)
       ), arguments))
       status <- httr::status_code(response)
-      if (status == 404L && missing_ok) {
-        error <- xml2::read_xml(file)
-        code <- xml2::xml_text(xml2::xml_find_first(error, "//*[local-name()='Code']"))
-        if (identical(code, "NoSuchKey")) return(FALSE)
+      if (status != 200L) {
+        detail <- assessment_s3_error_code(file)
+        if (status == 404L && missing_ok && identical(detail$code, "NoSuchKey")) {
+          return(FALSE)
+        }
+        stop("S3 download failed (HTTP ", status,
+             if (!is.null(detail)) paste0(", ", detail$code),
+             "): ", key, ". ",
+             if (!is.null(detail)) detail$hint else "No recognized S3 error code was returned.",
+             call. = FALSE)
       }
-      if (status != 200L) stop("S3 download failed (HTTP ", status, "): ", key)
       TRUE
     },
     put = function(key, file) {

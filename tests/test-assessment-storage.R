@@ -261,6 +261,12 @@ local({
       }
       if (grepl("^/missing-bucket/", path)) return(error(404L, "NoSuchBucket"))
       if (grepl("/denied$", path)) return(error(403L, "AccessDenied"))
+      if (grepl("/expired$", path)) return(error(403L, "ExpiredToken"))
+      if (grepl("/signature$", path)) return(error(403L, "SignatureDoesNotMatch"))
+      if (grepl("/malformed$", path)) return(response(403L, "not XML", "text/plain"))
+      if (grepl("/sensitive$", path)) {
+        return(response(403L, "<Error><Code>fixture-token</Code><Message>fixture-secret</Message></Error>"))
+      }
       if (grepl("/current.json$", path)) {
         while (file.exists(file.path(root, "hold-download"))) Sys.sleep(0.05)
       }
@@ -316,13 +322,19 @@ local({
   file <- file.path(root, "transfer")
   stopifnot(identical(client$get("missing", file, missing_ok = TRUE), FALSE))
   expect_error(client$get("missing", file), "HTTP 404")
-  expect_error(client$get("denied", file, missing_ok = TRUE), "HTTP 403")
+  expect_error(client$get("denied", file, missing_ok = TRUE), "HTTP 403, AccessDenied")
+  expect_error(client$get("expired", file), "HTTP 403, ExpiredToken")
+  expect_error(client$get("signature", file), "HTTP 403, SignatureDoesNotMatch")
+  expect_error(client$get("malformed", file, missing_ok = TRUE), "HTTP 403")
+  sensitive_error <- tryCatch(client$get("sensitive", file), error = identity)
+  stopifnot(inherits(sensitive_error, "error"),
+            !grepl("fixture-token|fixture-secret", conditionMessage(sensitive_error)))
   error_output <- capture.output(expect_error(client$put("denied", file), "Forbidden"))
   stopifnot(!any(grepl("fixture-key|fixture-token|request_signature", error_output)))
   missing_bucket <- storage
   missing_bucket$bucket <- "missing-bucket"
   expect_error(assessment_s3_client(missing_bucket)$get("missing", file, missing_ok = TRUE),
-               "HTTP 404")
+               "HTTP 404, NoSuchBucket")
   writeLines("fixture transfer", file)
   stopifnot(isTRUE(client$put("directory with spaces/object.txt", file)))
   writeLines("replace me", file)
