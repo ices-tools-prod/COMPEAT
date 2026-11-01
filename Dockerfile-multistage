@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1
+
+FROM rocker/r-ver:4.6.1 AS base
+
+ENV R_LIBS_SITE=/opt/R/library
+
+RUN mkdir -p /usr/local/lib/R/etc/ /usr/lib/R/etc/ && \
+    echo "options(renv.config.pak.enabled = FALSE, repos = c(CRAN = 'https://cran.rstudio.com/'), download.file.method = 'libcurl', Ncpus = 4)" | tee /usr/local/lib/R/etc/Rprofile.site | tee /usr/lib/R/etc/Rprofile.site
+
+WORKDIR /srv/shiny-server/
+
+FROM base AS dependencies
+
+ARG RENV_PATHS_CACHE=/root/.cache/R/renv
+ENV RENV_PATHS_CACHE="${RENV_PATHS_CACHE}" \
+    RENV_CONFIG_CACHE_SYMLINKS=FALSE
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake make libuv1-dev pandoc libicu-dev libx11-dev \
+    libcurl4-openssl-dev libssl-dev zlib1g-dev libgdal-dev \
+    gdal-bin libgeos-dev libpng-dev libproj-dev libsqlite3-dev \
+    libudunits2-dev libnetcdf-dev libfontconfig1-dev libfreetype6-dev \
+    libfribidi-dev libharfbuzz-dev libjpeg-dev libtiff-dev \
+    libwebp-dev libxml2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN R -e 'install.packages("remotes")' && \
+    R -e 'remotes::install_version("renv", version = "1.2.4")'
+
+COPY renv.lock renv.lock
+RUN --mount=type=cache,id=renv-cache,target=${RENV_PATHS_CACHE} \
+    R -e 'renv::restore(library = Sys.getenv("R_LIBS_SITE"), prompt = FALSE)'
+
+FROM base AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libuv1t64 pandoc libicu74 libx11-6 libcurl4t64 libssl3t64 zlib1g \
+    gdal-bin libgeos-c1t64 libpng16-16t64 libproj25 libsqlite3-0 \
+    libudunits2-0 libnetcdf19 libfontconfig1 libfreetype6 \
+    libfribidi0 libharfbuzz0b libjpeg-turbo8 libtiff6 \
+    libwebp7 libwebpmux3 libxml2 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r shiny && \
+    useradd -r -g shiny -m -d /home/shiny shiny && \
+    chown -R shiny:shiny /srv/shiny-server/
+
+COPY --from=dependencies /opt/R/library /opt/R/library
+
+USER shiny
+
+RUN R -e 'packages <- rownames(installed.packages(lib.loc = Sys.getenv("R_LIBS_SITE"))); stopifnot("shiny" %in% packages); invisible(lapply(packages, loadNamespace))'
+
+COPY --chown=shiny:shiny . /srv/shiny-server/
+
+EXPOSE 3838
+
+CMD ["R", "-e", "shiny::runApp('/srv/shiny-server', host='0.0.0.0', port=3838)"]

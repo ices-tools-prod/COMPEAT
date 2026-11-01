@@ -11,6 +11,31 @@ Assessment units are defined by OSPAR contracting parties. An assessment unit ca
 
 Indicator results can be calculated either from raw data reported to ICES or indicator results can be reported directly. 
 
+### Docker
+
+Build and run the multistage image from the repository root:
+
+```sh
+docker build -f Dockerfile-multistage -t compeat .
+docker run --rm -p 3838:3838 compeat
+```
+
+The original single-stage `Dockerfile` is preserved; use
+`docker build -t compeat .` to build it instead.
+
+Open <http://localhost:3838>. The multistage build retains the lockfile's R
+version, restores packages in the `dependencies` stage, and copies a standalone
+R library into the `runtime` stage. Development packages and the renv build cache
+are not copied into the final image. The runtime stage checks that installed R
+package namespaces load before copying application code.
+
+Code-only builds reuse dependency layers; changes to `renv.lock` trigger a
+restore. Retain Docker's build cache to benefit from warm builds. BuildKit's renv
+cache also reuses package downloads across restores. Runtime system libraries
+target Ubuntu 24.04, matching the pinned Rocker base; review them when changing
+the base image or adding dependencies. Image-size and build-time improvements
+depend on the packages and available cache.
+
 ### Assessment Units
 
 ### Indicators

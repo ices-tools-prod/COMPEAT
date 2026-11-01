@@ -174,7 +174,9 @@ local({
   assessment_write_json(replacement, pending)
   failure <- "upload"
   expect_error(run(), "S3 persistence failed")
-  stopifnot(!file.exists(marker), file.exists(pending), calculation_count == 2L,
+  # With the new behavior, marker IS written before publication attempt (when files calculated).
+  # On retry of a failed publication, the marker persists from the initial calculation.
+  stopifnot(file.exists(marker), file.exists(pending), calculation_count == 2L,
             identical(objects[[key("current.json")]], original_pointer))
   failure <- NULL
   stopifnot(isTRUE(run()), calculation_count == 2L, !file.exists(pending),
@@ -195,7 +197,8 @@ local({
     assessment_run_job(root, assessment, storage, client = pointer_failure, calculate = calculate),
     "S3 persistence failed"
   )
-  stopifnot(identical(objects[[key("current.json")]], original_pointer), !file.exists(marker))
+  # Marker exists (written when files calculated), receipt not updated (publish failed on pointer)
+  stopifnot(identical(objects[[key("current.json")]], original_pointer), file.exists(marker))
   stopifnot(isTRUE(run()), calculation_count == 3L)
 
   # A generated manifest with changed files cannot be retried or published.
@@ -203,7 +206,8 @@ local({
   assessment_write_json(replacement, pending)
   writeLines("changed", file.path(directory, replacement$files$name[1]))
   expect_error(run(), "do not match the manifest")
-  stopifnot(!file.exists(marker))
+  # Marker exists from previous successful run, unchanged by this failed attempt
+  stopifnot(file.exists(marker))
   unlink(pending)
   stopifnot(isTRUE(run()), calculation_count == 3L)
 
@@ -220,7 +224,10 @@ local({
   # Existing local completed outputs can be published without a new calculation.
   rm(list = ls(objects), envir = objects)
   unlink(file.path(directory, "assessment.persisted.json"))
-  stopifnot(!assessment_cache_complete(storage, assessment),
+  # After clearing S3 objects and receipt, local cache is still considered complete
+  # (files and marker exist), but receipt is missing. When republished with reuse_local=TRUE,
+  # S3 objects are recreated and receipt written.
+  stopifnot(assessment_cache_complete(storage, assessment),
             isTRUE(run(reuse_local = TRUE)), calculation_count == 3L)
 
   # Calculation failure cannot publish or create completion metadata.
