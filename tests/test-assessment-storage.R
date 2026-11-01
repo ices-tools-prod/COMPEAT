@@ -174,9 +174,9 @@ local({
   assessment_write_json(replacement, pending)
   failure <- "upload"
   expect_error(run(), "S3 persistence failed")
-  # With the new behavior, marker IS written before publication attempt (when files calculated).
-  # On retry of a failed publication, the marker persists from the initial calculation.
-  stopifnot(file.exists(marker), file.exists(pending), calculation_count == 2L,
+  stopifnot(!file.exists(marker), file.exists(pending), calculation_count == 2L,
+            assessment_pending_results_available(storage, assessment),
+            !assessment_cache_complete(storage, assessment),
             identical(objects[[key("current.json")]], original_pointer))
   failure <- NULL
   stopifnot(isTRUE(run()), calculation_count == 2L, !file.exists(pending),
@@ -197,8 +197,8 @@ local({
     assessment_run_job(root, assessment, storage, client = pointer_failure, calculate = calculate),
     "S3 persistence failed"
   )
-  # Marker exists (written when files calculated), receipt not updated (publish failed on pointer)
-  stopifnot(identical(objects[[key("current.json")]], original_pointer), file.exists(marker))
+  stopifnot(identical(objects[[key("current.json")]], original_pointer), !file.exists(marker),
+            assessment_pending_results_available(storage, assessment))
   stopifnot(isTRUE(run()), calculation_count == 3L)
 
   # A generated manifest with changed files cannot be retried or published.
@@ -206,8 +206,8 @@ local({
   assessment_write_json(replacement, pending)
   writeLines("changed", file.path(directory, replacement$files$name[1]))
   expect_error(run(), "do not match the manifest")
-  # Marker exists from previous successful run, unchanged by this failed attempt
-  stopifnot(file.exists(marker))
+  stopifnot(!file.exists(marker))
+  expect_error(assessment_pending_results_available(storage, assessment), "do not match the manifest")
   unlink(pending)
   stopifnot(isTRUE(run()), calculation_count == 3L)
 
@@ -224,10 +224,7 @@ local({
   # Existing local completed outputs can be published without a new calculation.
   rm(list = ls(objects), envir = objects)
   unlink(file.path(directory, "assessment.persisted.json"))
-  # After clearing S3 objects and receipt, local cache is still considered complete
-  # (files and marker exist), but receipt is missing. When republished with reuse_local=TRUE,
-  # S3 objects are recreated and receipt written.
-  stopifnot(assessment_cache_complete(storage, assessment),
+  stopifnot(!assessment_cache_complete(storage, assessment),
             isTRUE(run(reuse_local = TRUE)), calculation_count == 3L)
 
   # Calculation failure cannot publish or create completion metadata.
@@ -236,6 +233,7 @@ local({
                                   calculate = function() stop("Fixture calculation failed")),
                "Fixture calculation failed")
   stopifnot(!file.exists(marker), !file.exists(pending),
+            !assessment_pending_results_available(storage, assessment),
             !exists(key("current.json"), objects, inherits = FALSE))
   cat("Assessment storage lifecycle tests passed.\n")
 })
@@ -257,7 +255,8 @@ local({
     httpuv::runServer("127.0.0.1", port, list(call = function(request) {
       path <- utils::URLdecode(request$PATH_INFO)
       response <- function(status, body, type = "application/xml") {
-        list(status = status, headers = list("Content-Type" = type, ETag = '"fixture"'),
+        list(status = status, headers = list("Content-Type" = type, ETag = '"fixture"',
+                                            Connection = "close"),
              body = body)
       }
       error <- function(status, code) response(status, paste0("<Error><Code>", code, "</Code></Error>"))
@@ -293,6 +292,7 @@ local({
         return(response(200L, "<CompleteMultipartUploadResult><ETag>fixture</ETag></CompleteMultipartUploadResult>"))
       }
       if (request$REQUEST_METHOD == "PUT") {
+        if (file.exists(file.path(root, "fail-upload"))) return(error(403L, "AccessDenied"))
         if ("partNumber" %in% names(query)) {
           file <- file.path(paste0(file, "-parts"), sprintf("%05d", as.integer(query$partNumber)))
         }
@@ -303,7 +303,8 @@ local({
       if (!file.exists(file)) return(error(404L, "NoSuchKey"))
       if (request$REQUEST_METHOD == "HEAD") {
         return(list(status = 200L, headers = list(
-          "Content-Length" = as.character(file.info(file)$size), "Content-Encoding" = "identity"),
+          "Content-Length" = as.character(file.info(file)$size), "Content-Encoding" = "identity",
+          Connection = "close"),
                     body = ""))
       }
       response(200L, readBin(file, "raw", n = file.info(file)$size), "application/octet-stream")
@@ -371,7 +372,7 @@ local({
   sys.source("app_storage.R", envir = app)
   app$assessment_storage <- storage
   app$assessment_storage$data_dir <- file.path(root, "fresh-cache")
-  app$assessment_periods <- c(assessment, "background")
+  app$assessment_periods <- c(assessment, "background", "upload-failure")
   app$global_active_jobs <- list()
   app$glossary <- NULL
   app$station_configuration <- NULL
@@ -421,6 +422,7 @@ local({
   # Generation and S3 publication finish even when no session is waiting.
   writeLines(c(
     'while (!file.exists(file.path(app_root, "release"))) Sys.sleep(0.05)',
+    'cat("calculated\\n", file = file.path(app_root, "calculations"), append = TRUE)',
     'output <- file.path(assessmentDataDir, assessmentPeriod, "output")',
     'for (name in assessment_required_files) writeLines(name, file.path(output, name))'
   ), file.path(app$app_root, "data.R"))
@@ -436,5 +438,86 @@ local({
   stopifnot(!job$is_alive(), isTRUE(job$get_result()),
             assessment_cache_complete(app$assessment_storage, "background"),
             isTRUE(client$get("compeat/background/current.json", file)))
+
+  # Waiting sessions display validated local results after a real HTTP upload failure.
+  file.create(hold)
+  file.create(file.path(root, "fail-upload"))
+  shiny::testServer(app$server, {
+    session$flushReact()
+    run_assessment("upload-failure")
+    stopifnot(shared_state$assessment_running, is.null(shared_state$assessment))
+  })
+  failed_job <- job_for("upload-failure")
+  shiny::testServer(app$server, {
+    notifications <- list()
+    session$sendNotification <- function(type, message) {
+      if (identical(type, "show")) {
+        notifications[[length(notifications) + 1L]] <<- message
+      }
+    }
+    session$flushReact()
+    run_assessment("upload-failure")
+    stopifnot(identical(job_for("upload-failure"), failed_job),
+              shared_state$assessment_running, is.null(shared_state$assessment))
+    unlink(hold)
+    failed_job$wait(timeout = 60000)
+    stopifnot(!failed_job$is_alive())
+    expect_error(failed_job$get_result(), "S3 persistence failed")
+    session$elapse(5000)
+    session$flushReact()
+    stopifnot(identical(shared_state$assessment, "upload-failure"),
+              shared_state$publication_pending, shared_state$assessment_loading,
+              !shared_state$assessment_running,
+              any(vapply(notifications, function(message) {
+                identical(message$type, "warning") &&
+                  grepl("Displaying validated local results", message$html, fixed = TRUE)
+              }, logical(1))),
+              !assessment_cache_complete(app$assessment_storage, "upload-failure"))
+    session$setInputs(assessment_loaded = "upload-failure")
+    stopifnot(!shared_state$assessment_loading,
+              grepl("S3 publication pending", output$assessment_status, fixed = TRUE))
+  })
+
+  # A restart and repeated failure still reuse the pending manifest, without calculation.
+  app$global_active_jobs <- list()
+  shiny::testServer(app$server, {
+    session$flushReact()
+    run_assessment("upload-failure")
+    retry <- job_for("upload-failure")
+    retry$wait(timeout = 60000)
+    session$elapse(5000)
+    session$flushReact()
+    stopifnot(shared_state$publication_pending,
+              identical(shared_state$assessment, "upload-failure"))
+    session$setInputs(assessment_loaded = "upload-failure")
+    run_assessment("")
+    stopifnot(!shared_state$publication_pending, is.null(shared_state$assessment))
+    unlink(file.path(root, "fail-upload"))
+    run_assessment("upload-failure")
+    retry <- job_for("upload-failure")
+    retry$wait(timeout = 60000)
+    stopifnot(!retry$is_alive(), isTRUE(retry$get_result()))
+    session$elapse(5000)
+    session$flushReact()
+    stopifnot(!shared_state$publication_pending,
+              identical(shared_state$assessment, "upload-failure"),
+              assessment_cache_complete(app$assessment_storage, "upload-failure"),
+              length(readLines(file.path(app$app_root, "calculations"))) == 2L)
+  })
+
+  # A corrupt pending result must not be displayed, even after a failed worker.
+  directory <- file.path(app$assessment_storage$data_dir, "upload-failure", "output")
+  assessment_write_json(assessment_make_manifest("upload-failure", directory),
+                        file.path(directory, "assessment.generated.json"))
+  writeLines("corrupt", file.path(directory, assessment_required_files[1]))
+  shiny::testServer(app$server, {
+    session$flushReact()
+    run_assessment("upload-failure")
+    job_for("upload-failure")$wait(timeout = 60000)
+    session$elapse(5000)
+    session$flushReact()
+    stopifnot(is.null(shared_state$assessment), !shared_state$publication_pending,
+              !shared_state$assessment_running, !shared_state$assessment_loading)
+  })
   cat("S3 HTTP, shared restoration and disconnected publication tests passed.\n")
 })

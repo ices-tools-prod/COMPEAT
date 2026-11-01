@@ -123,6 +123,7 @@ server <- function(input, output, session) {
     assessment = NULL,
     requested_assessment = NULL,
     data_ready = FALSE,
+    publication_pending = FALSE,
     assessment_loading = FALSE,
     assessment_running = FALSE
   )
@@ -161,7 +162,9 @@ server <- function(input, output, session) {
       } else if (!is.null(requested) && !identical(requested, displayed)) {
         paste("Requested assessment is not available:", requested)
       } else {
-        "Ready."
+        if (isTRUE(shared_state$publication_pending)) {
+          "Local results ready; S3 publication pending."
+        } else "Ready."
       },
       if (is.null(displayed)) "No results displayed." else paste("Displaying:", displayed)
     )
@@ -181,11 +184,15 @@ server <- function(input, output, session) {
     if (is.null(assessment) || identical(assessment, "")) {
       shared_state$requested_assessment <- NULL
       shared_state$assessment <- NULL
+      shared_state$publication_pending <- FALSE
+      removeNotification("assessment-publication-pending")
       return(invisible(TRUE))
     }
     req(assessment %in% assessment_periods)
+    removeNotification("assessment-publication-pending")
     shared_state$requested_assessment <- assessment
     shared_state$assessment <- NULL
+    shared_state$publication_pending <- FALSE
     shared_state$assessment_loading <- TRUE
 
     target_dir <- file.path(assessment_storage$data_dir, assessment, "output")
@@ -314,10 +321,29 @@ server <- function(input, output, session) {
     shared_state$assessment_running <- FALSE
     
     if (inherits(result, "error")) {
+      available <- tryCatch(
+        assessment_pending_results_available(assessment_storage, assessment),
+        error = function(error) error
+      )
+      if (isTRUE(available)) {
+        shared_state$assessment <- assessment
+        shared_state$publication_pending <- TRUE
+        shared_state$assessment_loading <- TRUE
+        session$sendCustomMessage("assessmentResultsLoading", list(assessment = assessment))
+        showNotification(
+          paste("Displaying validated local results; S3 publication is still pending.",
+                conditionMessage(result)),
+          type = "warning", duration = NULL, id = "assessment-publication-pending"
+        )
+        return()
+      }
       showNotification(
         paste(
           "Assessment preparation failed:",
-          conditionMessage(result)
+          conditionMessage(result),
+          if (inherits(available, "error")) {
+            paste("Local results could not be validated:", conditionMessage(available))
+          }
         ),
         type = "error",
         duration = NULL
@@ -325,6 +351,7 @@ server <- function(input, output, session) {
       return()
     }
     
+    removeNotification("assessment-publication-pending")
     shared_state$assessment <- assessment
     shared_state$assessment_loading <- TRUE
     session$sendCustomMessage("assessmentResultsLoading", list(assessment = assessment))

@@ -260,21 +260,27 @@ assessment_restore <- function(storage, assessment, directory, client) {
 
 assessment_cache_complete <- function(storage, assessment) {
   directory <- file.path(storage$data_dir, assessment, "output")
-  # Check if all required output files exist
-  if (!all(file.exists(file.path(directory, assessment_required_files)))) {
+  if (storage$mode == "s3" &&
+      file.exists(file.path(directory, "assessment.generated.json"))) return(FALSE)
+  if (!all(file.exists(file.path(directory, c("assessment.complete", assessment_required_files))))) {
     return(FALSE)
   }
-  # In local mode, cache is complete if files exist
   if (storage$mode == "local") return(TRUE)
-  # In S3 mode, check if we have a valid completion marker or matching S3 receipt.
-  # If marker exists, local calculation completed.  If receipt exists and matches,
-  # results were successfully published to S3. Either condition is sufficient to serve.
-  marker <- file.path(directory, "assessment.complete")
-  if (file.exists(marker)) return(TRUE)
   receipt <- file.path(directory, "assessment.persisted.json")
   if (!file.exists(receipt)) return(FALSE)
-  receipt_data <- jsonlite::read_json(receipt, simplifyVector = FALSE)
-  identical(receipt_data, assessment_storage_identity(storage))
+  receipt <- jsonlite::read_json(receipt, simplifyVector = FALSE)
+  identical(receipt, assessment_storage_identity(storage))
+}
+
+assessment_pending_results_available <- function(storage, assessment) {
+  if (storage$mode != "s3") return(FALSE)
+  directory <- file.path(storage$data_dir, assessment, "output")
+  pending <- file.path(directory, "assessment.generated.json")
+  if (!file.exists(pending)) return(FALSE)
+  manifest <- jsonlite::read_json(pending, simplifyVector = TRUE)
+  assessment_validate_manifest(manifest, assessment)
+  assessment_check_files(manifest, directory)
+  TRUE
 }
 
 assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALSE,
@@ -303,7 +309,6 @@ assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALS
   }
   if (storage$mode == "s3") {
     if (is.null(client)) client <- assessment_s3_client(storage)
-    calculated_in_this_run <- FALSE
     if (file.exists(pending)) {
       manifest <- jsonlite::read_json(pending, simplifyVector = TRUE)
       assessment_validate_manifest(manifest, assessment)
@@ -311,25 +316,9 @@ assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALS
     } else {
       manifest <- assessment_restore(storage, assessment, directory, client)
       if (identical(manifest, FALSE)) {
-        if (!reuse_local) {
-          calculate()
-          calculated_in_this_run <- TRUE
-        }
+        if (!reuse_local) calculate()
         manifest <- assessment_make_manifest(assessment, directory)
         assessment_write_json(manifest, pending)
-      }
-    }
-    # Write the completion marker after successful local calculation, before S3 publication.
-    # This allows cached results to be served even if S3 upload fails. The marker tracks
-    # local calculation completion independently from S3 publication success (tracked by
-    # the persistence receipt). Only write marker if we calculated in this run, not if we're
-    # retrying a failed publication attempt.
-    if (calculated_in_this_run && !file.exists(marker)) {
-      temporary_marker <- tempfile("assessment-complete-", tmpdir = directory)
-      on.exit(unlink(temporary_marker), add = TRUE)
-      writeLines(as.character(Sys.time()), temporary_marker)
-      if (!file.rename(temporary_marker, marker)) {
-        stop("Could not publish the assessment completion marker.")
       }
     }
     # A pending manifest means calculation succeeded but publication still needs retrying.
@@ -353,13 +342,11 @@ assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALS
   if (!all(file.exists(file.path(directory, assessment_required_files)))) {
     stop("Assessment generation completed without creating all result files.")
   }
-  if (storage$mode == "local") {
-    temporary_marker <- tempfile("assessment-complete-", tmpdir = directory)
-    on.exit(unlink(temporary_marker), add = TRUE)
-    writeLines(as.character(Sys.time()), temporary_marker)
-    if (!file.rename(temporary_marker, marker)) {
-      stop("Could not publish the assessment completion marker.")
-    }
+  temporary_marker <- tempfile("assessment-complete-", tmpdir = directory)
+  on.exit(unlink(temporary_marker), add = TRUE)
+  writeLines(as.character(Sys.time()), temporary_marker)
+  if (!file.rename(temporary_marker, marker)) {
+    stop("Could not publish the assessment completion marker.")
   }
   TRUE
 }

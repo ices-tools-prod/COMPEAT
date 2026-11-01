@@ -97,8 +97,10 @@ assessment, station and shapefile outputs exist (S3 mode also requires a matchin
 persistence receipt). Otherwise, the app prepares the assessment in a `callr`
 background process. Sessions requesting the same period share that process and
 check for completion every five seconds. Jobs continue when a user disconnects;
-results are loaded only after the process finishes successfully. Failures are
-reported to waiting users, and selecting the period again retries the assessment.
+results are loaded after the process finishes. S3 publication failures can expose
+validated pending local results with a warning, without marking publication as
+successful. Other failures are reported to waiting users without displaying
+results, and selecting the period again retries the assessment.
 
 Worker output is written directly to `assessment-stdout.log` and
 `assessment-stderr.log` in the period's output folder, rather than captured in
@@ -125,7 +127,8 @@ check completion and file presence, not file contents or changes to inputs.
 Assessment selectors across tabs track the requested period. Selecting a period
 clears previous results immediately. Maps and tables remain blank, station and
 indicator selectors clear, and downloads are disabled until that assessment
-completes successfully or its completed cache is loaded. A failed request leaves
+completes successfully, its completed cache is loaded, or its pending local
+results are validated after an S3 publication failure. Other failed requests leave
 results blank rather than restoring an older period. The app-wide status identifies
 the requested and displayed period. Selecting the empty option clears both.
 
@@ -219,8 +222,13 @@ status without exposing their contents.
 Existing local completed results can be published if S3 has no published run.
 
 After calculation, `assessment.generated.json` records validated local results
-before upload. If publication fails, results remain on disk, but are not exposed
-as a successfully persisted cache. Selecting the assessment again retries
+before upload. If publication fails, waiting sessions display these local results
+only after validating every manifest file's size and checksum, with a persistent
+warning and a status indicating that S3 publication is pending. They are not
+treated as successfully persisted: no completion marker or new receipt is written.
+Calculation failures and invalid local manifests still leave results blank.
+After results finish loading, select the empty option or another period, then
+select the assessment again to retry
 publication without recalculation, including after an app restart while that
 local directory survives. `assessment.persisted.json` identifies the destination,
 and `assessment.complete` is created only after successful restoration or
