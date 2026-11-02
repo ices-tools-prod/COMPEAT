@@ -102,8 +102,8 @@ assessment_s3_client <- function(storage) {
   )
   list(
     get = function(key, file, missing_ok = FALSE) {
-      # URL-encode the path for HTTP transmission
-      encoded_path <- paste0("/", utils::URLencode(key, reserved = TRUE))
+      # URL-encode the path for HTTP transmission, but preserve path separators
+      encoded_path <- paste0("/", utils::URLencode(key, reserved = FALSE))
       response <- do.call(aws.s3::s3HTTP, c(list(
         verb = "GET", path = encoded_path, parse_response = FALSE,
         write_disk = httr::write_disk(file, overwrite = TRUE)
@@ -169,8 +169,8 @@ assessment_s3_client <- function(storage) {
       }
       
       # Verify upload by checking if object exists using HEAD request
-      # URL-encode the path for HTTP transmission, but keep the object key as-is for S3
-      encoded_path <- paste0("/", utils::URLencode(key, reserved = TRUE))
+      # URL-encode the path for HTTP transmission, but preserve path separators
+      encoded_path <- paste0("/", utils::URLencode(key, reserved = FALSE))
       confirmation <- do.call(aws.s3::s3HTTP, c(list(
         verb = "HEAD", path = encoded_path
       ), arguments))
