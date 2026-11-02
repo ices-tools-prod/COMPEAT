@@ -64,7 +64,10 @@ assessment_storage_identity <- function(storage) {
 }
 
 assessment_s3_key <- function(storage, assessment, ...) {
-  paste(c(if (nzchar(storage$prefix)) storage$prefix, assessment, ...), collapse = "/")
+  parts <- c(if (nzchar(storage$prefix)) storage$prefix, assessment, ...)
+  # URL-encode each part to handle special characters like spaces and parentheses
+  parts <- vapply(parts, utils::URLencode, character(1), reserved = TRUE)
+  paste(parts, collapse = "/")
 }
 
 assessment_s3_error_code <- function(file) {
@@ -183,9 +186,11 @@ assessment_check_files <- function(manifest, directory) {
 }
 
 assessment_make_manifest <- function(assessment, directory) {
-  files <- list.files(directory, full.names = TRUE)
+  files <- list.files(directory, full.names = TRUE, no.. = TRUE)
   files <- files[!file.info(files)$isdir &
                    !grepl("^assessment[.-]", basename(files))]
+  # Sort files for deterministic manifest
+  files <- files[order(basename(files))]
   manifest <- list(
     version = 1L, assessment = assessment,
     run_id = paste0(format(Sys.time(), "%Y%m%dT%H%M%S", tz = "UTC"), "-",
@@ -204,13 +209,25 @@ assessment_publish <- function(storage, assessment, directory, manifest, client)
   put <- function(key, file) {
     if (!isTRUE(client$put(key, file))) stop("S3 upload did not succeed: ", key)
   }
-  for (name in manifest$files$name) {
-    put(key("runs", manifest$run_id, "output", name), file.path(directory, name))
+  # Upload all output files
+  for (i in seq_along(manifest$files$name)) {
+    name <- manifest$files$name[i]
+    file_path <- file.path(directory, name)
+    key_path <- key("runs", manifest$run_id, "output", name)
+    tryCatch(
+      put(key_path, file_path),
+      error = function(error) stop(
+        "Failed to upload file ", i, " of ", length(manifest$files$name),
+        " (", name, "): ", conditionMessage(error)
+      )
+    )
   }
+  # Upload manifest
   metadata <- tempfile("assessment-manifest-")
   on.exit(unlink(metadata), add = TRUE)
   assessment_write_json(manifest, metadata)
   put(key("runs", manifest$run_id, "manifest.json"), metadata)
+  # Upload pointer to current assessment
   pointer <- list(version = 1L, assessment = assessment, run_id = manifest$run_id,
                   manifest_md5 = unname(tools::md5sum(metadata)))
   assessment_write_json(pointer, metadata)
