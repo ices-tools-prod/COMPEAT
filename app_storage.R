@@ -64,10 +64,7 @@ assessment_storage_identity <- function(storage) {
 }
 
 assessment_s3_key <- function(storage, assessment, ...) {
-  parts <- c(if (nzchar(storage$prefix)) storage$prefix, assessment, ...)
-  # URL-encode each part to handle special characters like spaces and parentheses
-  parts <- vapply(parts, utils::URLencode, character(1), reserved = TRUE)
-  paste(parts, collapse = "/")
+  paste(c(if (nzchar(storage$prefix)) storage$prefix, assessment, ...), collapse = "/")
 }
 
 assessment_s3_error_code <- function(file) {
@@ -105,8 +102,10 @@ assessment_s3_client <- function(storage) {
   )
   list(
     get = function(key, file, missing_ok = FALSE) {
+      # URL-encode the path for HTTP transmission
+      encoded_path <- paste0("/", utils::URLencode(key, reserved = TRUE))
       response <- do.call(aws.s3::s3HTTP, c(list(
-        verb = "GET", path = paste0("/", key), parse_response = FALSE,
+        verb = "GET", path = encoded_path, parse_response = FALSE,
         write_disk = httr::write_disk(file, overwrite = TRUE)
       ), arguments))
       status <- httr::status_code(response)
@@ -124,14 +123,56 @@ assessment_s3_client <- function(storage) {
       TRUE
     },
     put = function(key, file) {
-      # aws.s3 prints signed request details on errors; propagate errors without logging credentials.
-      result <- NULL
-      invisible(utils::capture.output(result <- do.call(aws.s3::put_object, c(list(
-        object = key, file = file, multipart = TRUE, partsize = 10 * 1024^2
-      ), arguments))))
-      if (!isTRUE(result)) stop("S3 upload did not succeed: ", key)
+      # aws.s3::put_object may print the aws_error object (with sensitive attributes)
+      # before throwing it. Suppress all output to prevent exposing credentials.
+      temp_file <- tempfile()
+      
+      # Create file connections for redirecting output
+      stdout_conn <- file(temp_file, open = "wt")
+      stderr_conn <- file(temp_file, open = "wt")
+      
+      # Ensure we close connections and restore output
+      restore_output <- function() {
+        suppressWarnings({
+          tryCatch({
+            sink(file = NULL, type = "output")
+            sink(file = NULL, type = "message")
+          }, error = function(e) NULL)
+        })
+        close(stdout_conn)
+        close(stderr_conn)
+        unlink(temp_file, force = TRUE)
+      }
+      on.exit(restore_output(), add = TRUE)
+      
+      # Redirect output
+      sink(file = stdout_conn, type = "output")
+      sink(file = stderr_conn, type = "message")
+      
+      # Call put_object with output suppressed
+      result <- tryCatch(
+        do.call(aws.s3::put_object, c(list(
+          object = key, file = file, multipart = TRUE, partsize = 10 * 1024^2
+        ), arguments)),
+        error = identity
+      )
+      
+      # Restore output immediately after put_object completes
+      suppressWarnings(tryCatch({
+        sink(file = NULL, type = "output")
+        sink(file = NULL, type = "message")
+      }, error = function(e) NULL))
+      
+      # If put_object threw an error (e.g., 403 AccessDenied), re-throw it
+      if (inherits(result, "error")) {
+        stop(conditionMessage(result))
+      }
+      
+      # Verify upload by checking if object exists using HEAD request
+      # URL-encode the path for HTTP transmission, but keep the object key as-is for S3
+      encoded_path <- paste0("/", utils::URLencode(key, reserved = TRUE))
       confirmation <- do.call(aws.s3::s3HTTP, c(list(
-        verb = "HEAD", path = paste0("/", key)
+        verb = "HEAD", path = encoded_path
       ), arguments))
       size <- attr(confirmation, "content-length", exact = TRUE)
       if (!isTRUE(confirmation) || length(size) != 1L ||
