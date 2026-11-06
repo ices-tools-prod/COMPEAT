@@ -102,10 +102,9 @@ assessment_s3_client <- function(storage) {
   )
   list(
     get = function(key, file, missing_ok = FALSE) {
-      # URL-encode the path for HTTP transmission, but preserve path separators
-      encoded_path <- paste0("/", utils::URLencode(key, reserved = FALSE))
+      # s3HTTP encodes each path segment before signing and sending the request.
       response <- do.call(aws.s3::s3HTTP, c(list(
-        verb = "GET", path = encoded_path, parse_response = FALSE,
+        verb = "GET", path = paste0("/", key), parse_response = FALSE,
         write_disk = httr::write_disk(file, overwrite = TRUE)
       ), arguments))
       status <- httr::status_code(response)
@@ -117,7 +116,14 @@ assessment_s3_client <- function(storage) {
         stop("S3 download failed (HTTP ", status,
              if (!is.null(detail)) paste0(", ", detail$code),
              "): ", key, ". ",
-             if (!is.null(detail)) detail$hint else "No recognized S3 error code was returned.",
+             if (!is.null(detail)) detail$hint else paste0(
+               "No recognized S3 error code was returned.",
+               if (status == 403L) paste0(
+                 " Check the service credentials, bucket/prefix permissions and S3 API endpoint",
+                 " (including any proxy or gateway). Missing objects can also return 403",
+                 " without ListBucket permission; access denied is not treated as a missing assessment."
+               )
+             ),
              call. = FALSE)
       }
       TRUE
@@ -169,10 +175,8 @@ assessment_s3_client <- function(storage) {
       }
       
       # Verify upload by checking if object exists using HEAD request
-      # URL-encode the path for HTTP transmission, but preserve path separators
-      encoded_path <- paste0("/", utils::URLencode(key, reserved = FALSE))
       confirmation <- do.call(aws.s3::s3HTTP, c(list(
-        verb = "HEAD", path = encoded_path
+        verb = "HEAD", path = paste0("/", key)
       ), arguments))
       size <- attr(confirmation, "content-length", exact = TRUE)
       if (!isTRUE(confirmation) || length(size) != 1L ||

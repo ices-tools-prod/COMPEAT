@@ -219,6 +219,16 @@ Failed downloads report the HTTP status and a recognized S3 error code (such as
 hint. Raw response bodies, server messages and signed requests are not included
 in these notifications; unrecognized or malformed responses retain the HTTP
 status without exposing their contents.
+An unrecognized HTTP 403 also identifies credentials, bucket/prefix permissions
+and the S3 API endpoint (including proxies/gateways) as checks. A missing
+`current.json` can return 403 without `ListBucket` permission; the app cannot
+safely treat that response as an absent assessment. The service needs read/write
+access to its configured object prefix and sufficient bucket-list permission to
+distinguish missing objects from denied access.
+GET and upload-verification HEAD requests pass unencoded object keys to
+`aws.s3::s3HTTP`, which encodes individual path segments before signing. Do not
+pre-encode spaces: this can leave parentheses unencoded and produce a signature
+mismatch for names such as `COMP 5 (2021-2026)`.
 Existing local completed results can be published if S3 has no published run.
 
 After calculation, `assessment.generated.json` records validated local results

@@ -1,52 +1,52 @@
-# S3 SignatureDoesNotMatch Fix
+# S3 assessment path encoding
 
-## Problem
+## Problem and root cause
 
-When running assessments with names containing spaces or parentheses (e.g., "COMP 5 (2021-2026)"), 
-the application would fail during S3 download with:
+Assessment names such as `COMP 5 (2021-2026)` contain spaces and parentheses.
+Pre-encoding the whole key with `utils::URLencode(key, reserved = FALSE)`
+encodes spaces but leaves parentheses intact:
 
+```text
+/compeat/COMP%205%20(2021-2026)/current.json
 ```
-Assessment preparation failed: S3 download failed (HTTP 403, SignatureDoesNotMatch): 
-compeat/COMP 5 (2021-2026)/current.json
+
+`aws.s3::s3HTTP()` already encodes each path segment with `reserved = TRUE`.
+However, R's `URLencode()` normally leaves a segment unchanged when it contains
+an existing percent escape. Pre-encoded spaces therefore prevent the remaining
+parentheses from being encoded. The signed URI does not match S3's canonical URI.
+
+## Fix
+
+Pass the raw key as `path = paste0("/", key)` for GET and upload-verification
+HEAD requests. Continue passing raw keys to `put_object()` as well. The package
+preserves separators and encodes the segments before signing and transmission:
+
+```text
+/compeat/COMP%205%20%282021-2026%29/current.json
 ```
 
-## Root Cause
+This supersedes earlier guidance to pre-encode `s3HTTP()` paths, including
+examples in [S3_FIX_TECHNICAL_ANALYSIS.md](S3_FIX_TECHNICAL_ANALYSIS.md).
 
-The `app_storage.R` file was using `utils::URLencode(key, reserved = TRUE)` when preparing 
-HTTP paths for S3 requests. The `reserved = TRUE` parameter treats forward slashes (`/`) as 
-reserved characters and encodes them as `%2F`.
+## Validation
 
-This caused paths like:
-- Input: `compeat/COMP 5 (2021-2026)/current.json`
-- Output: `/compeat%2FCOMP%205%20%282021-2026%29%2Fcurrent.json` ❌
+Run `Rscript tests/test-assessment-storage.R` from the repository root.
+The loopback S3 fixture verifies GET/HEAD signatures against a canonical URI
+with fully encoded segments. Tests cover missing and existing assessment
+pointers, upload verification, restoration, and background publication.
+No production credentials or external network access are used.
 
-The AWS S3 service then calculated the signature based on the correct path, but the request
-contained an invalid path with encoded slashes, causing a `SignatureDoesNotMatch` error.
+## HTTP 403 without a recognized S3 error code
 
-## Solution
+This response alone does not establish a signature mismatch. It can also
+indicate a credential, permission, endpoint or gateway problem. The application
+retains the failure and provides safe troubleshooting hints without displaying
+raw response bodies or signed requests.
 
-Changed `utils::URLencode(key, reserved = FALSE)` in two locations:
-1. Line 107: In the `get()` function for downloading files
-2. Line 173: In the `put()` function for verification after upload
-
-With `reserved = FALSE`, forward slashes are preserved while spaces and special characters 
-are properly encoded:
-- Input: `compeat/COMP 5 (2021-2026)/current.json`  
-- Output: `/compeat/COMP%205%20(2021-2026)/current.json` ✓
-
-## Testing
-
-All existing tests in `tests/test-assessment-storage.R` pass with the fix, including:
-- Storage configuration validation
-- Assessment lifecycle operations
-- Shared restoration and publication
-
-The fix handles assessment names with:
-- Spaces: `COMP 5 (2021-2026)`
-- Parentheses: `(2021-2026)`
-- Multiple path segments: `runs/123/output/file.csv`
-
-## Impact
-
-This fix allows assessments with spaces and special characters in their names to be 
-downloaded from S3 without signature errors.
+After deploying the updated [app_storage.R](app_storage.R), restart the Shiny
+application and retry. If 403 persists, check the running service's credentials
+and S3 API endpoint, and verify access to `s3://project-compeat/compeat`.
+The service needs object read/write permissions for the configured prefix and
+sufficient bucket-list permission to distinguish a missing `current.json` from
+denied access. Only HTTP 404 with `NoSuchKey` permits initial calculation;
+HTTP 403 must not be bypassed or treated as a missing assessment.

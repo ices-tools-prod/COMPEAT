@@ -265,6 +265,25 @@ local({
           !grepl("Credential=fixture-key/", request$HTTP_AUTHORIZATION, fixed = TRUE)) {
         return(error(403L, "InvalidToken"))
       }
+      if (request$REQUEST_METHOD %in% c("GET", "HEAD")) {
+        # S3 signs a URI with each segment encoded, including parentheses.
+        canonical_path <- paste(vapply(strsplit(path, "/", fixed = TRUE)[[1]],
+          utils::URLencode, character(1), reserved = TRUE, repeated = TRUE), collapse = "/")
+        signature <- aws.signature::signature_v4_auth(
+          datetime = request$HTTP_X_AMZ_DATE, region = "", service = "s3",
+          verb = request$REQUEST_METHOD, action = canonical_path,
+          query_args = shiny::parseQueryString(request$QUERY_STRING),
+          canonical_headers = list(
+            host = request$HTTP_HOST, `x-amz-date` = request$HTTP_X_AMZ_DATE,
+            `x-amz-content-sha256` = request$HTTP_X_AMZ_CONTENT_SHA256
+          ),
+          request_body = "", key = "fixture-key", secret = "fixture-secret",
+          session_token = "fixture-token"
+        )
+        if (!identical(request$HTTP_AUTHORIZATION, signature$SignatureHeader)) {
+          return(error(403L, "SignatureDoesNotMatch"))
+        }
+      }
       if (grepl("^/missing-bucket/", path)) return(error(404L, "NoSuchBucket"))
       if (grepl("/denied$", path)) return(error(403L, "AccessDenied"))
       if (grepl("/expired$", path)) return(error(403L, "ExpiredToken"))
@@ -334,6 +353,8 @@ local({
   expect_error(client$get("expired", file), "HTTP 403, ExpiredToken")
   expect_error(client$get("signature", file), "HTTP 403, SignatureDoesNotMatch")
   expect_error(client$get("malformed", file, missing_ok = TRUE), "HTTP 403")
+  expect_error(client$get("malformed", file, missing_ok = TRUE),
+               "Check the service credentials, bucket/prefix permissions and S3 API endpoint")
   sensitive_error <- tryCatch(client$get("sensitive", file), error = identity)
   stopifnot(inherits(sensitive_error, "error"),
             !grepl("fixture-token|fixture-secret", conditionMessage(sensitive_error)))
@@ -348,6 +369,14 @@ local({
   writeLines("replace me", file)
   stopifnot(isTRUE(client$get("directory with spaces/object.txt", file)),
             identical(readLines(file), "fixture transfer"))
+  assessment_key <- "compeat/COMP 5 (2021-2026)/current.json"
+  stopifnot(identical(client$get(assessment_key, file, missing_ok = TRUE), FALSE))
+  writeLines("fixture assessment pointer", file)
+  stopifnot(isTRUE(client$put(assessment_key, file)))
+  writeLines("replace me", file)
+  stopifnot(isTRUE(client$get(assessment_key, file)),
+            identical(readLines(file), "fixture assessment pointer"))
+  unlink(file.path(root, "fixture-bucket", assessment_key))
   writeBin(as.raw(rep(1L, 10 * 1024^2 + 1L)), file)
   checksum <- unname(tools::md5sum(file))
   stopifnot(isTRUE(client$put("multipart.bin", file)))
