@@ -11,6 +11,19 @@ local({
   path <- tempfile("assessment-download-tests-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE))
+  path_expressions <- Filter(function(expression) {
+    is.call(expression) && identical(expression[[1]], as.name("<-")) &&
+      is.symbol(expression[[2]]) &&
+      as.character(expression[[2]]) %in% c("inputPath", "outputPath")
+  }, expressions)
+  environment$assessmentDataDir <- path
+  environment$assessmentPeriod <- "period"
+  for (expression in path_expressions) eval(expression, environment)
+  stopifnot(environment$outputPath == file.path(path, "period", "output"))
+  environment$assessmentOutputDir <- file.path(path, "staged-output")
+  for (expression in path_expressions) eval(expression, environment)
+  stopifnot(environment$outputPath == environment$assessmentOutputDir,
+            environment$inputPath == file.path(path, "period", "input"))
   url <- "https://example.invalid/input.csv?version=1"
   dest <- file.path(path, "input.csv")
   calls <- 0L
@@ -72,6 +85,39 @@ local({
   unlink(extracted)
   download("https://example.invalid/units.zip", path = path)
   stopifnot(calls == 5L, extractions == 2L, file.exists(extracted))
+
+  # Exercise the production download invocation, not only the helper's refetch argument.
+  download_flag <- Filter(function(expression) {
+    is.call(expression) && identical(expression[[1]], as.name("if")) &&
+      identical(expression[[2]], quote(!exists("assessmentForceDownload", inherits = FALSE)))
+  }, expressions)
+  download_inputs <- Filter(function(expression) {
+    is.call(expression) && identical(expression[[1]], as.name("<-")) &&
+      identical(expression[[2]], as.name("files"))
+  }, expressions)
+  stopifnot(length(download_flag) == 1L, length(download_inputs) == 1L)
+  eval(download_flag[[1]], environment)
+  stopifnot(identical(environment$assessmentForceDownload, FALSE))
+  environment$urls <- c(url, "https://example.invalid/units.zip")
+  environment$inputPath <- path
+  eval(download_inputs[[1]], environment)
+  stopifnot(calls == 5L, extractions == 3L)
+
+  environment$assessmentForceDownload <- TRUE
+  eval(download_flag[[1]], environment)
+  stopifnot(identical(environment$assessmentForceDownload, TRUE))
+  writeLines("old input", dest)
+  eval(download_inputs[[1]], environment)
+  stopifnot(calls == 7L, extractions == 4L,
+            identical(readLines(dest), "complete"),
+            identical(readLines(archive), "complete"),
+            identical(readLines(extracted), "units"))
+
+  behavior <- "error"
+  expect_error(eval(download_inputs[[1]], environment), "Fixture transfer interrupted")
+  stopifnot(calls == 8L, extractions == 4L,
+            identical(readLines(dest), "complete"),
+            !any(grepl("^assessment-download-", list.files(path))))
 
   cat("Assessment download tests passed.\n")
 })

@@ -20,13 +20,18 @@ if (!exists("assessmentDataDir", inherits = FALSE)) {
   assessmentDataDir <- Sys.getenv("COMPEAT_DATA_DIR", "data")
 }
 inputPath <- file.path(assessmentDataDir, assessmentPeriod, "input")
-outputPath <- file.path(assessmentDataDir, assessmentPeriod, "output")
+outputPath <- if (exists("assessmentOutputDir", inherits = FALSE)) {
+  assessmentOutputDir
+} else file.path(assessmentDataDir, assessmentPeriod, "output")
 
 # Create paths
 dir.create(inputPath, showWarnings = FALSE, recursive = TRUE)
 dir.create(outputPath, showWarnings = FALSE, recursive = TRUE)
 
 # Download and unpack files needed for the assessment --------------------------
+if (!exists("assessmentForceDownload", inherits = FALSE)) {
+  assessmentForceDownload <- FALSE
+}
 options(timeout = 1000)
 download.file.unzip.maybe <- function(url, refetch = FALSE, path = ".") {
   dest <- file.path(path, sub("\\?.+", "", basename(url)))
@@ -153,7 +158,8 @@ if (assessmentPeriod == "COMP 4 (2015-2020)") {
   indicator_CPHL_EO_02 <- file.path(inputPath, "Indicator_CPHL_EO_02_2021-2026.csv")
 }
 
-files <- sapply(urls, download.file.unzip.maybe, path = inputPath)
+files <- sapply(urls, download.file.unzip.maybe, path = inputPath,
+                refetch = assessmentForceDownload)
 
 # Assessment Units + Grid Units-------------------------------------------------
 

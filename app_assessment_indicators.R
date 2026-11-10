@@ -80,6 +80,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary, run_ass
 
     indicator_data <- reactive({
       req(!is.null(shared_state$assessment))
+      shared_state$results_version
         fread(file_paths_assessment_indicators()) %>% 
           mutate(across(where(is.double), ~ round(.x, 2)))
     })
@@ -92,6 +93,7 @@ moduleAssessmentIndicatorsServer <- function(id, shared_state, glossary, run_ass
 
     units <- reactive({
       req(!is.null(shared_state$assessment))
+      shared_state$results_version
       sf::read_sf(assessment_data_path(shared_state$assessment, "Units.shp"), stringsAsFactors = TRUE)
     })
     

@@ -67,6 +67,7 @@ moduleAnnualIndicatorsServer <- function(id, shared_state, glossary, run_assessm
     })
     
     indicator_data <- reactive({
+      shared_state$results_version
       if(!is.null(shared_state$assessment)){
         fread(file_paths_annual_indicators()) %>%
           mutate(across(where(is.double), ~ round(.x, digits = 2)))

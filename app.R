@@ -124,11 +124,13 @@ server <- function(input, output, session) {
     requested_assessment = NULL,
     data_ready = FALSE,
     publication_pending = FALSE,
+    results_version = NULL,
     assessment_loading = FALSE,
     assessment_running = FALSE
   )
 
   assessment_process_name <- NULL
+  displayed_job <- NULL
 
   assessment_output_files <- function(assessment) {
     assessment_data_path(assessment, assessment_required_files)
@@ -178,9 +180,15 @@ server <- function(input, output, session) {
     }
   })
 
-  run_assessment <- function(assessment) {
+  run_assessment <- function(assessment, force_recalculate = FALSE) {
     if (isTRUE(shared_state$assessment_running) ||
-        isTRUE(shared_state$assessment_loading)) return(invisible(FALSE))
+        isTRUE(shared_state$assessment_loading)) {
+      if (force_recalculate) {
+        showNotification("Wait for the current assessment operation to finish before recalculating.",
+                         type = "warning", duration = 10)
+      }
+      return(invisible(FALSE))
+    }
     if (is.null(assessment) || identical(assessment, "")) {
       shared_state$requested_assessment <- NULL
       shared_state$assessment <- NULL
@@ -189,28 +197,40 @@ server <- function(input, output, session) {
       return(invisible(TRUE))
     }
     req(assessment %in% assessment_periods)
+    target_dir <- file.path(assessment_storage$data_dir, assessment, "output")
+    job <- global_active_jobs[[target_dir]]
+    job_running <- !is.null(job) && job$is_alive()
+    if (force_recalculate && job_running) {
+      showNotification(
+        "This assessment already has a running job. No recalculation was started; try again when it finishes.",
+        type = "warning", duration = 10
+      )
+      return(invisible(FALSE))
+    }
     removeNotification("assessment-publication-pending")
     shared_state$requested_assessment <- assessment
     shared_state$assessment <- NULL
     shared_state$publication_pending <- FALSE
     shared_state$assessment_loading <- TRUE
 
-    target_dir <- file.path(assessment_storage$data_dir, assessment, "output")
-    job <- global_active_jobs[[target_dir]]
-    job_running <- !is.null(job) && job$is_alive()
     previous_result <- if (!is.null(job) && !job_running) {
       tryCatch(job$get_result(), error = function(error) error)
     }
 
-    # CASE A: Reuse cached results only when no unfinished or failed job owns them.
-    cached <- tryCatch(assessment_complete(assessment), error = function(error) error)
+    # CASE A: Reuse completed results unless recalculation was explicitly requested.
+    cached <- tryCatch(
+      !force_recalculate && assessment_complete(assessment),
+      error = function(error) error
+    )
     if (inherits(cached, "error")) {
       shared_state$assessment_loading <- FALSE
       showNotification(paste("Could not validate assessment cache:", conditionMessage(cached)),
                        type = "error", duration = NULL)
       return(invisible(FALSE))
     }
-    if (!job_running && !inherits(previous_result, "error") && cached) {
+    if (!job_running && cached) {
+      displayed_job <<- job
+      shared_state$results_version <- assessment_result_version(assessment_storage, assessment)
       shared_state$assessment <- assessment
       session$sendCustomMessage("assessmentResultsLoading", list(assessment = assessment))
       showNotification(
@@ -236,9 +256,10 @@ server <- function(input, output, session) {
 
     # CASE C: Start a new shared background job for this folder.
     marker <- completion_marker(assessment)
-    reuse_local <- all(file.exists(c(marker, assessment_output_files(assessment)))) &&
+    reuse_local <- !force_recalculate &&
+      all(file.exists(c(marker, assessment_output_files(assessment)))) &&
       !inherits(previous_result, "error")
-    if (file.exists(marker) && !file.remove(marker)) {
+    if (!force_recalculate && file.exists(marker) && !file.remove(marker)) {
       shared_state$assessment_loading <- FALSE
       showNotification("Could not invalidate the previous assessment completion marker.",
                        type = "error", duration = NULL)
@@ -250,19 +271,24 @@ server <- function(input, output, session) {
         stop("Could not create the assessment output directory.")
       }
       callr::r_bg(
-        function(app_root, assessment, storage, reuse_local) {
+        function(app_root, assessment, storage, reuse_local, force_recalculate) {
           setwd(app_root)
           source(file.path(app_root, "app_storage.R"), local = TRUE)
-          assessment_run_job(app_root, assessment, storage, reuse_local)
+          assessment_run_job(app_root, assessment, storage, reuse_local,
+                             force_recalculate = force_recalculate)
         },
         args = list(
           app_root = app_root,
           assessment = assessment,
           storage = assessment_storage,
-          reuse_local = reuse_local
+          reuse_local = reuse_local,
+          force_recalculate = force_recalculate
         ),
-        stdout = file.path(target_dir, "assessment-stdout.log"),
-        stderr = file.path(target_dir, "assessment-stderr.log")
+        # Forced runs replace the output directory, so their logs must live outside it.
+        stdout = file.path(if (force_recalculate) dirname(target_dir) else target_dir,
+                           "assessment-stdout.log"),
+        stderr = file.path(if (force_recalculate) dirname(target_dir) else target_dir,
+                           "assessment-stderr.log")
       )
     }, error = function(error) error)
 
@@ -281,8 +307,9 @@ server <- function(input, output, session) {
     shared_state$assessment_loading <- FALSE
     shared_state$assessment_running <- TRUE
     showNotification(
-      paste("Assessment preparation started for", assessment,
-            "in the background (restore, calculate or publish)."),
+      if (force_recalculate) paste("Recalculation started for", assessment, "in the background.")
+      else paste("Assessment preparation started for", assessment,
+                 "in the background (restore, calculate or publish)."),
       type = "default",
       duration = 10
     )
@@ -294,7 +321,16 @@ server <- function(input, output, session) {
     invalidateLater(5000, session)
     
     if (is.null(assessment_process_name)) {
-      return()
+      displayed <- shared_state$assessment
+      if (is.null(displayed)) return()
+      job <- global_active_jobs[[
+        file.path(assessment_storage$data_dir, displayed, "output")
+      ]]
+      if (is.null(job) || identical(job, displayed_job)) return()
+      assessment_process_name <<- displayed
+      shared_state$assessment <- NULL
+      shared_state$assessment_loading <- FALSE
+      shared_state$assessment_running <- TRUE
     }
 
     assessment <- assessment_process_name
@@ -303,6 +339,7 @@ server <- function(input, output, session) {
     if (job$is_alive()) {
       return()
     }
+    displayed_job <<- job
     
     result <- tryCatch(
       job$get_result(),
@@ -326,6 +363,7 @@ server <- function(input, output, session) {
         error = function(error) error
       )
       if (isTRUE(available)) {
+        shared_state$results_version <- assessment_result_version(assessment_storage, assessment)
         shared_state$assessment <- assessment
         shared_state$publication_pending <- TRUE
         shared_state$assessment_loading <- TRUE
@@ -337,10 +375,21 @@ server <- function(input, output, session) {
         )
         return()
       }
+      preserved <- tryCatch(assessment_complete(assessment), error = function(error) error)
+      if (isTRUE(preserved)) {
+        shared_state$results_version <- assessment_result_version(assessment_storage, assessment)
+        shared_state$assessment <- assessment
+        shared_state$assessment_loading <- TRUE
+        session$sendCustomMessage("assessmentResultsLoading", list(assessment = assessment))
+      }
       showNotification(
         paste(
           "Assessment preparation failed:",
           conditionMessage(result),
+          if (isTRUE(preserved)) "Previous completed results are still displayed.",
+          if (inherits(preserved, "error")) {
+            paste("Previous results could not be validated:", conditionMessage(preserved))
+          },
           if (inherits(available, "error")) {
             paste("Local results could not be validated:", conditionMessage(available))
           }
@@ -352,6 +401,8 @@ server <- function(input, output, session) {
     }
     
     removeNotification("assessment-publication-pending")
+    shared_state$publication_pending <- FALSE
+    shared_state$results_version <- assessment_result_version(assessment_storage, assessment)
     shared_state$assessment <- assessment
     shared_state$assessment_loading <- TRUE
     session$sendCustomMessage("assessmentResultsLoading", list(assessment = assessment))

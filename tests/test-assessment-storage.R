@@ -239,6 +239,103 @@ local({
 })
 
 local({
+  root <- tempfile("forced-assessments-")
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE))
+  for (mode in c("local", "s3")) {
+    storage <- list(mode = mode, data_dir = file.path(root, mode), bucket = "fixture",
+                    prefix = "compeat", base_url = "s3.example.invalid",
+                    use_https = TRUE, url_style = "path", region = "")
+    assessment <- "period"
+    directory <- file.path(storage$data_dir, assessment, "output")
+    dir.create(directory, recursive = TRUE)
+    count <- 0L
+    fail_calculation <- FALSE
+    incomplete <- FALSE
+    fail_publication <- FALSE
+    downloads <- 0L
+    objects <- new.env(parent = emptyenv())
+    client <- list(
+      get = function(key, file, missing_ok = FALSE) {
+        downloads <<- downloads + 1L
+        if (!exists(key, objects, inherits = FALSE)) return(FALSE)
+        writeBin(objects[[key]], file)
+        TRUE
+      },
+      put = function(key, file) {
+        if (fail_publication && grepl("/current.json$", key)) stop("Fixture publication failed")
+        objects[[key]] <- readBin(file, "raw", n = file.info(file)$size)
+        TRUE
+      }
+    )
+    calculate <- function(output_dir = directory) {
+      count <<- count + 1L
+      names <- if (incomplete) assessment_required_files[-1] else assessment_required_files
+      for (name in names) writeLines(paste("run", count), file.path(output_dir, name))
+      if (fail_calculation) stop("Fixture staged calculation failed")
+    }
+    run <- function(...) assessment_run_job(root, assessment, storage, client = client,
+                                            calculate = calculate, ...)
+    marker <- file.path(directory, "assessment.complete")
+    pending <- file.path(directory, "assessment.generated.json")
+    pointer_key <- assessment_s3_key(storage, assessment, "current.json")
+    stopifnot(isTRUE(run()), count == 1L, assessment_cache_complete(storage, assessment))
+    old_version <- assessment_result_version(storage, assessment)
+    old_files <- tools::md5sum(list.files(directory, full.names = TRUE))
+    old_objects <- as.list(objects)
+
+    # Partial and invalid staged results never replace the completed output.
+    fail_calculation <- TRUE
+    expect_error(run(force_recalculate = TRUE), "Fixture staged calculation failed")
+    fail_calculation <- FALSE
+    incomplete <- TRUE
+    expect_error(run(force_recalculate = TRUE), "Invalid assessment manifest")
+    incomplete <- FALSE
+    stopifnot(identical(tools::md5sum(names(old_files)), old_files),
+              identical(as.list(objects), old_objects),
+              assessment_cache_complete(storage, assessment),
+              identical(assessment_result_version(storage, assessment), old_version),
+              !any(grepl("^assessment-recalculate-", list.files(dirname(directory)))))
+
+    # Force bypasses both completed results and a stale pending-publication manifest.
+    writeLines("obsolete output", file.path(directory, "obsolete.csv"))
+    writeLines("invalid pending manifest", pending)
+    previous_downloads <- downloads
+    stopifnot(isTRUE(run(force_recalculate = TRUE, reuse_local = TRUE)), count == 4L,
+              downloads == previous_downloads,
+              !file.exists(file.path(directory, "obsolete.csv")), !file.exists(pending),
+              assessment_cache_complete(storage, assessment),
+              !identical(assessment_result_version(storage, assessment), old_version),
+              !any(grepl("^assessment-(previous|recalculate)-", list.files(dirname(directory)))))
+    stopifnot(identical(readLines(file.path(directory, assessment_required_files[1])), "run 4"))
+
+    if (mode == "s3") {
+      # New publication advances the pointer without deleting any previous run objects.
+      stopifnot(all(vapply(names(old_objects), function(key) {
+        key == pointer_key || identical(objects[[key]], old_objects[[key]])
+      }, logical(1))), !identical(objects[[pointer_key]], old_objects[[pointer_key]]))
+      previous_pointer <- objects[[pointer_key]]
+      fail_publication <- TRUE
+      expect_error(run(force_recalculate = TRUE), "S3 persistence failed")
+      stopifnot(count == 5L, downloads == previous_downloads,
+                identical(objects[[pointer_key]], previous_pointer),
+                assessment_pending_results_available(storage, assessment),
+                !file.exists(marker), !assessment_cache_complete(storage, assessment))
+      stopifnot(!any(grepl("^assessment-previous-", list.files(dirname(directory)))),
+                identical(readLines(file.path(directory, assessment_required_files[1])), "run 5"))
+      pending_version <- assessment_result_version(storage, assessment)
+      fail_publication <- FALSE
+      stopifnot(isTRUE(run()), count == 5L, downloads == previous_downloads,
+                !file.exists(pending), assessment_cache_complete(storage, assessment),
+                !any(grepl("^assessment-(previous|recalculate)-", list.files(dirname(directory)))),
+                !identical(objects[[pointer_key]], previous_pointer),
+                !identical(assessment_result_version(storage, assessment), pending_version))
+    }
+  }
+  cat("Forced assessment lifecycle tests passed.\n")
+})
+
+local({
   root <- tempfile("s3-http-tests-")
   dir.create(root)
   on.exit(unlink(root, recursive = TRUE))

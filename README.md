@@ -102,10 +102,28 @@ validated pending local results with a warning, without marking publication as
 successful. Other failures are reported to waiting users without displaying
 results, and selecting the period again retries the assessment.
 
-Worker output is written directly to `assessment-stdout.log` and
+Use **Recalculate assessment...** on the Assessment tab to explicitly rerun the
+selected period in either storage mode. Confirmation bypasses local result reuse,
+S3 restore and pending-publication reuse, and downloads all configured input files
+again, replacing existing downloads and re-extracting archives. Normal selection
+still reuses cached inputs. Calculation runs in a separate output directory and validates
+its results before replacing the current output. Calculation failures preserve
+previous completed results. S3 publication creates a new run and advances
+`current.json` only after successful uploads, preserving previous archives.
+Other sessions viewing the period reload new results on their next poll.
+Forced requests are rejected while another job for that period is running.
+See [RERUN_ASSESSMENT_GUIDE.md](./RERUN_ASSESSMENT_GUIDE.md) for publication retry
+and recovery details. No local backup is kept once the validated calculation
+replaces the old output, including when S3 publication fails. There are no
+built-in operator roles: deployment access
+controls must restrict recalculation to trusted users.
+
+Normal worker output is written directly to `assessment-stdout.log` and
 `assessment-stderr.log` in the period's output folder, rather than captured in
 unread pipes that can fill and stall downloads or calculations. Logs are replaced
 when a new assessment job starts; cached-result loads leave them unchanged.
+Forced-job logs live one level above `output`, in the period folder, so the output
+directory can be replaced without moving open log files.
 
 Inputs download quietly to temporary files in the input folder and are renamed
 to their final names only after a successful transfer. Failed downloads are
@@ -119,17 +137,21 @@ Job tracking is shared within one Shiny R process, not across multiple workers o
 app instances. Jobs do not survive an app process shutdown, but completed output
 files remain available for subsequent sessions. The completion marker is
 published by an atomic rename after the assessment script succeeds and its
-required outputs are checked. It is removed before regeneration; failed or
+required outputs are checked. For normal preparation it is removed before regeneration; failed or
 interrupted runs cannot produce a reusable cache. Existing output folders without
 a marker are recalculated once unless restored from S3. Normal local cache loads
 check completion and file presence, not file contents or changes to inputs.
+Forced recalculation instead preserves the old output and marker until its
+staged calculation has succeeded.
 
 Assessment selectors across tabs track the requested period. Selecting a period
 clears previous results immediately. Maps and tables remain blank, station and
 indicator selectors clear, and downloads are disabled until that assessment
 completes successfully, its completed cache is loaded, or its pending local
 results are validated after an S3 publication failure. Other failed requests leave
-results blank rather than restoring an older period. The app-wide status identifies
+results blank rather than restoring an older period. Failed forced calculations
+can redisplay preserved completed results for the same period with an error
+notification. The app-wide status identifies
 the requested and displayed period. Selecting the empty option clears both.
 
 Assessment selectors are locked across all tabs during generation and while

@@ -98,7 +98,7 @@ moduleStationsServer <- function(id, shared_state, station_configuration, run_as
       if(!is.null(shared_state$assessment)){
       dat <- fread(req_file(), select = c("Longitude..degrees_east.", "Latitude..degrees_north."))
       }
-    }) %>% bindCache(shared_state$assessment, input$stationType)
+    }) %>% bindCache(shared_state$assessment, input$stationType, shared_state$results_version)
     
     output$map <- renderLeaflet({
       if(!is.null(shared_state$assessment)){
@@ -117,7 +117,7 @@ moduleStationsServer <- function(id, shared_state, station_configuration, run_as
         
       map
       }
-    }) %>% bindCache(shared_state$assessment, input$stationType)
+    }) %>% bindCache(shared_state$assessment, input$stationType, shared_state$results_version)
     
     output$downloadStations <- shiny::downloadHandler(
       filename = function () {

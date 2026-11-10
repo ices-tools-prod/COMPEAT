@@ -11,6 +11,7 @@ moduleAssessmentUI <- function(id) {
                                  choices = c("Select assessment" = "", assessment_periods),
                                  selected = ""
                                ),
+        actionButton(ns("recalculate"), "Recalculate assessment..."),
         selectInput(
           inputId = ns("category"),
           label = "Select Assessment Category:",
@@ -33,6 +34,7 @@ moduleAssessmentUI <- function(id) {
 moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+    recalculation_assessment <- NULL
 
     observe({
       shinyjs::toggleState(
@@ -44,6 +46,42 @@ moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
         condition = !isTRUE(shared_state$assessment_running) &&
           !isTRUE(shared_state$assessment_loading)
       )
+      shinyjs::toggleState(
+        "recalculate",
+        condition = !is.null(shared_state$requested_assessment) &&
+          nzchar(shared_state$requested_assessment) &&
+          !isTRUE(shared_state$assessment_running) &&
+          !isTRUE(shared_state$assessment_loading)
+      )
+    })
+
+    observeEvent(input$recalculate, {
+      req(shared_state$requested_assessment)
+      if (isTRUE(shared_state$assessment_running) ||
+          isTRUE(shared_state$assessment_loading)) return()
+      recalculation_assessment <<- shared_state$requested_assessment
+      showModal(modalDialog(
+        title = paste("Recalculate", recalculation_assessment, "?"),
+        "This will download all configured input files again and recalculate all results, without reusing local or S3 results. Existing downloaded inputs will be replaced.",
+        tags$p("Successful results will become current. Existing S3 archives are preserved. Other users viewing this assessment will also receive the new results."),
+        footer = tagList(
+          modalButton("Cancel"),
+          actionButton(ns("confirmRecalculate"), "Recalculate")
+        )
+      ))
+    })
+
+    observeEvent(input$confirmRecalculate, {
+      req(recalculation_assessment)
+      assessment <- recalculation_assessment
+      recalculation_assessment <<- NULL
+      removeModal()
+      if (!identical(assessment, shared_state$requested_assessment)) {
+        showNotification("The selected period changed. Reopen the recalculation confirmation.",
+                         type = "warning", duration = 10)
+        return()
+      }
+      run_assessment(assessment, force_recalculate = TRUE)
     })
     
     observeEvent(input$assessmentSelect, {
@@ -79,11 +117,13 @@ moduleAssessmentServer <- function(id, shared_state, glossary, run_assessment) {
     
     assessment_data <- reactive({
       req(!is.null(shared_state$assessment))
+      shared_state$results_version
       fread(file_paths_assessment())
     }) 
     
     units <- reactive({
       req(!is.null(shared_state$assessment))
+      shared_state$results_version
       sf::read_sf(assessment_data_path(shared_state$assessment, "Units.shp"), stringsAsFactors = TRUE)
     }) 
     

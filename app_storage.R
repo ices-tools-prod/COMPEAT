@@ -345,19 +345,28 @@ assessment_pending_results_available <- function(storage, assessment) {
   TRUE
 }
 
+assessment_result_version <- function(storage, assessment) {
+  directory <- file.path(storage$data_dir, assessment, "output")
+  metadata <- file.path(directory, "assessment.generated.json")
+  if (storage$mode != "s3" || !file.exists(metadata)) {
+    metadata <- file.path(directory, "assessment.complete")
+  }
+  version <- unname(tools::md5sum(metadata))
+  if (is.na(version)) stop("Could not read the assessment result version.")
+  version
+}
+
 assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALSE,
-                               client = NULL, calculate = NULL) {
+                               client = NULL, calculate = NULL,
+                               force_recalculate = FALSE) {
   directory <- file.path(storage$data_dir, assessment, "output")
   marker <- file.path(directory, "assessment.complete")
   pending <- file.path(directory, "assessment.generated.json")
   if (!dir.exists(directory) && !dir.create(directory, recursive = TRUE)) {
     stop("Could not create assessment output directory.")
   }
-  if (file.exists(marker) && !file.remove(marker)) {
-    stop("Could not invalidate the assessment completion marker.")
-  }
   if (is.null(calculate)) {
-    calculate <- function() {
+    calculate <- function(output_dir = directory) {
       library(data.table)
       library(ncdf4)
       library(R.utils)
@@ -365,9 +374,37 @@ assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALS
       library(sf)
       library(tidyverse)
       source(file.path(app_root, "data.R"), local = list2env(list(
-        assessmentPeriod = assessment, assessmentDataDir = storage$data_dir
+        assessmentPeriod = assessment, assessmentDataDir = storage$data_dir,
+        assessmentOutputDir = output_dir,
+        assessmentForceDownload = force_recalculate
       )))
     }
+  }
+  if (force_recalculate) {
+    staging <- tempfile("assessment-recalculate-", tmpdir = dirname(directory))
+    if (!dir.create(staging)) stop("Could not create the recalculation staging directory.")
+    retain_staging <- FALSE
+    on.exit(if (!retain_staging) unlink(staging, recursive = TRUE), add = TRUE)
+    calculate(staging)
+    manifest <- assessment_make_manifest(assessment, staging)
+    assessment_check_files(manifest, staging)
+    if (storage$mode == "s3") {
+      assessment_write_json(manifest, file.path(staging, "assessment.generated.json"))
+    }
+    if (file.exists(marker) && !file.remove(marker)) {
+      stop("Could not invalidate the previous assessment completion marker.")
+    }
+    if (unlink(directory, recursive = TRUE) != 0L || dir.exists(directory)) {
+      stop("Could not remove the previous assessment output.")
+    }
+    if (!file.rename(staging, directory)) {
+      # Retain validated results for operator recovery if installation fails.
+      retain_staging <- TRUE
+      stop("Could not install recalculated results. Validated results retained at ", staging, ".")
+    }
+  }
+  if (file.exists(marker) && !file.remove(marker)) {
+    stop("Could not invalidate the assessment completion marker.")
   }
   if (storage$mode == "s3") {
     if (is.null(client)) client <- assessment_s3_client(storage)
@@ -389,7 +426,8 @@ assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALS
         assessment_publish(storage, assessment, directory, manifest, client),
         error = function(error) stop(
           "Calculation completed, but S3 persistence failed. Local results retained; ",
-          "select the assessment again to retry publication. ", conditionMessage(error)
+          "select the assessment again to retry publication. ",
+          conditionMessage(error)
         )
       )
     }
@@ -398,7 +436,7 @@ assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALS
     if (file.exists(pending) && !file.remove(pending)) {
       stop("Could not remove the pending publication manifest.")
     }
-  } else {
+  } else if (!force_recalculate) {
     calculate()
   }
   if (!all(file.exists(file.path(directory, assessment_required_files)))) {
@@ -406,7 +444,7 @@ assessment_run_job <- function(app_root, assessment, storage, reuse_local = FALS
   }
   temporary_marker <- tempfile("assessment-complete-", tmpdir = directory)
   on.exit(unlink(temporary_marker), add = TRUE)
-  writeLines(as.character(Sys.time()), temporary_marker)
+  writeLines(c(as.character(Sys.time()), basename(temporary_marker)), temporary_marker)
   if (!file.rename(temporary_marker, marker)) {
     stop("Could not publish the assessment completion marker.")
   }
